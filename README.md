@@ -21,11 +21,13 @@ pip install git+https://github.com/DingWB/cemba_data
 ```shell
 git clone https://github.com/DingWB/cemba_data.git
 mamba env create -f cemba_data/env.yaml
+pip install pysam==0.20.0
 conda activate yap
 ```
 Or directly read from http:
 ```shell
 mamba env create -f https://raw.githubusercontent.com/DingWB/cemba_data/master/env.yaml
+pip install pysam==0.20.0
 conda activate yap
 ```
 
