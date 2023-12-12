@@ -91,7 +91,7 @@ def _read_plate_info(plate_info_path):
                     library_info[k] = v
             elif cur_section == '[PlateInfo]':
                 # support more general characters
-                ll = re.split(r' |,|\t', 'line')
+                ll = re.split(r' |,|\t', line)
                 # ll = line.split('\t')
                 if plate_header:
                     plate_header = False
