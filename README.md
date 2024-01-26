@@ -70,7 +70,7 @@ snakemake --snakefile ~/sky_workdir/Snakefile -j 8 --default-resources mem_mb=10
 wget https://raw.githubusercontent.com/DingWB/cemba_data/master/cemba_data/files/skypilot_template.yaml
 # vim skypilot_template.yaml
 # change image_id, --default-remote-prefix (such as mapping_example/mapping/test1/{outdir})
-yap update-snakemake -o mapping -t m3c_skypilot_template.yaml
+yap update-snakemake -o mapping -t skypilot_template.yaml
 # spot
 #sky spot launch -y mapping/snakemake/gcp/AMB_220510_8wk_12D_13B_2_P3-3-A11.yaml
 cnda activate sky
@@ -78,3 +78,4 @@ sh mapping/snakemake/gcp/sky_spot.sh
 ```
 
 ## Run both demultiplex and mapping on GCP
+
