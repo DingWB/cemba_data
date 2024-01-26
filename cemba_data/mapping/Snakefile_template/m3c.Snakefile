@@ -26,13 +26,10 @@ if gcp:
     from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
     GS = GSRemoteProvider()
     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
-    bam_dir=workflow.default_remote_prefix+"/bam"
-    allc_dir=workflow.default_remote_prefix+"/allc"
-    hic_dir=workflow.default_remote_prefix+"/hic"
-else:
-    bam_dir="bam"
-    allc_dir="allc"
-    hic_dir="hic"
+
+bam_dir=workflow.default_remote_prefix+"/bam" if gcp else "bam"
+allc_dir=workflow.default_remote_prefix+"/allc" if gcp else "allc"
+hic_dir=workflow.default_remote_prefix+"/hic" if gcp else "hic"
 
 fastq_dir=os.path.abspath("fastq")
 
@@ -44,6 +41,7 @@ rule summary:
         expand("allc/{cell_id}.allc.tsv.gz.count.csv", cell_id=CELL_IDS),
         local(expand("fastq/{cell_id}-{read_type}.trimmed.stats.tsv", 
                         cell_id=CELL_IDS,read_type=['R1','R2'])),
+        # add local, mean not uploading to cloud
         local(expand(bam_dir+"/{cell_id}-{read_type}.two_mapping.deduped.matrix.txt", 
                         cell_id=CELL_IDS,read_type=['R1','R2'])),
         local(expand(bam_dir+"/{cell_id}-{read_type}.two_mapping.filter.bam", 

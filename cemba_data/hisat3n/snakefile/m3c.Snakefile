@@ -4,55 +4,26 @@ Snakemake pipeline for hisat-3n mapping of snm3C-seq data
 hg38 normal index uses ~9 GB of memory
 repeat index will use more memory
 """
-
-
-# example 1: run on local HPC:
-
-# snakemake -d /gale/ddn/bican/Wubin/run_pipeline/mapping/AMB_220510_8wk_12D_13B_2_P3-5-A11 \
-# --snakefile /gale/ddn/bican/Wubin/run_pipeline/mapping/AMB_220510_8wk_12D_13B_2_P3-5-A11/Snakefile \
-# -j 10 --default-resources mem_mb=100 --resources mem_mb=50000
-
-# example 2: run on GCP
-# sync Snakefile to GCP:~/sky_workdir
-
-# conda activate yap
-# prefix="DATASET/mapping/Pool1/AMB_220510_8wk_12D_13B_2_P3-5-A11/"
-# snakemake --snakefile ~/sky_workdir/Snakefile -j 10 --default-resources mem_mb=100 --resources mem_mb=50000
-# --config gcp=True --default-remote-prefix ${prefix} \
-# --default-remote-provider GS --google-lifesciences-region us-west1 -np
-
-if "gcp" in config:
-    gcp=config["gcp"] # if the fastq files stored in GCP cloud, set gcp=True in snakemake: --config gcp=True
-else:
-    gcp=False
-
-if gcp:
-    from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
-    GS = GSRemoteProvider()
-    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
-    bam_dir=workflow.default_remote_prefix+"/bam"
-    allc_dir=workflow.default_remote_prefix+"/allc"
-    hic_dir=workflow.default_remote_prefix+"/hic"
-else:
-    bam_dir="bam"
-    allc_dir="allc"
-    hic_dir="hic"
-
-# ==================================================
-# Import
-# ==================================================
-
-
 import yaml
 import pathlib
 from cemba_data.hisat3n import *
 
-
+# if "gcp" in config:
+#     gcp=config["gcp"] # if the fastq files stored in GCP cloud, set gcp=True in snakemake: --config gcp=True
+# else:
+#     gcp=False
+#
+# if gcp:
+#     from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
+#     GS = GSRemoteProvider()
+#     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
+#
+# bam_dir=workflow.default_remote_prefix+"/bam" if gcp else "bam"
+# allc_dir=workflow.default_remote_prefix+"/allc" if gcp else "allc"
+# hic_dir=workflow.default_remote_prefix+"/hic" if gcp else "hic"
 # ==================================================
 # Preparation
 # ==================================================
-
-
 # read mapping config and put all variables into the locals()
 DEFAULT_CONFIG = {
     'hisat3n_repeat_index_type': '',
@@ -74,6 +45,9 @@ DEFAULT_CONFIG = {
 }
 REQUIRED_CONFIG = ['hisat3n_dna_reference', 'reference_fasta', 'chrom_size_path']
 
+local_config = read_mapping_config()
+DEFAULT_CONFIG.update(local_config)
+
 for k, v in DEFAULT_CONFIG.items():
     if k not in config:
         config[k] = v
@@ -89,16 +63,12 @@ if len(missing_key) > 0:
 fastq_table = validate_cwd_fastq_paths()
 CELL_IDS = fastq_table.index.tolist()
 
-
-
 mcg_context = 'CGN' if int(config['num_upstr_bases']) == 0 else 'HCGN'
 repeat_index_flag = "--repeat" if config['hisat3n_repeat_index_type'] == 'repeat' else "--no-repeat-index"
-
 
 # ==================================================
 # Mapping summary
 # ==================================================
-
 
 # the summary rule is the final target
 rule summary:
@@ -113,6 +83,7 @@ rule summary:
         # 3C contacts
         expand("hic/{cell_id}.hisat3n_dna.all_reads.contact_stats.csv", cell_id=CELL_IDS),
         # allc
+        expand("allc/{cell_id}.allc.tsv.gz", cell_id=CELL_IDS),
         expand("allc/{cell_id}.allc.tsv.gz.count.csv", cell_id=CELL_IDS),
         expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz.tbi",
                cell_id=CELL_IDS, mcg_context=mcg_context),
@@ -403,7 +374,6 @@ rule sort_bam:
         1
     shell:
         "samtools sort -O BAM -o {output} {input}"
-
 
 # remove PCR duplicates
 rule dedup_unique_bam:

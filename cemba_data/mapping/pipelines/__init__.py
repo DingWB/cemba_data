@@ -153,12 +153,11 @@ def write_gcp_skypolit_yaml(output_dir, template_path):
         outdir=output_dir.name
         workdir=str(output_dir)+f"/{uid}"
         print(yaml_path)
-        name=uid.lower()
+        name=uid.lower().replace('_','-')
         with open(yaml_path,'w') as f:
             f.write(template.format(name=name,uid=uid,workdir=workdir,outdir=outdir))
         f_cmd.write(f"sky spot launch -n {name} -y "+str(yaml_path)+"\n")
     f_cmd.close()
-
 
 def write_sbatch_commands(output_dir, cores_per_job, script_dir, total_mem_mb, queue):
     output_dir_name = output_dir.name
@@ -196,7 +195,6 @@ def write_sbatch_commands(output_dir, cores_per_job, script_dir, total_mem_mb, q
             for cmd in cmds.values():
                 f.write(cmd + '\n')
     return f'{outdir}/snakemake/sbatch/snakemake_{queue}_cmd.txt'
-
 
 def prepare_qsub(name, snakemake_dir, total_jobs, cores_per_job, memory_gb_per_core):
     output_dir = snakemake_dir.parent
@@ -238,7 +236,6 @@ yap qsub \
           f"as long as they all get successfully executed.")
     print('#' * 60 + '\n')
     return
-
 
 def prepare_sbatch(name, snakemake_dir, queue):
     output_dir = snakemake_dir.parent
@@ -333,7 +330,6 @@ def prepare_sbatch(name, snakemake_dir, queue):
     print('#' * 40 + '\n')
     return
 
-
 def prepare_run(output_dir, total_jobs=12, cores_per_job=10, memory_gb_per_core='5G', name=None):
     config = get_configuration(output_dir / 'mapping_config.ini')
     mode = config['mode']
@@ -373,7 +369,6 @@ def prepare_run(output_dir, total_jobs=12, cores_per_job=10, memory_gb_per_core=
 
     print(f"Once all commands are executed successfully, use 'yap summary' to generate final mapping summary.")
     return
-
 
 def start_from_cell_fastq(output_dir, fastq_pattern, config_path,sky_template=None):
     output_dir = pathlib.Path(output_dir).absolute()
