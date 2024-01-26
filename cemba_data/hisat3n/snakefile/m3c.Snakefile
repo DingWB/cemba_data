@@ -5,6 +5,39 @@ hg38 normal index uses ~9 GB of memory
 repeat index will use more memory
 """
 
+
+# example 1: run on local HPC:
+
+# snakemake -d /gale/ddn/bican/Wubin/run_pipeline/mapping/AMB_220510_8wk_12D_13B_2_P3-5-A11 \
+# --snakefile /gale/ddn/bican/Wubin/run_pipeline/mapping/AMB_220510_8wk_12D_13B_2_P3-5-A11/Snakefile \
+# -j 10 --default-resources mem_mb=100 --resources mem_mb=50000
+
+# example 2: run on GCP
+# sync Snakefile to GCP:~/sky_workdir
+
+# conda activate yap
+# prefix="DATASET/mapping/Pool1/AMB_220510_8wk_12D_13B_2_P3-5-A11/"
+# snakemake --snakefile ~/sky_workdir/Snakefile -j 10 --default-resources mem_mb=100 --resources mem_mb=50000
+# --config gcp=True --default-remote-prefix ${prefix} \
+# --default-remote-provider GS --google-lifesciences-region us-west1 -np
+
+if "gcp" in config:
+    gcp=config["gcp"] # if the fastq files stored in GCP cloud, set gcp=True in snakemake: --config gcp=True
+else:
+    gcp=False
+
+if gcp:
+    from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
+    GS = GSRemoteProvider()
+    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
+    bam_dir=workflow.default_remote_prefix+"/bam"
+    allc_dir=workflow.default_remote_prefix+"/allc"
+    hic_dir=workflow.default_remote_prefix+"/hic"
+else:
+    bam_dir="bam"
+    allc_dir="allc"
+    hic_dir="hic"
+
 # ==================================================
 # Import
 # ==================================================

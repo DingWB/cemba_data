@@ -23,11 +23,14 @@ mamba env update -f hisat3n_env.yml  # this should install things in the base en
 mkdir -p ~/pkg
 
 # install hisat-3n
+# https://daehwankimlab.github.io/hisat2/hisat-3n/
 cd ~/pkg
 git clone https://github.com/DaehwanKimLab/hisat2.git hisat-3n
 cd hisat-3n
-git checkout hisat-3n-dev-directional-mapping-reverse
+git checkout -b hisat-3n origin/hisat-3n
+#git checkout hisat-3n-dev-directional-mapping-reverse
 make
+
 # put hisat-3n in the PATH
 echo 'export PATH=$HOME/pkg/hisat-3n:$PATH' >> ~/.bashrc
 source ~/.bashrc 
