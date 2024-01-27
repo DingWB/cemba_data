@@ -10,9 +10,7 @@ if 'gcp' in config and config["gcp"]:
     from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
     GS = GSRemoteProvider()
     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
-    fq_dir=config["fq_dir"]
 else:
-    fq_dir=pathlib.Path(config["fq_dir"]).absolute()
 outdir=config["outdir"] if 'outdir' in config else 'mapping'
 barcode_version = config["barcode_version"] if 'barcode_version' in config else "V2"
 

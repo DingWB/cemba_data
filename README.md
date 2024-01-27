@@ -78,6 +78,7 @@ sh mapping/snakemake/gcp/sky_spot.sh
 ```
 
 ## Run both demultiplex and mapping on GCP
+### (1). Demultiplex
 ```shell
 wget https://raw.githubusercontent.com/DingWB/cemba_data/master/cemba_data/files/gcp/demultiplex.Snakefile
 # Open an GCP VM machine and run the following code:
@@ -120,4 +121,15 @@ run: |
 
 ```shell
 sky spot launch -n demultiplex -y run_demultiplex.yaml
+```
+
+### (2). Merge lanes
+```shell
+wget https://raw.githubusercontent.com/DingWB/cemba_data/master/cemba_data/files/gcp/merge_lanes.Snakefile
+
+snakemake -s merge_lanes.Snakefile \
+                  --use-conda --config gcp=True outdir="test2" -j 8 \
+                  --default-remote-prefix mapping_example \
+                  --default-remote-provider GS --google-lifesciences-region us-west1 \
+                  --default-remote-provider GS --google-lifesciences-region us-west1 --keep-remote
 ```
