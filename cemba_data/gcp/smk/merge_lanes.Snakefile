@@ -1,4 +1,4 @@
-import os.path
+import os,sys
 import pandas as pd
 import pathlib
 import re
@@ -25,6 +25,7 @@ df=get_lanes_info(outdir,barcode_version)
 if df is None:
     print("Merging is already done.")
     os._exit(1) #sys.exit()
+
 df1=df.loc[:,['uid','index_name','read_type','fastq_path']].groupby(['uid','index_name','read_type'],as_index=False).agg(lambda x:x.tolist())
 df1['fastq_out']=df1.apply(lambda row:os.path.join(outdir,row.uid,"fastq",\
                         '-'.join(row.loc[['uid','index_name','read_type']].map(str).tolist())+\

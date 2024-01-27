@@ -1,10 +1,11 @@
-import os.path
+import os,sys
 import pandas as pd
 import pathlib
 import re
 import cemba_data
 PACKAGE_DIR=cemba_data.__path__[0]
 from cemba_data.gcp import *
+from cemba_data.demultiplex import _parse_index_fasta,_read_cutadapt_result
 
 if 'gcp' in config and run_on_gcp:
     from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
@@ -21,7 +22,7 @@ barcode_version = config["barcode_version"] if 'barcode_version' in config else 
 
 print(outdir)
 
-df=get_fastq_info(fq_dir,outdir,run_on_gcp)
+df=get_fastq_info(fq_dir,outdir,fq_ext,run_on_gcp)
 
 if barcode_version == 'V2' and df['multiplex_group'].nunique() == 1:
     print('Detect only single multiplex group in each plate, will use V2-single mode.')
@@ -48,8 +49,9 @@ rule run_demultiplex: #{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pn
 
     output: #uid, lane, index_name, read_type; dynamic: https://stackoverflow.com/questions/52598637/unknown-output-in-snakemake
         stats_out ="{dir}/{uid}/lanes/{uid}-{lane}.demultiplex.stats.txt",
-        R1=dynamic("{dir}/{uid}/lanes/{uid}-{lane}-{name}-R1.fq.gz"),
-        R2=dynamic("{dir}/{uid}/lanes/{uid}-{lane}-{name}-R2.fq.gz"),
+#         stats_out =dynamic("{dir}/{uid}/lanes/{uid}-{lane}-{name}.demultiplex.stats.txt"),
+#         R1=dynamic("{dir}/{uid}/lanes/{uid}-{lane}-{name}-R1.fq.gz"),
+#         R2=dynamic("{dir}/{uid}/lanes/{uid}-{lane}-{name}-R2.fq.gz"),
     conda:
         "yap"
 
@@ -62,7 +64,7 @@ rule run_demultiplex: #{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pn
                         if  barcode_version=="V2" else \
                         os.path.join(PACKAGE_DIR,'files','random_index_v2','random_index_v2.fa'),
         outdir=lambda wildcards: f"{wildcards.dir}/{wildcards.uid}/lanes", # will be copy to GCP in merge_lanes.smk
-        outdir2=lambda wildcards: f"{wildcards.dir}/{wildcards.uid}/lanes" if not config['gcp'] else \
+        outdir2=lambda wildcards: f"{wildcards.dir}/{wildcards.uid}/lanes" if not run_on_gcp else \
                                                 workflow.default_remote_prefix+f"/{wildcards.dir}/{wildcards.uid}/lanes",
         R1=lambda wildcards: f"{wildcards.dir}/{wildcards.uid}/lanes/{wildcards.uid}-{wildcards.lane}-{{name}}-R1.fq.gz",
         R2=lambda wildcards: f"{wildcards.dir}/{wildcards.uid}/lanes/{wildcards.uid}-{wildcards.lane}-{{name}}-R2.fq.gz"
@@ -71,6 +73,7 @@ rule run_demultiplex: #{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pn
         """
         mkdir -p {params.outdir}
         mkdir -p {params.outdir2}
+#         echo {output.stats_out}
         cutadapt -Z -e 0.01 --no-indels -g file:{params.random_index_fa} \
         -o  {params.R1} -p {params.R2} {input.R1} {input.R2} > {output.stats_out}
         """
@@ -86,7 +89,7 @@ rule summary_demultiplex:
     output:
         csv="{dir}/stats/demultiplex.stats.csv"
     params:
-        stat_dir=lambda wildcards:os.path.join(wildcards.dir,"stats") if not config['gcp'] else \
+        stat_dir=lambda wildcards:os.path.join(wildcards.dir,"stats") if not run_on_gcp else \
                      os.path.join(workflow.default_remote_prefix,wildcards.dir,"stats")
     run:
         print(params.stat_dir)

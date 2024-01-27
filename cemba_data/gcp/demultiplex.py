@@ -1,6 +1,8 @@
+import os,sys
+import pandas as pd
 from snakemake.io import glob_wildcards
 
-def get_fastq_info(fq_dir,outdir,run_on_gcp):
+def get_fastq_info(fq_dir,outdir,fq_ext,run_on_gcp):
 	#For example: 220517-AMB-mm-na-snm3C_seq-NovaSeq-pe-150-WT-AMB_220510_8wk_12D_13B_2_P3-1-A11_S7_L001_R1_001.fastq.gz
 	indirs,prefixes,plates,multiple_groups,primer_names,pns,lanes,\
 	read_types,suffixes=glob_wildcards(os.path.join(str(fq_dir),\
@@ -39,6 +41,7 @@ def get_fastq_info(fq_dir,outdir,run_on_gcp):
 	df['R2']=df.R1.apply(lambda x:x.replace('_R1_','_R2_'))
 	df['stats_out']=df.apply(lambda row: os.path.join(outdir, f"{row.uid}/lanes/{row.uid}-{row.lane}.demultiplex.stats.txt"),
 										axis=1) #"{dir}/{uid}/lanes/{uid}-{lane}.demultiplex.stats.txt"
+	df.to_csv("")
 	return df
 
 def get_lanes_info(outdir,barcode_version):
@@ -71,4 +74,5 @@ def get_lanes_info(outdir,barcode_version):
 	df=df.loc[df.real_multiplex_group !='NA']
 	# new uid (real uid)
 	df['uid']= df.plate.map(str)+'-'+df.real_multiplex_group.map(str)+'-'+df.primer_name.map(str) #{plate}-{multiplex_group}-{primer_name}
+	df.to_csv("lane_info.txt")
 	return df
