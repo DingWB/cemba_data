@@ -81,7 +81,7 @@ sh mapping/snakemake/gcp/sky_spot.sh
 ```shell
 wget https://raw.githubusercontent.com/DingWB/cemba_data/master/cemba_data/files/gcp/demultiplex.Snakefile
 # Open an GCP VM machine and run the following code:
-snakemake --profile -s demultiplex.Snakefile --use-conda True \
+snakemake --profile -s demultiplex.Snakefile --use-conda \
                   --config gcp=True fq_dir="gs://mapping_example/fastq/test_fastq" -j 8 \
                   --default-remote-prefix mapping_example \
                   --default-remote-provider GS --google-lifesciences-region us-west1 --keep-remote -np
@@ -112,7 +112,7 @@ setup: |
 run: |
   conda activate yap
   pip install git+https://github.com/DingWB/cemba_data
-  snakemake -s demultiplex.Snakefile --use-conda True \
+  snakemake -s demultiplex.Snakefile --use-conda \
                   --config gcp=True fq_dir="gs://mapping_example/fastq/test_fastq" outdir="test2" -j 8 \
                   --default-remote-prefix mapping_example \
                   --default-remote-provider GS --google-lifesciences-region us-west1 --keep-remote
