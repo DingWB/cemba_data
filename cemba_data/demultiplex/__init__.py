@@ -1,2 +1,2 @@
 from .plateinfo_and_samplesheet import print_plate_info, make_sample_sheet
-from .demultiplex import demultiplex_pipeline, update_snakemake
+from .demultiplex import demultiplex_pipeline, update_snakemake,_parse_index_fasta,_read_cutadapt_result

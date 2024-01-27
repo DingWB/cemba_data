@@ -3,112 +3,25 @@ import pandas as pd
 import pathlib
 import re
 import cemba_data
-# from snakemake.io import glob_wildcards
 PACKAGE_DIR=cemba_data.__path__[0]
+from cemba_data.gcp import *
 
-if 'gcp' in config and config["gcp"]:
+if 'gcp' in config and run_on_gcp:
     from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
     GS = GSRemoteProvider()
     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
     fq_dir=config["fq_dir"]
+    run_on_gcp=True
 else:
     fq_dir=pathlib.Path(config["fq_dir"]).absolute()
+    run_on_gcp=False
 fq_ext=config["fq_ext"] if 'fq_ext' in config else 'fastq'
-outdir=config["outdir"] if 'outdir' in config else 'mapping'
+outdir=os.path.abspath(os.path.expanduser(config["outdir"])) if 'outdir' in config else 'mapping'
 barcode_version = config["barcode_version"] if 'barcode_version' in config else "V2"
 
 print(outdir)
 
-def get_fastq_info(fq_dir,outdir):
-    fq_df_path="fastq_info.txt"
-    if not os.path.exists(fq_df_path):
-        #For example: 220517-AMB-mm-na-snm3C_seq-NovaSeq-pe-150-WT-AMB_220510_8wk_12D_13B_2_P3-1-A11_S7_L001_R1_001.fastq.gz
-        indirs,prefixes,plates,multiple_groups,primer_names,pns,lanes,\
-        read_types,suffixes=glob_wildcards(os.path.join(str(fq_dir),\
-                "{indir}/{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}."+f"{fq_ext}.gz")) \
-                if not config["gcp"] else \
-                GS.glob_wildcards(fq_dir+"/{indir}/{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}."+f"{fq_ext}.gz")
-        indirs=[fq_dir + '/' + d for d in indirs]
-
-        if len(indirs)==0: # depth=1
-            prefixes,plates,multiple_groups,primer_names,pns,lanes,\
-            read_types,suffixes=glob_wildcards(os.path.join(str(fq_dir),\
-                    "{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}."+f"{fq_ext}.gz")) \
-                    if not config["gcp"] else \
-                    GS.glob_wildcards(fq_dir+"/{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}."+f"{fq_ext}.gz")
-            indirs=[str(fq_dir)] * len(prefixes)
-
-        df=pd.DataFrame.from_dict(
-                                    {'indir':indirs,
-                                    'prefix':prefixes,
-                                    'plate':plates,
-                                    'multiplex_group':multiple_groups,
-                                    'primer_name':primer_names,
-                                    'pns':pns,
-                                    'lane':lanes,
-                                    'read_type':read_types,
-                                    'suffix':suffixes}
-                                    )
-        df['fastq_path']=df.apply(lambda row:os.path.join(row.indir,\
-                                '-'.join(row.loc[['prefix','plate','multiplex_group','primer_name']].map(str).tolist())+\
-                                "_"+"_".join(row.loc[['pns','lane','read_type','suffix']].map(str).tolist())+f".{fq_ext}.gz")
-                                ,axis=1)
-        df['uid']=df.plate.map(str)+'-'+df.multiplex_group.map(str)+'-'+df.primer_name.map(str) #f'{plate}-{multiplex_group}-{primer_name}')
-        assert df.groupby(['lane','read_type'])['uid'].nunique().nunique()==1
-        df=df.loc[df.read_type=='R1']
-        df.rename(columns={'fastq_path':'R1'},inplace=True)
-        df['R2']=df.R1.apply(lambda x:x.replace('_R1_','_R2_'))
-        df['stats_out']=df.apply(lambda row: os.path.join(outdir, f"{row.uid}/lanes/{row.uid}-{row.lane}.demultiplex.stats.txt"),
-                                            axis=1) #"{dir}/{uid}/lanes/{uid}-{lane}.demultiplex.stats.txt"
-        df.to_csv(fq_df_path,sep='\t',index=False)
-
-    df=pd.read_csv(fq_df_path,sep='\t')
-    return df
-
-def read_cutadapt_result(stat_path):
-    """
-    Parser of cutadapt output
-    """
-    with open(stat_path) as f:
-        p = re.compile(
-            r"Sequence: .+; Type: .+; Length: \d+; Trimmed: \d+ times")
-        series = []
-        total_pairs = -1
-        for line in f:
-            if line.startswith('Total read pairs processed'):
-                total_pairs = line.split(' ')[-1]
-                total_pairs = int(total_pairs.replace(',','').replace(' ',''))
-
-            m = p.search(line)
-            if m is not None:
-                result_dict = {}
-                for i in m.group().split('; '):
-                    k, v = i.split(': ')
-                    result_dict[k] = v
-                result_series = pd.Series(result_dict)
-                series.append(result_series)
-        total_df = pd.DataFrame(series)
-        total_df['Trimmed'] = total_df['Trimmed'].apply(
-            lambda c: c.split(' ')[0]).astype(int) # how many times the index_name appear in the beginning of read (meaning the number of reads in one cell)
-        total_df['TotalPair'] = total_pairs
-        total_df['Ratio'] = total_df['Trimmed'] / total_pairs
-    return total_df
-
-def parse_index_fasta(fasta_path):
-    records = {}
-    with open(fasta_path) as f:
-        key_line = True
-        for line in f:
-            if key_line:
-                key = line.lstrip('>').rstrip('\n')
-                key_line = False
-            else:
-                value = line.lstrip('^').rstrip('\n')
-                records[key] = value
-                key_line = True
-    return records
-
-df=get_fastq_info(fq_dir,outdir)
+df=get_fastq_info(fq_dir,outdir,run_on_gcp)
 
 if barcode_version == 'V2' and df['multiplex_group'].nunique() == 1:
     print('Detect only single multiplex group in each plate, will use V2-single mode.')
@@ -121,22 +34,22 @@ rule write_fastq_info:
         tsv=os.path.join(outdir,"stats/fastq_info.tsv")
     run:
         df.to_csv(output.tsv,sep='\t',index=False)
-        if os.path.exists("fastq_info.txt"):
-            os.remove("fastq_info.txt")
 
 # rule demultiplex:
 #     input:
 #         os.path.join(outdir,"stats/fastq_info.tsv")
 
-rule run_demultiplex:
+rule run_demultiplex: #{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}.fastq.gz
     input: #uid = {plate}-{multiplex_group}-{primer_name} # primer_name is pcr index?
-        R1 = lambda wildcards: df.loc[(df.uid==wildcards.uid) & (df.lane==wildcards.lane)].R1.iloc[0] if not config["gcp"] \
+        R1 = lambda wildcards: df.loc[(df.uid==wildcards.uid) & (df.lane==wildcards.lane)].R1.iloc[0] if not run_on_gcp \
             else GS.remote(df.loc[(df.uid==wildcards.uid) & (df.lane==wildcards.lane)].R1.iloc[0]),
-        R2 = lambda wildcards: df.loc[(df.uid==wildcards.uid) & (df.lane==wildcards.lane)].R2.iloc[0] if not config["gcp"] \
+        R2 = lambda wildcards: df.loc[(df.uid==wildcards.uid) & (df.lane==wildcards.lane)].R2.iloc[0] if not run_on_gcp \
             else GS.remote(df.loc[(df.uid==wildcards.uid) & (df.lane==wildcards.lane)].R2.iloc[0])
 
-    output: #uid, lane, index_name, read_type
+    output: #uid, lane, index_name, read_type; dynamic: https://stackoverflow.com/questions/52598637/unknown-output-in-snakemake
         stats_out ="{dir}/{uid}/lanes/{uid}-{lane}.demultiplex.stats.txt",
+        R1=dynamic("{dir}/{uid}/lanes/{uid}-{lane}-{name}-R1.fq.gz"),
+        R2=dynamic("{dir}/{uid}/lanes/{uid}-{lane}-{name}-R2.fq.gz"),
     conda:
         "yap"
 
@@ -181,14 +94,14 @@ rule summary_demultiplex:
         # pathlib.Path(params.stat_dir).mkdir(exist_ok=True)
         random_index_fasta_path=os.path.join(PACKAGE_DIR,'files','random_index_v1.fa') if barcode_version=='V1' else \
                                 os.path.join(PACKAGE_DIR,'files','random_index_v2','random_index_v2.fa')
-        index_seq_dict = parse_index_fasta(random_index_fasta_path)
+        index_seq_dict = _parse_index_fasta(random_index_fasta_path)
         index_name_dict = {v: k for k, v in index_seq_dict.items()}
         stat_list = []
         for path in input:
             *uid, suffix = os.path.basename(path).split('-')
             lane = suffix.split('.')[0]
             uid = '-'.join(uid)
-            single_df=read_cutadapt_result(path)
+            single_df=_read_cutadapt_result(path)
             single_df['uid'] = uid
             single_df['lane'] = lane
             single_df['index_name'] = single_df['Sequence'].map(index_name_dict)

@@ -6,9 +6,7 @@ import logging
 import pathlib
 import re
 import subprocess
-
 import pandas as pd
-
 import cemba_data
 from .fastq_dataframe import make_fastq_dataframe
 from ..mapping.pipelines import make_snakefile, prepare_run, validate_mapping_config
