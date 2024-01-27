@@ -41,7 +41,6 @@ def get_fastq_info(fq_dir,outdir,fq_ext,run_on_gcp):
 	df['R2']=df.R1.apply(lambda x:x.replace('_R1_','_R2_'))
 	df['stats_out']=df.apply(lambda row: os.path.join(outdir, f"{row.uid}/lanes/{row.uid}-{row.lane}.demultiplex.stats.txt"),
 										axis=1) #"{dir}/{uid}/lanes/{uid}-{lane}.demultiplex.stats.txt"
-	df.to_csv("")
 	return df
 
 def get_lanes_info(outdir,barcode_version):
@@ -74,5 +73,14 @@ def get_lanes_info(outdir,barcode_version):
 	df=df.loc[df.real_multiplex_group !='NA']
 	# new uid (real uid)
 	df['uid']= df.plate.map(str)+'-'+df.real_multiplex_group.map(str)+'-'+df.primer_name.map(str) #{plate}-{multiplex_group}-{primer_name}
-	df.to_csv("lane_info.txt")
-	return df
+
+	# Put multiple lanes fastq into one list
+	df1 = df.loc[:, ['uid', 'index_name', 'read_type', 'fastq_path']].groupby(['uid', 'index_name', 'read_type'],
+																			  as_index=False).agg(lambda x: x.tolist())
+	df1['fastq_out'] = df1.apply(lambda row:
+								 os.path.join(
+									 outdir, row.uid, "fastq", '-'.join(
+										 row.loc[['uid', 'index_name', 'read_type']].map(
+								  str).tolist()) + ".fq.gz"), axis=1)
+	df1.to_csv("lane_info.txt",sep='\t',index=False)
+	return df1

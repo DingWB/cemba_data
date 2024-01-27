@@ -21,15 +21,10 @@ if 'gcp' in config and config["gcp"]:
 outdir=config["outdir"] if 'outdir' in config else 'mapping'
 barcode_version = config["barcode_version"] if 'barcode_version' in config else "V2"
 
-df=get_lanes_info(outdir,barcode_version)
-if df is None:
+df1=get_lanes_info(outdir,barcode_version)
+if df1 is None:
     print("Merging is already done.")
     os._exit(1) #sys.exit()
-
-df1=df.loc[:,['uid','index_name','read_type','fastq_path']].groupby(['uid','index_name','read_type'],as_index=False).agg(lambda x:x.tolist())
-df1['fastq_out']=df1.apply(lambda row:os.path.join(outdir,row.uid,"fastq",\
-                        '-'.join(row.loc[['uid','index_name','read_type']].map(str).tolist())+\
-                        ".fq.gz"),axis=1)
 
 rule write_lane_info:
     input:
