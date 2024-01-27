@@ -3,11 +3,9 @@ import os.path
 import pandas as pd
 import pathlib
 import re
+import cemba_data
 # from snakemake.io import glob_wildcards
-ROOT=pathlib.Path(workflow.basedir).parent.parent
-
-# configfile:
-#     ROOT / "config" / 'yap.yaml'
+PACKAGE_DIR=cemba_data.__path__[0]
 
 if 'gcp' in config and config["gcp"]:
     from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
@@ -117,9 +115,19 @@ if barcode_version == 'V2' and df['multiplex_group'].nunique() == 1:
     print('Detect only single multiplex group in each plate, will use V2-single mode.')
     barcode_version = 'V2-single'
 
-rule demultiplex:
+rule write_fastq_info:
     input:
-        os.path.join(outdir,"stats/fastq_info.tsv")
+        os.path.join(outdir,"stats/demultiplex.stats.csv")
+    output:
+        tsv=os.path.join(outdir,"stats/fastq_info.tsv")
+    run:
+        df.to_csv(output.tsv,sep='\t',index=False)
+        if os.path.exists("fastq_info.txt"):
+            os.remove("fastq_info.txt")
+
+# rule demultiplex:
+#     input:
+#         os.path.join(outdir,"stats/fastq_info.tsv")
 
 rule run_demultiplex:
     input: #uid = {plate}-{multiplex_group}-{primer_name} # primer_name is pcr index?
@@ -135,12 +143,12 @@ rule run_demultiplex:
 
     params:
         random_index_fa=lambda wildcards: \
-                        os.path.join(ROOT,'data','random_index_v1.fa') \
+                        os.path.join(PACKAGE_DIR,'files','random_index_v1.fa') \
                         if barcode_version=="V1" else \
-                        os.path.join(ROOT,'data','random_index_v2',\
+                        os.path.join(PACKAGE_DIR,'files','random_index_v2',\
                         'random_index_v2.multiplex_group_'+wildcards.uid.split('-')[-2]+'.fa') \
                         if  barcode_version=="V2" else \
-                        os.path.join(ROOT,'data','random_index_v2','random_index_v2.fa'),
+                        os.path.join(PACKAGE_DIR,'files','random_index_v2','random_index_v2.fa'),
         outdir=lambda wildcards: f"{wildcards.dir}/{wildcards.uid}/lanes", # will be copy to GCP in merge_lanes.smk
         outdir2=lambda wildcards: f"{wildcards.dir}/{wildcards.uid}/lanes" if not config['gcp'] else \
                                                 workflow.default_remote_prefix+f"/{wildcards.dir}/{wildcards.uid}/lanes",
@@ -172,8 +180,8 @@ rule summary_demultiplex:
         print(params.stat_dir)
         shell(f"mkdir -p {params.stat_dir}")
         # pathlib.Path(params.stat_dir).mkdir(exist_ok=True)
-        random_index_fasta_path=os.path.join(ROOT,'data','random_index_v1.fa') if barcode_version=='V1' else \
-                                os.path.join(ROOT,'data','random_index_v2','random_index_v2.fa')
+        random_index_fasta_path=os.path.join(PACKAGE_DIR,'files','random_index_v1.fa') if barcode_version=='V1' else \
+                                os.path.join(PACKAGE_DIR,'files','random_index_v2','random_index_v2.fa')
         index_seq_dict = parse_index_fasta(random_index_fasta_path)
         index_name_dict = {v: k for k, v in index_seq_dict.items()}
         stat_list = []
@@ -213,13 +221,3 @@ rule summary_demultiplex:
         df_cell['BarcodeVersion'] = barcode_version
         # print(type(output),output)
         df_cell.to_csv(output.csv)
-
-rule write_fastq_info:
-    input:
-        os.path.join(outdir,"stats/demultiplex.stats.csv")
-    output:
-        tsv=os.path.join(outdir,"stats/fastq_info.tsv")
-    run:
-        df.to_csv(output.tsv,sep='\t',index=False)
-        if os.path.exists("fastq_info.txt"):
-            os.remove("fastq_info.txt")
