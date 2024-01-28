@@ -79,8 +79,7 @@ rule run_demultiplex: #{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pn
         """
         mkdir -p {params.outdir}
         mkdir -p {params.outdir2}
-        cutadapt -Z -e 0.01 --no-indels -g file:{params.random_index_fa} \
-        -o  {params.R1} -p {params.R2} {input.R1} {input.R2} > {output.stats_out}
+        cutadapt -Z -e 0.01 --no-indels -g file:{params.random_index_fa} -o  {params.R1} -p {params.R2} {input.R1} {input.R2} > {output.stats_out}
         """
          # for the reads startswith random index present in random_index_fa, will be taken and write into 1 fastq (1 cell),
          # cut the left 8 bp sequence and add the random index name (A2, P24) into the cell fastq name.
@@ -94,14 +93,12 @@ rule summary_demultiplex:
     output:
         csv="{dir}/stats/demultiplex.stats.csv"
     params:
-        stat_dir=lambda wildcards:os.path.join(wildcards.dir,"stats") if not run_on_gcp else \
-                     os.path.join(workflow.default_remote_prefix,wildcards.dir,"stats")
+        stat_dir=lambda wildcards:os.path.join(wildcards.dir,"stats") if not run_on_gcp else os.path.join(workflow.default_remote_prefix,wildcards.dir,"stats")
     run:
 #         print(params.stat_dir)
         shell(f"mkdir -p {params.stat_dir}")
         # pathlib.Path(params.stat_dir).mkdir(exist_ok=True)
-        random_index_fasta_path=os.path.join(PACKAGE_DIR,'files','random_index_v1.fa') if barcode_version=='V1' else \
-                                os.path.join(PACKAGE_DIR,'files','random_index_v2','random_index_v2.fa')
+        random_index_fasta_path=os.path.join(PACKAGE_DIR,'files','random_index_v1.fa') if barcode_version=='V1' else os.path.join(PACKAGE_DIR,'files','random_index_v2','random_index_v2.fa')
         index_seq_dict = _parse_index_fasta(random_index_fasta_path)
         index_name_dict = {v: k for k, v in index_seq_dict.items()}
         stat_list = []
