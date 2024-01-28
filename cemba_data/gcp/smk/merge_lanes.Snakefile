@@ -18,6 +18,9 @@ if 'gcp' in config and config["gcp"]:
     from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
     GS = GSRemoteProvider()
     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
+    run_on_gcp=True
+else:
+    run_on_gcp=False
 outdir=config["outdir"] if 'outdir' in config else 'mapping'
 barcode_version = config["barcode_version"] if 'barcode_version' in config else "V2"
 
@@ -72,7 +75,7 @@ rule cell_qc:
         unmapped_cells = demultiplex_df[judge]
         print(f'Skip {too_small.sum()} cells due to too less input read pairs (< {total_read_pairs_min})')
         print(f'Skip {too_large.sum()} cells due to too large input read pairs (> {total_read_pairs_max})')
-        real_outdir=outdir if not config['gcp'] else workflow.default_remote_prefix+'/'+outdir
+        real_outdir=outdir if not run_on_gcp else workflow.default_remote_prefix+'/'+outdir
 
         for cell_id, row in unmapped_cells.iterrows():
             uid = row['UID']
