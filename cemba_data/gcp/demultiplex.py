@@ -12,20 +12,14 @@ def make_v2_fastq_df(fq_dir,fq_ext,run_on_gcp):
 		GS = GSRemoteProvider()
 		os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.expanduser(
 			'~/.config/gcloud/application_default_credentials.json')
-	(indirs, prefixes, plates, multiple_groups, primer_names, pns,
-	 lanes, read_types, suffixes) = glob_wildcards(
-		os.path.join(str(fq_dir),
-					 "{indir}/{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}." + f"{fq_ext}.gz")) \
-		if not run_on_gcp else GS.glob_wildcards(
+	indirs, prefixes, plates, multiple_groups, primer_names, pns,lanes, read_types, suffixes = glob_wildcards(
+		os.path.join(str(fq_dir),"{indir}/{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}." + f"{fq_ext}.gz")) if not run_on_gcp else GS.glob_wildcards(
 			fq_dir + "/{indir}/{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}." + f"{fq_ext}.gz")
 	indirs = [fq_dir + '/' + d for d in indirs]
 
 	if len(indirs) == 0:  # depth=1
-		prefixes, plates, multiple_groups, primer_names, pns, lanes, \
-		read_types, suffixes = glob_wildcards(os.path.join(str(fq_dir),
-														   "{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}." + f"{fq_ext}.gz")) \
-			if not run_on_gcp else \
-			GS.glob_wildcards(
+		prefixes, plates, multiple_groups, primer_names, pns, lanes, read_types, suffixes = glob_wildcards(os.path.join(str(fq_dir),
+		   "{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}." + f"{fq_ext}.gz")) if not run_on_gcp else GS.glob_wildcards(
 				fq_dir + "/{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}." + f"{fq_ext}.gz")
 		indirs = [str(fq_dir)] * len(prefixes)
 
