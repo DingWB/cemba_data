@@ -51,10 +51,8 @@ rule write_fastq_info:
 
 rule run_demultiplex: #{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}.fastq.gz
     input: #uid = {plate}-{multiplex_group}-{primer_name} # primer_name is pcr index?
-        R1 = lambda wildcards: df.loc[(df.uid==wildcards.uid) & (df.lane==wildcards.lane)].R1.iloc[0] if not run_on_gcp \
-            else GS.remote(df.loc[(df.uid==wildcards.uid) & (df.lane==wildcards.lane)].R1.iloc[0]),
-        R2 = lambda wildcards: df.loc[(df.uid==wildcards.uid) & (df.lane==wildcards.lane)].R2.iloc[0] if not run_on_gcp \
-            else GS.remote(df.loc[(df.uid==wildcards.uid) & (df.lane==wildcards.lane)].R2.iloc[0])
+        R1 = lambda wildcards: df.loc[(df.uid==wildcards.uid) & (df.lane==wildcards.lane)].R1.iloc[0] if not run_on_gcp else GS.remote(df.loc[(df.uid==wildcards.uid) & (df.lane==wildcards.lane)].R1.iloc[0]),
+        R2 = lambda wildcards: df.loc[(df.uid==wildcards.uid) & (df.lane==wildcards.lane)].R2.iloc[0] if not run_on_gcp else GS.remote(df.loc[(df.uid==wildcards.uid) & (df.lane==wildcards.lane)].R2.iloc[0])
 
     output: #uid, lane, index_name, read_type; dynamic: https://stackoverflow.com/questions/52598637/unknown-output-in-snakemake
         stats_out ="{dir}/{uid}/lanes/{uid}-{lane}.demultiplex.stats.txt",
@@ -65,8 +63,7 @@ rule run_demultiplex: #{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pn
         env_name
 
     params:
-        random_index_fa=lambda wildcards: \
-                        os.path.join(PACKAGE_DIR,'files','random_index_v1.fa') \
+        random_index_fa=lambda wildcards: os.path.join(PACKAGE_DIR,'files','random_index_v1.fa') \
                         if barcode_version=="V1" else \
                         os.path.join(PACKAGE_DIR,'files','random_index_v2',\
                         'random_index_v2.multiplex_group_'+wildcards.uid.split('-')[-2]+'.fa') \
@@ -82,7 +79,6 @@ rule run_demultiplex: #{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pn
         """
         mkdir -p {params.outdir}
         mkdir -p {params.outdir2}
-#         echo {output.stats_out}
         cutadapt -Z -e 0.01 --no-indels -g file:{params.random_index_fa} \
         -o  {params.R1} -p {params.R2} {input.R1} {input.R2} > {output.stats_out}
         """

@@ -37,17 +37,13 @@ def get_fastq_info(fq_dir,outdir,fq_ext,run_on_gcp):
 		# need to write to file, otherwise, snakemake will call this function multiple times.
 		return df
 	df=make_v2_fastq_df(fq_dir,fq_ext,run_on_gcp)
-	df['fastq_path']=df.apply(lambda row:os.path.join(row.indir,\
-							'-'.join(row.loc[['prefix','plate','multiplex_group','primer_name']].map(str).tolist())+\
-							"_"+"_".join(row.loc[['pns','lane','read_type','suffix']].map(str).tolist())+f".{fq_ext}.gz")
-							,axis=1)
+	df['fastq_path']=df.apply(lambda row:os.path.join(row.indir,'-'.join(row.loc[['prefix','plate','multiplex_group','primer_name']].map(str).tolist())+"_"+"_".join(row.loc[['pns','lane','read_type','suffix']].map(str).tolist())+f".{fq_ext}.gz"),axis=1)
 	df['uid']=df.plate.map(str)+'-'+df.multiplex_group.map(str)+'-'+df.primer_name.map(str) #f'{plate}-{multiplex_group}-{primer_name}')
 	assert df.groupby(['lane','read_type'])['uid'].nunique().nunique()==1
 	df=df.loc[df.read_type=='R1']
 	df.rename(columns={'fastq_path':'R1'},inplace=True)
 	df['R2']=df.R1.apply(lambda x:x.replace('_R1_','_R2_'))
-	df['stats_out']=df.apply(lambda row: os.path.join(outdir, f"{row.uid}/lanes/{row.uid}-{row.lane}.demultiplex.stats.txt"),
-										axis=1) #"{dir}/{uid}/lanes/{uid}-{lane}.demultiplex.stats.txt"
+	df['stats_out']=df.apply(lambda row: os.path.join(outdir, f"{row.uid}/lanes/{row.uid}-{row.lane}.demultiplex.stats.txt"),axis=1) #"{dir}/{uid}/lanes/{uid}-{lane}.demultiplex.stats.txt"
 	df.to_csv("fastq_info.txt",sep='\t',index=False)
 	return df
 
@@ -72,8 +68,7 @@ def get_lanes_info(outdir,barcode_version):
 								).drop_duplicates()
 	df['fastq_path']=df.apply(
 		lambda row:os.path.join(outdir,row.uid,"lanes",'-'.join(
-			row.loc[['uid','lane','index_name','read_type']].map(str).tolist())+\
-							".fq.gz"),axis=1)
+			row.loc[['uid','lane','index_name','read_type']].map(str).tolist())+".fq.gz"),axis=1)
 	if barcode_version == 'V2' and df['multiplex_group'].nunique() == 1:
 		df['real_multiplex_group']=df.index_name.apply(
 			lambda x:((int(x[1:])-1) % 12) // 2 + 1 if 'unknow' not in x.lower() else 'NA'
