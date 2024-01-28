@@ -3,6 +3,9 @@ import pandas as pd
 from snakemake.io import glob_wildcards
 
 def get_fastq_info(fq_dir,outdir,fq_ext,run_on_gcp):
+	if os.path.exists("fastq_info.txt"):
+		df=pd.read_csv("fastq_info.txt",sep='\t')
+		return df
 	#For example: 220517-AMB-mm-na-snm3C_seq-NovaSeq-pe-150-WT-AMB_220510_8wk_12D_13B_2_P3-1-A11_S7_L001_R1_001.fastq.gz
 	indirs,prefixes,plates,multiple_groups,primer_names,pns,lanes,\
 	read_types,suffixes=glob_wildcards(os.path.join(str(fq_dir),\
@@ -41,10 +44,14 @@ def get_fastq_info(fq_dir,outdir,fq_ext,run_on_gcp):
 	df['R2']=df.R1.apply(lambda x:x.replace('_R1_','_R2_'))
 	df['stats_out']=df.apply(lambda row: os.path.join(outdir, f"{row.uid}/lanes/{row.uid}-{row.lane}.demultiplex.stats.txt"),
 										axis=1) #"{dir}/{uid}/lanes/{uid}-{lane}.demultiplex.stats.txt"
+	df.to_csv("fastq_info.txt",sep='\t',index=False)
 	return df
 
 def get_lanes_info(outdir,barcode_version):
 	#  uid={plate}-{multiplex_group}-{primer_name}
+	if os.path.exists("lane_info.txt"):
+		df1=pd.read_csv("lane_info.txt",sep='\t')
+		return df1
 	uids,plates,multiple_groups,primer_names,lanes,index_names,read_types=\
 			glob_wildcards(os.path.join(outdir,
 			"{uid}/lanes/{plate}-{multiplex_group}-{primer_name}-{lane}-{index_name}-{read_type}.fq.gz"))

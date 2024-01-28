@@ -35,6 +35,8 @@ rule write_fastq_info:
         tsv=os.path.join(outdir,"stats/fastq_info.tsv")
     run:
         df.to_csv(output.tsv,sep='\t',index=False)
+        if os.path.exists("fastq_info.txt"):
+            os.remove("fastq_info.txt")
 
 # rule demultiplex:
 #     input:
