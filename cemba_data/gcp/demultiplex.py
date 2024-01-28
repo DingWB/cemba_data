@@ -3,39 +3,49 @@ import pandas as pd
 import cemba_data
 from snakemake.io import glob_wildcards
 PACKAGE_DIR=cemba_data.__path__[0]
+from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
+GS = GSRemoteProvider()
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
+
+def make_v2_fastq_df(fq_dir,fq_ext,run_on_gcp):
+	# For example: 220517-AMB-mm-na-snm3C_seq-NovaSeq-pe-150-WT-AMB_220510_8wk_12D_13B_2_P3-1-A11_S7_L001_R1_001.fastq.gz
+	# depth = 2
+	(indirs, prefixes, plates, multiple_groups, primer_names, pns,
+	 lanes, read_types, suffixes) = glob_wildcards(
+		os.path.join(str(fq_dir),
+					 "{indir}/{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}." + f"{fq_ext}.gz")) \
+		if not run_on_gcp else GS.glob_wildcards(
+			fq_dir + "/{indir}/{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}." + f"{fq_ext}.gz")
+	indirs = [fq_dir + '/' + d for d in indirs]
+
+	if len(indirs) == 0:  # depth=1
+		prefixes, plates, multiple_groups, primer_names, pns, lanes, \
+		read_types, suffixes = glob_wildcards(os.path.join(str(fq_dir),
+														   "{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}." + f"{fq_ext}.gz")) \
+			if not run_on_gcp else \
+			GS.glob_wildcards(
+				fq_dir + "/{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}." + f"{fq_ext}.gz")
+		indirs = [str(fq_dir)] * len(prefixes)
+
+	df = pd.DataFrame.from_dict(
+		{'indir': indirs,
+		 'prefix': prefixes,
+		 'plate': plates,
+		 'multiplex_group': multiple_groups,
+		 'primer_name': primer_names,
+		 'pns': pns,
+		 'lane': lanes,
+		 'read_type': read_types,
+		 'suffix': suffixes}
+	)
+	return df
 
 def get_fastq_info(fq_dir,outdir,fq_ext,run_on_gcp):
 	if os.path.exists("fastq_info.txt"):
 		df=pd.read_csv("fastq_info.txt",sep='\t')
 		# need to write to file, otherwise, snakemake will call this function multiple times.
 		return df
-	#For example: 220517-AMB-mm-na-snm3C_seq-NovaSeq-pe-150-WT-AMB_220510_8wk_12D_13B_2_P3-1-A11_S7_L001_R1_001.fastq.gz
-	indirs,prefixes,plates,multiple_groups,primer_names,pns,lanes,\
-	read_types,suffixes=glob_wildcards(os.path.join(str(fq_dir),\
-			"{indir}/{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}."+f"{fq_ext}.gz")) \
-			if not run_on_gcp else \
-			GS.glob_wildcards(fq_dir+"/{indir}/{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}."+f"{fq_ext}.gz")
-	indirs=[fq_dir + '/' + d for d in indirs]
-
-	if len(indirs)==0: # depth=1
-		prefixes,plates,multiple_groups,primer_names,pns,lanes,\
-		read_types,suffixes=glob_wildcards(os.path.join(str(fq_dir),\
-				"{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}."+f"{fq_ext}.gz")) \
-				if not run_on_gcp else \
-				GS.glob_wildcards(fq_dir+"/{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}."+f"{fq_ext}.gz")
-		indirs=[str(fq_dir)] * len(prefixes)
-
-	df=pd.DataFrame.from_dict(
-								{'indir':indirs,
-								'prefix':prefixes,
-								'plate':plates,
-								'multiplex_group':multiple_groups,
-								'primer_name':primer_names,
-								'pns':pns,
-								'lane':lanes,
-								'read_type':read_types,
-								'suffix':suffixes}
-								)
+	df=make_v2_fastq_df(fq_dir,fq_ext,run_on_gcp)
 	df['fastq_path']=df.apply(lambda row:os.path.join(row.indir,\
 							'-'.join(row.loc[['prefix','plate','multiplex_group','primer_name']].map(str).tolist())+\
 							"_"+"_".join(row.loc[['pns','lane','read_type','suffix']].map(str).tolist())+f".{fq_ext}.gz")
@@ -111,8 +121,8 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 	workdir = os.path.abspath(os.path.expanduser(workdir))
 	smk1=os.path.join(PACKAGE_DIR,"gcp",'smk',"demultiplex.Snakefile")
 	smk2 = os.path.join(PACKAGE_DIR, "gcp", 'smk', "merge_lanes.Snakefile")
-	use_smk1=os.papth.join(workdir,"demultiplex.Snakefile")
-	use_smk2 = os.papth.join(workdir, "merge_lanes.Snakefile")
+	use_smk1=os.path.join(workdir,"demultiplex.Snakefile")
+	use_smk2 = os.path.join(workdir, "merge_lanes.Snakefile")
 	os.system(f"cp {smk1} {use_smk1}")
 	os.system(f"cp {smk2} {use_smk2}")
 
@@ -145,5 +155,5 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 			f.write(template.format(job_name=job_name, workdir=workdir,
 								CMD=CMD))
 
-	print(f"To run this job: sky spot launch -y -n {job_name} -y {output} [spot] \n",
-		  f"or: sky launch -y -n {job_name} {output}")
+	# print(f"To run this job: sky spot launch -y -n {job_name} -y {output} [spot] \n")
+	print(f"To run: sky launch -y -n {job_name} {output}")

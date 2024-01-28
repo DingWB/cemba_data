@@ -9,7 +9,7 @@ resources:
     cloud: gcp
     region: us-west1
     instance_type: n2-standard-96
-    use_spot: False
+    use_spot: False  # Do Not use spot to run demultiplex !
     disk_size: 250
     disk_tier: 'medium'
     image_id: projects/ecker-wding/global/images/myimage

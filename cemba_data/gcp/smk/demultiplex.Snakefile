@@ -7,7 +7,11 @@ PACKAGE_DIR=cemba_data.__path__[0]
 from cemba_data.gcp import *
 from cemba_data.demultiplex import _parse_index_fasta,_read_cutadapt_result
 
-if 'gcp' in config and run_on_gcp:
+# demultiplex can not be ran using spot mode, because in cutadapt step,
+# {dir}/{uid}/lanes/{uid}-{lane}-{name}-R1.fq.gz the name is unknown, so
+# it can not be upload onto cloud, if ran with spot, those files would lost.
+
+if 'gcp' in config and config['gcp']:
     from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
     GS = GSRemoteProvider()
     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
@@ -17,7 +21,7 @@ else:
     fq_dir=pathlib.Path(config["fq_dir"]).absolute()
     run_on_gcp=False
 fq_ext=config["fq_ext"] if 'fq_ext' in config else 'fastq'
-outdir=os.path.abspath(os.path.expanduser(config["outdir"])) if 'outdir' in config else 'mapping'
+outdir=config["outdir"]) if 'outdir' in config else 'mapping'
 barcode_version = config["barcode_version"] if 'barcode_version' in config else "V2"
 env_name="yap" if 'env_name' not in config else config['env_name']
 

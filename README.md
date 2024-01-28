@@ -81,4 +81,8 @@ sh mapping/snakemake/gcp/sky_spot.sh
 ```shell
 yap-gcp get_demultiplex_skypilot_yaml > demultiplex.yaml
 # vim and change config in demultiplex.yaml
+yap-gcp prepare_demultiplex ----fq_dir gs://mapping_example/fastq/test_fastq \
+              --remote_prefix mapping_example --outdir test2 --skypilot_template demultiplex.yaml \
+              --n_jobs 96 --output run_demultiplex.yaml
+sky launch -y -n demultiplex run_demultiplex.yaml # Do Not use spot mode.
 ```
