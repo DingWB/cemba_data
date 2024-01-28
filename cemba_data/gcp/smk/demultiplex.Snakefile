@@ -21,7 +21,7 @@ else:
     fq_dir=pathlib.Path(config["fq_dir"]).absolute()
     run_on_gcp=False
 fq_ext=config["fq_ext"] if 'fq_ext' in config else 'fastq'
-outdir=config["outdir"]) if 'outdir' in config else 'mapping'
+outdir=config["outdir"] if 'outdir' in config else 'mapping'
 barcode_version = config["barcode_version"] if 'barcode_version' in config else "V2"
 env_name="yap" if 'env_name' not in config else config['env_name']
 
@@ -43,11 +43,6 @@ rule write_fastq_info:
             os.rename("fastq_info.txt",output.tsv)
         else:
             df.to_csv(output.tsv,sep='\t',index=False)
-
-
-# rule demultiplex:
-#     input:
-#         os.path.join(outdir,"stats/fastq_info.tsv")
 
 rule run_demultiplex: #{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}.fastq.gz
     input: #uid = {plate}-{multiplex_group}-{primer_name} # primer_name is pcr index?
