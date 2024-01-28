@@ -10,17 +10,12 @@ def make_v2_fastq_df(fq_dir,fq_ext,run_on_gcp):
 	if run_on_gcp:
 		from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
 		GS = GSRemoteProvider()
-		os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.expanduser(
-			'~/.config/gcloud/application_default_credentials.json')
-	indirs, prefixes, plates, multiple_groups, primer_names, pns,lanes, read_types, suffixes = glob_wildcards(
-		os.path.join(str(fq_dir),"{indir}/{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}." + f"{fq_ext}.gz")) if not run_on_gcp else GS.glob_wildcards(
-			fq_dir + "/{indir}/{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}." + f"{fq_ext}.gz")
+		os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
+	indirs, prefixes, plates, multiple_groups, primer_names, pns,lanes, read_types, suffixes = glob_wildcards(os.path.join(str(fq_dir),"{indir}/{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}." + f"{fq_ext}.gz")) if not run_on_gcp else GS.glob_wildcards(fq_dir + "/{indir}/{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}." + f"{fq_ext}.gz")
 	indirs = [fq_dir + '/' + d for d in indirs]
 
 	if len(indirs) == 0:  # depth=1
-		prefixes, plates, multiple_groups, primer_names, pns, lanes, read_types, suffixes = glob_wildcards(os.path.join(str(fq_dir),
-		   "{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}." + f"{fq_ext}.gz")) if not run_on_gcp else GS.glob_wildcards(
-				fq_dir + "/{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}." + f"{fq_ext}.gz")
+		prefixes, plates, multiple_groups, primer_names, pns, lanes, read_types, suffixes = glob_wildcards(os.path.join(str(fq_dir),"{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}." + f"{fq_ext}.gz")) if not run_on_gcp else GS.glob_wildcards(fq_dir + "/{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}." + f"{fq_ext}.gz")
 		indirs = [str(fq_dir)] * len(prefixes)
 
 	df = pd.DataFrame.from_dict(
@@ -62,9 +57,7 @@ def get_lanes_info(outdir,barcode_version):
 		df1=pd.read_csv("lane_info.txt",sep='\t')
 		df1.fastq_path = df1.fastq_path.apply(lambda x: eval(x))
 		return df1
-	uids,plates,multiple_groups,primer_names,lanes,index_names,read_types=\
-			glob_wildcards(os.path.join(outdir,
-			"{uid}/lanes/{plate}-{multiplex_group}-{primer_name}-{lane}-{index_name}-{read_type}.fq.gz"))
+	uids,plates,multiple_groups,primer_names,lanes,index_names,read_types=glob_wildcards(os.path.join(outdir,"{uid}/lanes/{plate}-{multiplex_group}-{primer_name}-{lane}-{index_name}-{read_type}.fq.gz"))
 	if len(uids)==0:
 		print("Run demultiplex.smk first, then run merge_lanes.smk !")
 		return None
@@ -95,11 +88,7 @@ def get_lanes_info(outdir,barcode_version):
 	df1 = df.loc[:, ['uid', 'index_name', 'read_type',
 					 'fastq_path']].groupby(
 		['uid', 'index_name', 'read_type'],as_index=False).agg(lambda x: x.tolist())
-	df1['fastq_out'] = df1.apply(lambda row:
-								 os.path.join(
-									 outdir, row.uid, "fastq", '-'.join(
-										 row.loc[['uid', 'index_name', 'read_type']].map(
-								  str).tolist()) + ".fq.gz"), axis=1)
+	df1['fastq_out'] = df1.apply(lambda row:os.path.join(outdir, row.uid, "fastq", '-'.join(row.loc[['uid', 'index_name', 'read_type']].map(str).tolist()) + ".fq.gz"), axis=1)
 	df1.to_csv("lane_info.txt",sep='\t',index=False)
 	return df1
 

@@ -101,7 +101,7 @@ rule summary_demultiplex:
         stat_dir=lambda wildcards:os.path.join(wildcards.dir,"stats") if not run_on_gcp else \
                      os.path.join(workflow.default_remote_prefix,wildcards.dir,"stats")
     run:
-        print(params.stat_dir)
+#         print(params.stat_dir)
         shell(f"mkdir -p {params.stat_dir}")
         # pathlib.Path(params.stat_dir).mkdir(exist_ok=True)
         random_index_fasta_path=os.path.join(PACKAGE_DIR,'files','random_index_v1.fa') if barcode_version=='V1' else \
