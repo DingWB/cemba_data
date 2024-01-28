@@ -107,9 +107,14 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 						fq_ext="fastq",barcode_version="V2",env_name=None,
 						gcp=True,region='us-west1',keep_remote=False,
 						skypilot_template=None,n_jobs=96,job_name="demultiplex",
-						workdir="./",output="run_demultiplex.yaml"):
+						workdir="./",output=None):
+	workdir = os.path.abspath(os.path.expanduser(workdir))
 	smk1=os.path.join(PACKAGE_DIR,"gcp",'smk',"demultiplex.Snakefile")
 	smk2 = os.path.join(PACKAGE_DIR, "gcp", 'smk', "merge_lanes.Snakefile")
+	use_smk1=os.papth.join(workdir,"demultiplex.Snakefile")
+	use_smk2 = os.papth.join(workdir, "merge_lanes.Snakefile")
+	os.system(f"cp {smk1} {use_smk1}")
+	os.system(f"cp {smk2} {use_smk2}")
 
 	# Demultiplex
 	config_str=f'--config gcp={gcp} fq_dir="{fq_dir}" outdir="{outdir}" fq_ext="{fq_ext}" barcode_version="{barcode_version}" '
@@ -119,10 +124,10 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 		config_str+=f'env_name="{env_name}" '
 	if keep_remote:
 		common_str+="--keep-remote "
-	CMD1 = f"snakemake -s {smk1} {config_str} {common_str} -j {n_jobs} \n  "
+	CMD1 = f"snakemake -s demultiplex.Snakefile {config_str} {common_str} -j {n_jobs} \n  "
 
 	# Merge lanes
-	CMD2 = f"snakemake -s {smk2} {config_str} {common_str} -j {n_jobs} \n  "
+	CMD2 = f"snakemake -s merge_lanes.Snakefile {config_str} {common_str} -j {n_jobs} \n  "
 	if not env_name is None:
 		CMD=f"conda activate {env_name} \n  "+ CMD1+CMD2
 	else:
@@ -130,12 +135,15 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 
 	if skypilot_template is None:
 		skypilot_template=os.path.join(PACKAGE_DIR,"gcp",'yaml',"demultiplex.yaml")
-	workdir=os.path.abspath(os.path.expanduser(workdir))
 	with open(skypilot_template) as f:
 		template = f.read()
-	with open(os.path.abspath(os.path.expanduser(output)), 'w') as f:
-		f.write(template.format(job_name=job_name, workdir=workdir,
+	if output is None:
+		print(template.format(job_name=job_name, workdir=workdir,
+								CMD=CMD))
+	else:
+		with open(os.path.abspath(os.path.expanduser(output)), 'w') as f:
+			f.write(template.format(job_name=job_name, workdir=workdir,
 								CMD=CMD))
 
-	print(f"To run this job: sky spot launch -n {job_name} -y {output} [spot] \n",
-		  f"or: sky luanc -n {job_name} {output}")
+	print(f"To run this job: sky spot launch -y -n {job_name} -y {output} [spot] \n",
+		  f"or: sky launch -y -n {job_name} {output}")
