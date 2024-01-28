@@ -1,10 +1,12 @@
 import os,sys
 import pandas as pd
 from snakemake.io import glob_wildcards
+PACKAGE_DIR=cemba_data.__path__[0]
 
 def get_fastq_info(fq_dir,outdir,fq_ext,run_on_gcp):
 	if os.path.exists("fastq_info.txt"):
 		df=pd.read_csv("fastq_info.txt",sep='\t')
+		# need to write to file, otherwise, snakemake will call this function multiple times.
 		return df
 	#For example: 220517-AMB-mm-na-snm3C_seq-NovaSeq-pe-150-WT-AMB_220510_8wk_12D_13B_2_P3-1-A11_S7_L001_R1_001.fastq.gz
 	indirs,prefixes,plates,multiple_groups,primer_names,pns,lanes,\
@@ -93,3 +95,43 @@ def get_lanes_info(outdir,barcode_version):
 								  str).tolist()) + ".fq.gz"), axis=1)
 	df1.to_csv("lane_info.txt",sep='\t',index=False)
 	return df1
+
+def get_demultiplex_skypilot_yaml():
+	skypilot_template = os.path.join(PACKAGE_DIR, "gcp", 'yaml', "demultiplex.yaml")
+	with open(skypilot_template) as f:
+		template = f.read()
+	print(template)
+
+def prepare_demultiplex(fq_dir="fastq",outdir="test",fq_ext="fastq",
+						barcode_version="V2",env_name=None,gcp=True,
+						remote_prefix="mapping",region='us-west1',keep_remote=False,
+						skypilot_template=None,n_jobs=96,job_name="demultiplex",
+						workdir="./",output="run_demultiplex.yaml"):
+	smk1=os.path.join(PACKAGE_DIR,"gcp",'smk',"demultiplex.Snakefile")
+	smk2 = os.path.join(PACKAGE_DIR, "gcp", 'smk', "merge_lanes.Snakefile")
+
+	# Demultiplex
+	config_str=f'--config gcp={gcp} fq_dir="{fq_dir}" outdir="{outdir}" fq_ext="{fq_ext}" barcode_version="{barcode_version}" '
+	common_str=f"--default-remote-prefix {remote_prefix} --default-remote-provider GS --google-lifesciences-region {region} "
+	if not env_name is None:
+		common_str+="--use-conda "
+		config_str+=f'env_name="{env_name}" '
+	if keep_remote:
+		common_str+="--keep-remote "
+	CMD1 = f"snakemake -s {smk1} {config_str} {common_str} -j {n_jobs} \n"
+
+	# Merge lanes
+	CMD2 = f"snakemake -s {smk2} {config_str} {common_str} -j {n_jobs} \n"
+	CMD=CMD1+CMD2
+
+	if skypilot_template is None:
+		skypilot_template=os.path.join(PACKAGE_DIR,"gcp",'yaml',"demultiplex.yaml")
+	workdir=os.path.abspath(os.path.expanduser(workdir))
+	with open(skypilot_template) as f:
+		template = f.read()
+	with open(os.path.abspath(os.path.expanduser(output)), 'w') as f:
+		f.write(template.format(job_name=job_name, workdir=workdir,
+								CMD=CMD))
+
+	print(f"To run this job: sky spot launch -n {job_name} -y {output} [spot] \n",
+		  f"or: sky luanc -n {job_name} {output}")

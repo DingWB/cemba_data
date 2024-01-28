@@ -1,0 +1,29 @@
+# job_name, workd and CMD will be passed to this template in
+#  cemba_data.gcp.demultiplex.prepare_demultiplex
+# In addition to these three variable (please DO NOT Change),
+# user can change all other configuration
+name: {job_name}
+workdir: {workd}
+num_nodes: 1
+resources:
+    cloud: gcp
+    region: us-west1
+    instance_type: n2-standard-96
+    use_spot: False
+    disk_size: 250
+    disk_tier: 'medium'
+    image_id: projects/ecker-wding/global/images/myimage
+
+# file_mounts:
+#   ~/Ref/hg38: ~/Ref/hg38
+
+setup: |
+  # pip install --upgrade pip
+  # conda install -y -n base -c conda-forge -c bioconda mamba
+  # mamba env create -f https://raw.githubusercontent.com/DingWB/cemba_data/master/env.yaml
+  mkdir -p ~/Ref && gsutil -m cp -r -n gs://wubin_ref/hg38 ~/Ref
+  pip install git+https://github.com/DingWB/cemba_data
+
+run: |
+  conda activate {env_name}
+  {CMD}
