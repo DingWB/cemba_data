@@ -32,9 +32,10 @@ rule write_lane_info:
     output:
         tsv=os.path.join(outdir,"stats/lane_info.tsv")
     run:
-        df1.to_csv(output.tsv,sep='\t',index=False)
         if os.path.exists("lane_info.txt"):
-            os.remove("lane_info.txt")
+            os.rename("lane_info.txt",output.tsv)
+        else:
+            df1.to_csv(output.tsv,sep='\t',index=False)
 
 rule merge_lanes: #merge the lanes from the same cell_id and read_type, generating cell fastq
     input: # cell_id = uid-index_name

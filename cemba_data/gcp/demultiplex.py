@@ -5,6 +5,7 @@ from snakemake.io import glob_wildcards
 def get_fastq_info(fq_dir,outdir,fq_ext,run_on_gcp):
 	if os.path.exists("fastq_info.txt"):
 		df=pd.read_csv("fastq_info.txt",sep='\t')
+		df.fastq_path=df.fastq_path.apply(lambda x:eval(x))
 		return df
 	#For example: 220517-AMB-mm-na-snm3C_seq-NovaSeq-pe-150-WT-AMB_220510_8wk_12D_13B_2_P3-1-A11_S7_L001_R1_001.fastq.gz
 	indirs,prefixes,plates,multiple_groups,primer_names,pns,lanes,\
@@ -82,8 +83,9 @@ def get_lanes_info(outdir,barcode_version):
 	df['uid']= df.plate.map(str)+'-'+df.real_multiplex_group.map(str)+'-'+df.primer_name.map(str) #{plate}-{multiplex_group}-{primer_name}
 
 	# Put multiple lanes fastq into one list
-	df1 = df.loc[:, ['uid', 'index_name', 'read_type', 'fastq_path']].groupby(['uid', 'index_name', 'read_type'],
-																			  as_index=False).agg(lambda x: x.tolist())
+	df1 = df.loc[:, ['uid', 'index_name', 'read_type',
+					 'fastq_path']].groupby(
+		['uid', 'index_name', 'read_type'],as_index=False).agg(lambda x: x.tolist())
 	df1['fastq_out'] = df1.apply(lambda row:
 								 os.path.join(
 									 outdir, row.uid, "fastq", '-'.join(
