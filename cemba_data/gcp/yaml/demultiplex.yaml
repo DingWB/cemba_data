@@ -3,7 +3,7 @@
 # In addition to these three variable (please DO NOT Change),
 # user can change all other configuration
 name: {job_name}
-workdir: {workd}
+workdir: {workdir}
 num_nodes: 1
 resources:
     cloud: gcp
@@ -25,5 +25,4 @@ setup: |
   pip install git+https://github.com/DingWB/cemba_data
 
 run: |
-  conda activate {env_name}
   {CMD}

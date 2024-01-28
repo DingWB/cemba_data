@@ -1,5 +1,6 @@
 import os,sys
 import pandas as pd
+import cemba_data
 from snakemake.io import glob_wildcards
 PACKAGE_DIR=cemba_data.__path__[0]
 
@@ -102,9 +103,9 @@ def get_demultiplex_skypilot_yaml():
 		template = f.read()
 	print(template)
 
-def prepare_demultiplex(fq_dir="fastq",outdir="test",fq_ext="fastq",
-						barcode_version="V2",env_name=None,gcp=True,
-						remote_prefix="mapping",region='us-west1',keep_remote=False,
+def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
+						fq_ext="fastq",barcode_version="V2",env_name=None,
+						gcp=True,region='us-west1',keep_remote=False,
 						skypilot_template=None,n_jobs=96,job_name="demultiplex",
 						workdir="./",output="run_demultiplex.yaml"):
 	smk1=os.path.join(PACKAGE_DIR,"gcp",'smk',"demultiplex.Snakefile")
@@ -118,11 +119,14 @@ def prepare_demultiplex(fq_dir="fastq",outdir="test",fq_ext="fastq",
 		config_str+=f'env_name="{env_name}" '
 	if keep_remote:
 		common_str+="--keep-remote "
-	CMD1 = f"snakemake -s {smk1} {config_str} {common_str} -j {n_jobs} \n"
+	CMD1 = f"snakemake -s {smk1} {config_str} {common_str} -j {n_jobs} \n  "
 
 	# Merge lanes
-	CMD2 = f"snakemake -s {smk2} {config_str} {common_str} -j {n_jobs} \n"
-	CMD=CMD1+CMD2
+	CMD2 = f"snakemake -s {smk2} {config_str} {common_str} -j {n_jobs} \n  "
+	if not env_name is None:
+		CMD=f"conda activate {env_name} \n  "+ CMD1+CMD2
+	else:
+		CMD = CMD1 + CMD2
 
 	if skypilot_template is None:
 		skypilot_template=os.path.join(PACKAGE_DIR,"gcp",'yaml',"demultiplex.yaml")
