@@ -3,13 +3,15 @@ import pandas as pd
 import cemba_data
 from snakemake.io import glob_wildcards
 PACKAGE_DIR=cemba_data.__path__[0]
-from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
-GS = GSRemoteProvider()
-os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
 
 def make_v2_fastq_df(fq_dir,fq_ext,run_on_gcp):
 	# For example: 220517-AMB-mm-na-snm3C_seq-NovaSeq-pe-150-WT-AMB_220510_8wk_12D_13B_2_P3-1-A11_S7_L001_R1_001.fastq.gz
 	# depth = 2
+	if run_on_gcp:
+		from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
+		GS = GSRemoteProvider()
+		os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.expanduser(
+			'~/.config/gcloud/application_default_credentials.json')
 	(indirs, prefixes, plates, multiple_groups, primer_names, pns,
 	 lanes, read_types, suffixes) = glob_wildcards(
 		os.path.join(str(fq_dir),
