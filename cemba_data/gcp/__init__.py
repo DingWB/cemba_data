@@ -13,6 +13,8 @@ def main():
 		"prepare_demultiplex":prepare_demultiplex,
 		"get_demultiplex_skypilot_yaml":get_demultiplex_skypilot_yaml,
 		'run_demultiplex':run_demultiplex,
+		'prepare_mapping':prepare_mapping,
+		'run_mapping':run_mapping,
 	})
 
 if __name__=="_main__":

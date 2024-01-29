@@ -22,7 +22,12 @@ if "gcp" in config:
 else:
     gcp=False
 
-if gcp:
+if "local_fastq" in config:
+    local_fastq=config["local_fastq"] # if the fastq files stored in GCP cloud, set local_fastq=False in snakemake: --config local_fastq=False
+else:
+    local_fastq=True
+
+if not local_fastq or gcp:
     from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
     GS = GSRemoteProvider()
     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
@@ -64,7 +69,7 @@ rule summary:
 # Trim reads
 rule trim_r1:
     input:
-        fq=local("fastq/{cell_id}-R1.fq.gz") #if not gcp else GS.remote("gs://"+workflow.default_remote_prefix+"/fastq/{cell_id}-R1.fq.gz")
+        fq=local("fastq/{cell_id}-R1.fq.gz") if local_fastq else GS.remote("gs://"+workflow.default_remote_prefix+"/fastq/{cell_id}-R1.fq.gz")
     output:
         fq=local(temp("fastq/{cell_id}-R1.trimmed.fq.gz")),
         stats=local(temp("fastq/{cell_id}-R1.trimmed.stats.tsv"))
@@ -77,7 +82,7 @@ rule trim_r1:
 
 rule trim_r2:
     input:
-        fq=local("fastq/{cell_id}-R2.fq.gz") #if not gcp else GS.remote("gs://"+workflow.default_remote_prefix+"/fastq/{cell_id}-R2.fq.gz")
+        fq=local("fastq/{cell_id}-R2.fq.gz") if local_fastq else GS.remote("gs://"+workflow.default_remote_prefix+"/fastq/{cell_id}-R2.fq.gz")
     output:
         fq=local(temp("fastq/{cell_id}-R2.trimmed.fq.gz")),
         stats=local(temp("fastq/{cell_id}-R2.trimmed.stats.tsv"))

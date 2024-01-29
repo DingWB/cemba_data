@@ -427,7 +427,7 @@ def _reformat_v2_single(output_dir):
 SUPPORTED_TECHNOLOGY = ['mc', 'mct', 'm3c']
 
 
-def demultiplex_pipeline(fastq_pattern, output_dir, config_path, cpu, aligner,sky_template):
+def demultiplex_pipeline(fastq_pattern, output_dir, config_path, cpu, aligner,sky_template=None):
     cpu = int(cpu)
     merge_cpu = min(48, cpu)
     demultiplex_cpu = min(32, cpu)
@@ -479,7 +479,7 @@ def demultiplex_pipeline(fastq_pattern, output_dir, config_path, cpu, aligner,sk
     return
 
 
-def update_snakemake(output_dir,sky_template):
+def update_snakemake(output_dir,sky_template=None):
     """When mapping_config.ini is updated, or the output_dir path changed,
     use this function to update snakefile and snakemake commands."""
     output_dir = pathlib.Path(output_dir).absolute()

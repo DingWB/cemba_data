@@ -79,7 +79,7 @@ sh mapping/snakemake/gcp/sky_spot.sh
 
 ## Run both demultiplex and mapping on GCP
 ```shell
-#yap-gcp get_demultiplex_skypilot_yaml > demultiplex.yaml
+#yap-gcp get_demultiplex_skypilot_yaml > skypilot.yaml
 yap-gcp prepare_demultiplex ----fq_dir gs://mapping_example/fastq/test_fastq \
               --remote_prefix mapping_example --outdir test_gcp \
               --env_name yap --n_jobs 96 --output run_demultiplex.yaml

@@ -20,13 +20,12 @@ if 'gcp' in config and config['gcp']:
 else:
     fq_dir=pathlib.Path(config["fq_dir"]).absolute()
     run_on_gcp=False
-fq_ext=config["fq_ext"] if 'fq_ext' in config else 'fastq'
 outdir=config["outdir"] if 'outdir' in config else 'mapping'
 barcode_version = config["barcode_version"] if 'barcode_version' in config else "V2"
 
 print(outdir)
 
-df=get_fastq_info(fq_dir,outdir,fq_ext,run_on_gcp)
+df=get_fastq_info(fq_dir,outdir,run_on_gcp)
 
 if barcode_version == 'V2' and df['multiplex_group'].nunique() == 1:
     print('Detect only single multiplex group in each plate, will use V2-single mode.')
