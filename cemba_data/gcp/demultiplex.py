@@ -132,7 +132,7 @@ def run_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 
 	# Merge lanes
 	CMD2 = f"snakemake -s {smk2} {config_str} {common_str} -j {n_jobs} \n  "
-	CMD = CMD1 + CMD2
 
-	print(f"CMD: {CMD}")
-	os.system(CMD)
+	for cmd in [CMD1, CMD2]:
+		print(f"CMD: {cmd}")
+		os.system(cmd)
