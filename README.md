@@ -89,4 +89,5 @@ sky launch -y -n demultiplex run_demultiplex.yaml # Do Not use spot mode.
 # mapping
 yap-gcp prepare_mapping --fastq_prefix gs://mapping_example/test_gcp --config_path config.ini --aligner hisat-3n \
             --chunk_size 2 --job_name='mapping' --env_name='yap' --n_jobs=96
+# view and edit run_mapping.yaml 
 ```

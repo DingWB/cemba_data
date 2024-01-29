@@ -88,7 +88,7 @@ def get_fastq_dirs(remote_prefix=None):
 	GS = GSRemoteProvider()
 	os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.expanduser(
 		'~/.config/gcloud/application_default_credentials.json')
-	bucket_name = remote_prefix.split('/')[0]
+	bucket_name = remote_prefix.replace('gs://', '').split('/')[0]
 	indir = '/'.join(remote_prefix.replace('gs://', '').split('/')[1:])
 	if indir == '':
 		prefix=None
