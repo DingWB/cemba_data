@@ -97,7 +97,7 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 						workdir="./",output=None):
 	workdir = os.path.abspath(os.path.expanduser(workdir))
 	CMD=f"yap-gcp run_demultiplex --fq_dir= {fq_dir} --remote_prefix {remote_prefix} --outdir {outdir} \
-					--fq_ext {fq_ext} --barcode_version {barcode_version} --env_name {env_name} \
+					--fq_ext {fq_ext} --barcode_version {barcode_version} \
 					--gcp {gcp} --region {region} --keep_remote {keep_remote} --n_jobs {n_jobs}"
 	if not env_name is None:
 		CMD=f"conda activate {env_name} \n  "+ CMD
@@ -117,7 +117,7 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 	print(f"To run: sky launch -y -n {job_name} {output}")
 
 def run_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
-						fq_ext="fastq",barcode_version="V2",env_name='base',
+						fq_ext="fastq",barcode_version="V2",
 						gcp=True,region='us-west1',keep_remote=False,
 						n_jobs=96):
 	smk1=os.path.join(PACKAGE_DIR,"gcp",'smk',"demultiplex.Snakefile")
@@ -126,9 +126,6 @@ def run_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 	# Demultiplex
 	config_str=f'--config gcp={gcp} fq_dir="{fq_dir}" outdir="{outdir}" fq_ext="{fq_ext}" barcode_version="{barcode_version}" '
 	common_str=f"--default-remote-prefix {remote_prefix} --default-remote-provider GS --google-lifesciences-region {region} "
-	if not env_name is None:
-		common_str+="--use-conda "
-		config_str+=f'env_name="{env_name}" '
 	if keep_remote:
 		common_str+="--keep-remote "
 	CMD1 = f"snakemake -s {smk1} {config_str} {common_str} -j {n_jobs} \n  "

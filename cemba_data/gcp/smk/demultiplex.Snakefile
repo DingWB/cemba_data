@@ -23,7 +23,6 @@ else:
 fq_ext=config["fq_ext"] if 'fq_ext' in config else 'fastq'
 outdir=config["outdir"] if 'outdir' in config else 'mapping'
 barcode_version = config["barcode_version"] if 'barcode_version' in config else "V2"
-env_name="yap" if 'env_name' not in config else config['env_name']
 
 print(outdir)
 
@@ -54,8 +53,6 @@ rule run_demultiplex: #{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pn
 #         stats_out =dynamic("{dir}/{uid}/lanes/{uid}-{lane}-{name}.demultiplex.stats.txt"),
 #         R1=dynamic("{dir}/{uid}/lanes/{uid}-{lane}-{name}-R1.fq.gz"),
 #         R2=dynamic("{dir}/{uid}/lanes/{uid}-{lane}-{name}-R2.fq.gz"),
-    conda:
-        env_name
 
     params:
         random_index_fa=lambda wildcards: os.path.join(PACKAGE_DIR,'files','random_index_v1.fa') \
