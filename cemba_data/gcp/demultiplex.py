@@ -99,6 +99,8 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 	CMD=f"yap-gcp run_demultiplex --fq_dir= {fq_dir} --remote_prefix {remote_prefix} --outdir {outdir} \
 					--fq_ext {fq_ext} --barcode_version {barcode_version} --env_name {env_name} \
 					--gcp {gcp} --region {region} --keep_remote {keep_remote} --n_jobs {n_jobs}"
+	if not env_name is None:
+		CMD=f"conda activate {env_name} \n  "+ CMD
 	if skypilot_template is None:
 		skypilot_template=os.path.join(PACKAGE_DIR,"gcp",'yaml',"demultiplex.yaml")
 	with open(skypilot_template) as f:
@@ -133,10 +135,7 @@ def run_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 
 	# Merge lanes
 	CMD2 = f"snakemake -s {smk2} {config_str} {common_str} -j {n_jobs} \n  "
-	if not env_name is None:
-		CMD=f"conda activate {env_name} \n  "+ CMD1+CMD2
-	else:
-		CMD = CMD1 + CMD2
+	CMD = CMD1 + CMD2
 
 	print(f"CMD: {CMD}")
 	os.system(CMD)
