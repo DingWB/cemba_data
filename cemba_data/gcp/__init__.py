@@ -12,6 +12,7 @@ def main():
 	fire.Fire({
 		"prepare_demultiplex":prepare_demultiplex,
 		"get_demultiplex_skypilot_yaml":get_demultiplex_skypilot_yaml,
+		'run_demultiplex':run_demultiplex,
 	})
 
 if __name__=="_main__":

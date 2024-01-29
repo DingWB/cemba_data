@@ -92,34 +92,13 @@ def get_demultiplex_skypilot_yaml():
 
 def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 						fq_ext="fastq",barcode_version="V2",env_name='base',
-						gcp=True,region='us-west1',keep_remote=False,
+						region='us-west1',keep_remote=False,gcp=True,
 						skypilot_template=None,n_jobs=96,job_name="demultiplex",
 						workdir="./",output=None):
 	workdir = os.path.abspath(os.path.expanduser(workdir))
-	smk1=os.path.join(PACKAGE_DIR,"gcp",'smk',"demultiplex.Snakefile")
-	smk2 = os.path.join(PACKAGE_DIR, "gcp", 'smk', "merge_lanes.Snakefile")
-	use_smk1=os.path.join(workdir,"demultiplex.Snakefile")
-	use_smk2 = os.path.join(workdir, "merge_lanes.Snakefile")
-	os.system(f"cp {smk1} {use_smk1}")
-	os.system(f"cp {smk2} {use_smk2}")
-
-	# Demultiplex
-	config_str=f'--config gcp={gcp} fq_dir="{fq_dir}" outdir="{outdir}" fq_ext="{fq_ext}" barcode_version="{barcode_version}" '
-	common_str=f"--default-remote-prefix {remote_prefix} --default-remote-provider GS --google-lifesciences-region {region} "
-	if not env_name is None:
-		common_str+="--use-conda "
-		config_str+=f'env_name="{env_name}" '
-	if keep_remote:
-		common_str+="--keep-remote "
-	CMD1 = f"snakemake -s demultiplex.Snakefile {config_str} {common_str} -j {n_jobs} \n  "
-
-	# Merge lanes
-	CMD2 = f"snakemake -s merge_lanes.Snakefile {config_str} {common_str} -j {n_jobs} \n  "
-	if not env_name is None:
-		CMD=f"conda activate {env_name} \n  "+ CMD1+CMD2
-	else:
-		CMD = CMD1 + CMD2
-
+	CMD=f"yap-gcp run_demultiplex --fq_dir= {fq_dir} --remote_prefix {remote_prefix} --outdir {outdir} \
+					--fq_ext {fq_ext} --barcode_version {barcode_version} --env_name {env_name} \
+					--gcp {gcp} --region {region} --keep_remote {keep_remote} --n_jobs {n_jobs}"
 	if skypilot_template is None:
 		skypilot_template=os.path.join(PACKAGE_DIR,"gcp",'yaml',"demultiplex.yaml")
 	with open(skypilot_template) as f:
@@ -134,3 +113,30 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 
 	# print(f"To run this job: sky spot launch -y -n {job_name} -y {output} [spot] \n")
 	print(f"To run: sky launch -y -n {job_name} {output}")
+
+def run_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
+						fq_ext="fastq",barcode_version="V2",env_name='base',
+						gcp=True,region='us-west1',keep_remote=False,
+						n_jobs=96):
+	smk1=os.path.join(PACKAGE_DIR,"gcp",'smk',"demultiplex.Snakefile")
+	smk2 = os.path.join(PACKAGE_DIR, "gcp", 'smk', "merge_lanes.Snakefile")
+
+	# Demultiplex
+	config_str=f'--config gcp={gcp} fq_dir="{fq_dir}" outdir="{outdir}" fq_ext="{fq_ext}" barcode_version="{barcode_version}" '
+	common_str=f"--default-remote-prefix {remote_prefix} --default-remote-provider GS --google-lifesciences-region {region} "
+	if not env_name is None:
+		common_str+="--use-conda "
+		config_str+=f'env_name="{env_name}" '
+	if keep_remote:
+		common_str+="--keep-remote "
+	CMD1 = f"snakemake -s {smk1} {config_str} {common_str} -j {n_jobs} \n  "
+
+	# Merge lanes
+	CMD2 = f"snakemake -s {smk2} {config_str} {common_str} -j {n_jobs} \n  "
+	if not env_name is None:
+		CMD=f"conda activate {env_name} \n  "+ CMD1+CMD2
+	else:
+		CMD = CMD1 + CMD2
+
+	print(f"CMD: {CMD}")
+	os.system(CMD)

@@ -2,11 +2,10 @@
 Generate raw FASTQ dataframe based on fixed name pattern
 name pattern is based on samplesheet generated in plateinfo_and_samplesheet.py
 """
-
+import os,sys
 import glob
 import logging
 import pathlib
-
 import pandas as pd
 
 # logger
@@ -50,9 +49,9 @@ def _parse_v2_fastq_path(path):
     FASTQ name pattern of V1:
     {sample_id_prefix}-{plate}-{multiplex_group}-{barcode_name}_{internal_info}_{lane}_{read_type}_{internal_info}.fastq.gz
     """
-    path = pathlib.Path(path)
+    # path1 = pathlib.Path(path)
     try:
-        *_, plate, multiplex_group, multi_field = path.name.split('-')
+        *_, plate, multiplex_group, multi_field = os.path.basename(path).split('-')
         primer_name, *_, lane, read_type, _ = multi_field.split('_')
         try:
             assert primer_name[0] in 'ABCDEFGHIJKLMNOP'
