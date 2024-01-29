@@ -204,7 +204,7 @@ def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 					tmp_dir="mapping_gcp",chunk_size=2,
 					region='us-west1',keep_remote=False,gcp=True,
 					skypilot_template=None,job_name='mapping',
-					env_name='base',n_jobs=96):
+					env_name='base',n_jobs=96,output="run_mapping.yaml"):
 	outdir=os.path.abspath(os.path.expanduser(tmp_dir))
 	if not os.path.exists(outdir):
 		os.mkdir(outdir)

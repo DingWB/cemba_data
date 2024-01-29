@@ -52,7 +52,7 @@ yap demultiplex --fastq_pattern "test_fastq/*.gz" -o mapping -j 4 --aligner bism
 sh mapping/snakemake/qsub/snakemake_cmd.txt
 ```
 
-## Run demultiplex on local and mapping on GCP
+## 2. Run demultiplex on local and mapping on GCP
 ### (1). Demultiplex is the same
 ### (2). Mapping on GCP manually
 ```shell
@@ -77,7 +77,7 @@ cnda activate sky
 sh mapping/snakemake/gcp/sky_spot.sh
 ```
 
-## Run both demultiplex and mapping on GCP
+## 2.1 Run demultiplex on GCP
 ```shell
 #yap-gcp get_demultiplex_skypilot_yaml > skypilot.yaml
 yap-gcp prepare_demultiplex ----fq_dir gs://mapping_example/fastq/test_fastq \
@@ -85,4 +85,8 @@ yap-gcp prepare_demultiplex ----fq_dir gs://mapping_example/fastq/test_fastq \
               --env_name yap --n_jobs 96 --output run_demultiplex.yaml
 # vim and change config in run_demultiplex.yaml
 sky launch -y -n demultiplex run_demultiplex.yaml # Do Not use spot mode.
+
+# mapping
+yap-gcp prepare_mapping --fastq_prefix gs://mapping_example/test_gcp --config_path config.ini --aligner hisat-3n \
+            --chunk_size 2 --job_name='mapping' --env_name='yap' --n_jobs=96
 ```
