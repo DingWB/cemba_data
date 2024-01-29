@@ -22,7 +22,8 @@ setup: |
   # conda install -y -n base -c conda-forge -c bioconda mamba
   # mamba env create -f https://raw.githubusercontent.com/DingWB/cemba_data/master/env.yaml
   #mkdir -p ~/Ref && gsutil -m cp -r -n gs://wubin_ref/hg38 ~/Ref
+  conda activate {env_name}
+  pip uninstall -y cemba_data && pip install git+https://github.com/DingWB/cemba_data
 
 run: |
-  pip uninstall -y cemba_data && pip install git+https://github.com/DingWB/cemba_data
   {CMD}

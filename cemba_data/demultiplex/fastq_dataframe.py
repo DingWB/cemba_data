@@ -53,13 +53,13 @@ def _parse_v2_fastq_path(path):
     path = pathlib.Path(path)
     try:
         *_, plate, multiplex_group, multi_field = path.name.split('-')
-        primer_name, _, lane, read_type, _ = multi_field.split('_')
+        primer_name, *_, lane, read_type, _ = multi_field.split('_')
         try:
             assert primer_name[0] in 'ABCDEFGHIJKLMNOP'
             assert int(primer_name[1:]) in list(range(1, 25))
             assert int(multiplex_group) in list(range(1, 7))
             assert lane in {'L001', 'L002', 'L003', 'L004','L005','L006','L007','L008'}
-            assert read_type in {'R1', 'R2'}
+            # assert read_type in {'R1', 'R2'}
         except AssertionError:
             raise ValueError
     except ValueError:

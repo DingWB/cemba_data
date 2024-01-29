@@ -1,34 +1,30 @@
 import os,sys
 import pandas as pd
 import cemba_data
+import glob
 from snakemake.io import glob_wildcards
 PACKAGE_DIR=cemba_data.__path__[0]
+from cemba_data.demultiplex.fastq_dataframe import _parse_v2_fastq_path
 
 def make_v2_fastq_df(fq_dir,fq_ext,run_on_gcp):
-	# For example: 220517-AMB-mm-na-snm3C_seq-NovaSeq-pe-150-WT-AMB_220510_8wk_12D_13B_2_P3-1-A11_S7_L001_R1_001.fastq.gz
+	# For example: UWA7648_CX05_A10_2_P8-1-O4_22F25JLT3_S15_L001_I1_001.fastq.gz
 	# depth = 2
 	if run_on_gcp:
 		from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
 		GS = GSRemoteProvider()
 		os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
-	indirs, prefixes, plates, multiple_groups, primer_names, pns,lanes, read_types, suffixes = glob_wildcards(os.path.join(str(fq_dir),"{indir}/{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}." + f"{fq_ext}.gz")) if not run_on_gcp else GS.glob_wildcards(fq_dir + "/{indir}/{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}." + f"{fq_ext}.gz")
-	indirs = [fq_dir + '/' + d for d in indirs]
 
-	if len(indirs) == 0:  # depth=1
-		prefixes, plates, multiple_groups, primer_names, pns, lanes, read_types, suffixes = glob_wildcards(os.path.join(str(fq_dir),"{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}." + f"{fq_ext}.gz")) if not run_on_gcp else GS.glob_wildcards(fq_dir + "/{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}." + f"{fq_ext}.gz")
-		indirs = [str(fq_dir)] * len(prefixes)
-
-	df = pd.DataFrame.from_dict(
-		{'indir': indirs,
-		 'prefix': prefixes,
-		 'plate': plates,
-		 'multiplex_group': multiple_groups,
-		 'primer_name': primer_names,
-		 'pns': pns,
-		 'lane': lanes,
-		 'read_type': read_types,
-		 'suffix': suffixes}
-	)
+		bucket_name = fq_dir.replace('gs://', '').split('/')[0]
+		indir = '/'.join(fq_dir.replace('gs://', '').split('/')[1:])
+		files = GS.client.list_blobs(bucket_name, prefix=indir)
+		input_files = ["gs://"+bucket_name+"/"+file.name for file in files if file.name.endswith(f"{fq_ext}.gz")]
+	else:
+		input_files=glob.glob(fq_dir) # * should be included in fq_dir, is fastq_pattern
+	R=[]
+	for file in input_files:
+		R.append(_parse_v2_fastq_path(file))
+	df = pd.DataFrame(R)
+	df.fastq_path=df.fastq_path.apply(lambda x:str(x))
 	return df
 
 def get_fastq_info(fq_dir,outdir,fq_ext,run_on_gcp):
@@ -37,8 +33,9 @@ def get_fastq_info(fq_dir,outdir,fq_ext,run_on_gcp):
 		# need to write to file, otherwise, snakemake will call this function multiple times.
 		return df
 	df=make_v2_fastq_df(fq_dir,fq_ext,run_on_gcp)
-	df['fastq_path']=df.apply(lambda row:os.path.join(row.indir,'-'.join(row.loc[['prefix','plate','multiplex_group','primer_name']].map(str).tolist())+"_"+"_".join(row.loc[['pns','lane','read_type','suffix']].map(str).tolist())+f".{fq_ext}.gz"),axis=1)
-	df['uid']=df.plate.map(str)+'-'+df.multiplex_group.map(str)+'-'+df.primer_name.map(str) #f'{plate}-{multiplex_group}-{primer_name}')
+	# df['fastq_path']=df.apply(lambda row:os.path.join(row.indir,'-'.join(row.loc[['plate','multiplex_group','primer_name']].map(str).tolist())+"_"+"_".join(row.loc[['ID','pns','lane','read_type','suffix']].map(str).tolist())+f".{fq_ext}.gz"),axis=1)
+	# df['uid']=df.plate.map(str)+'-'+df.multiplex_group.map(str)+'-'+df.primer_name.map(str) #f'{plate}-{multiplex_group}-{primer_name}')
+	df=df.loc[df.read_type.isin(['R1','R2'])]
 	assert df.groupby(['lane','read_type'])['uid'].nunique().nunique()==1
 	df=df.loc[df.read_type=='R1']
 	df.rename(columns={'fastq_path':'R1'},inplace=True)
@@ -94,7 +91,7 @@ def get_demultiplex_skypilot_yaml():
 	print(template)
 
 def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
-						fq_ext="fastq",barcode_version="V2",env_name=None,
+						fq_ext="fastq",barcode_version="V2",env_name='base',
 						gcp=True,region='us-west1',keep_remote=False,
 						skypilot_template=None,n_jobs=96,job_name="demultiplex",
 						workdir="./",output=None):
@@ -133,7 +130,7 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 	else:
 		with open(os.path.abspath(os.path.expanduser(output)), 'w') as f:
 			f.write(template.format(job_name=job_name, workdir=workdir,
-								CMD=CMD))
+								CMD=CMD,env_name=env_name))
 
 	# print(f"To run this job: sky spot launch -y -n {job_name} -y {output} [spot] \n")
 	print(f"To run: sky launch -y -n {job_name} {output}")
