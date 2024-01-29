@@ -96,7 +96,7 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 						skypilot_template=None,n_jobs=96,job_name="demultiplex",
 						workdir="./",output=None):
 	workdir = os.path.abspath(os.path.expanduser(workdir))
-	CMD=f"yap-gcp run_demultiplex --fq_dir= {fq_dir} --remote_prefix {remote_prefix} --outdir {outdir} \
+	CMD=f"yap-gcp run_demultiplex --fq_dir {fq_dir} --remote_prefix {remote_prefix} --outdir {outdir} \
 					--fq_ext {fq_ext} --barcode_version {barcode_version} \
 					--gcp {gcp} --region {region} --keep_remote {keep_remote} --n_jobs {n_jobs}"
 	if not env_name is None:
