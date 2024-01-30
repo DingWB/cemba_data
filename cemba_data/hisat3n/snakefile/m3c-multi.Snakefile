@@ -473,7 +473,7 @@ rule multi_reads_allc:
         bai=rules.index_multi_bam_dna_reads.output.bai #"bam/{cell_id}.hisat3n_dna.multi_align.deduped.bam.bai"
     output:
         allc="allc-multi/{cell_id}.allc_multi.tsv.gz",
-        stats=local(temp("allc-multi/{cell_id}.allc_multi.tsv.gz.count.csv"))
+        stats=local(temp(allc_multi_dir+"/{cell_id}.allc_multi.tsv.gz.count.csv"))
     threads:
         1.5
     resources:
