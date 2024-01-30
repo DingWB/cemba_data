@@ -92,6 +92,8 @@ module m3c:
     snakefile:
         # here, plain paths, URLs and the special markers for code hosting providers (see below) are possible.
         "https://raw.githubusercontent.com/DingWB/cemba_data/master/cemba_data/hisat3n/snakefile/m3c.Snakefile"
+    config:
+        config
 
 use rule * from m3c exclude summary
 
