@@ -181,7 +181,7 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 			f.write(template.format(job_name=job_name, workdir=workdir,
 								CMD=CMD,env_name=env_name))
 
-	# print(f"To run this job: sky spot launch -y -n {job_name} -y {output} [spot] \n")
+	# print(f"To run this job: sky spot launch -y -n {job_name} {output} [spot] \n")
 	print(f"To run: sky launch -y -n {job_name} {output}")
 
 def run_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
@@ -318,7 +318,7 @@ def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 	with open(os.path.abspath(os.path.expanduser(output)), 'w') as f:
 		f.write(template.format(job_name=job_name, workdir=outdir,
 								CMD=CMD, env_name=env_name))
-	print(f"To run this job: sky spot launch -y -n {job_name} -y {output} [spot] \n")
+	print(f"To run this job: sky spot launch -y -n {job_name} {output} [spot] \n")
 	print(f"Or: sky launch -y -n {job_name} {output}")
 
 def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",

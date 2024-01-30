@@ -96,6 +96,6 @@ yap-gcp prepare_mapping --fastq_prefix gs://mapping_example/test_gcp_hisat3n --c
 # folder mapping_gcp_tmp will be created (default folder name)
 # view and edit run_mapping.yaml; Note: remember to copy reference to VM machine
 # when set node_rank < 0, for example, -1, will run with only 1 node, chunk_size is overwrite.
-sky spot launch -y -n mapping -y run_mapping.yaml
-# or: sky launch -y -n mapping -y run_mapping.yaml
+sky spot launch -y -n mapping run_mapping.yaml
+# or: sky launch -y -n mapping run_mapping.yaml
 ```
