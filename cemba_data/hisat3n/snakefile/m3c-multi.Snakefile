@@ -91,7 +91,7 @@ allc_multi_dir=workflow.default_remote_prefix+"allc-multi" if gcp else "allc-mul
 module m3c:
     snakefile:
         # here, plain paths, URLs and the special markers for code hosting providers (see below) are possible.
-        "m3c.Snakefile"
+        "https://raw.githubusercontent.com/DingWB/cemba_data/master/cemba_data/hisat3n/snakefile/m3c.Snakefile"
 
 use rule * from m3c exclude summary
 
@@ -153,7 +153,7 @@ rule dedup_multi_bam:
     input:
         bam=rules.sort_multi_bam.output.bam #"bam/{cell_id}.hisat3n_dna_sorted.multi_align.bam"
     output:
-        bam="bam/{cell_id}.hisat3n_dna.multi_align.deduped.bam")),
+        bam="bam/{cell_id}.hisat3n_dna.multi_align.deduped.bam",
         stats=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.multi_align.deduped.matrix.txt"))
     resources:
         mem_mb=1000
