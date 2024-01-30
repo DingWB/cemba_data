@@ -172,6 +172,7 @@ def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 	outdir=os.path.abspath(os.path.expanduser(tmp_dir))
 	if not os.path.exists(outdir):
 		os.mkdir(outdir)
+	os.system(f"cp {config_path} {outdir}/mapping_config.ini")
 	fastq_dirs=get_fastq_dirs(fastq_prefix)
 	if len(fastq_dirs)==0:
 		raise ValueError(f"Please check gs://{remote_prefix}/{outdir} and make sure this is correct, cause no fastq dirs were detected")
