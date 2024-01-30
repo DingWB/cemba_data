@@ -326,7 +326,6 @@ def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 				config_path="mapping_config.ini",aligner='hisat-3n',
 				n_jobs=96,node_rank=0,print_only=False):
 	output_dir=fastq_prefix.replace("gs://","")
-	cur_dir=os.getcwd()
 	if not os.path.exists(output_dir):
 		os.makedirs(output_dir,exist_ok=True) #on loal GCP VM machine
 	os.system(f"cp {config_path} {output_dir}/mapping_config.ini")
@@ -344,7 +343,7 @@ def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 		# mapping_config.ini need to be under local_output_dir
 		cmd_str=f"--default-remote-prefix {output_dir}/{subdir}"
 		# there should be fastq dir under default-remote-prefix
-		cmd=f"snakemake -s {output_dir}/{subdir}/Snakefile -d {cur_dir} --default-resources mem_mb=100 --resources mem_mb=50000 {common_str} {cmd_str}"
+		cmd=f"snakemake -s {output_dir}/{subdir}/Snakefile -d {output_dir}/{subdir} --default-resources mem_mb=100 --resources mem_mb=50000 {common_str} {cmd_str}"
 		cmds.append(cmd)
 
 	for cmd in cmds:
