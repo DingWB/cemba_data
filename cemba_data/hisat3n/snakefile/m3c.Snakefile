@@ -97,7 +97,7 @@ rule summary:
         local(expand("fastq/{cell_id}.trimmed.stats.tsv",
                         cell_id=CELL_IDS)),
         # dna mapping
-        expand("bam/{cell_id}.hisat3n_dna_summary.txt", cell_id=CELL_IDS),
+        local(expand("bam/{cell_id}.hisat3n_dna_summary.txt", cell_id=CELL_IDS)),
 
         # bam dir
         local(expand(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.matrix.txt",cell_id=CELL_IDS)),
@@ -108,7 +108,7 @@ rule summary:
         local(expand(hic_dir+"/{cell_id}.hisat3n_dna.all_reads.contact_stats.csv"), cell_id=CELL_IDS),
         # allc
         expand("allc/{cell_id}.allc.tsv.gz", cell_id=CELL_IDS),
-        expand("allc/{cell_id}.allc.tsv.gz.count.csv", cell_id=CELL_IDS),
+        local(expand("allc/{cell_id}.allc.tsv.gz.count.csv", cell_id=CELL_IDS)),
         expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz.tbi",cell_id=CELL_IDS, mcg_context=mcg_context),
         expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz",
                cell_id=CELL_IDS, mcg_context=mcg_context),
