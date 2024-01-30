@@ -9,19 +9,6 @@ import yaml
 import pathlib
 from cemba_data.hisat3n import *
 
-# if "gcp" in config:
-#     gcp=config["gcp"] # if the fastq files stored in GCP cloud, set gcp=True in snakemake: --config gcp=True
-# else:
-#     gcp=False
-#
-# if gcp:
-#     from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
-#     GS = GSRemoteProvider()
-#     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
-#
-# bam_dir=workflow.default_remote_prefix+"/bam" if gcp else "bam"
-# allc_dir=workflow.default_remote_prefix+"/allc" if gcp else "allc"
-# hic_dir=workflow.default_remote_prefix+"/hic" if gcp else "hic"
 # ==================================================
 # Preparation
 # ==================================================
