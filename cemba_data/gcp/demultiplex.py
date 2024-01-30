@@ -6,13 +6,19 @@ from cemba_data.mapping.pipelines import make_gcp_snakefile
 from snakemake.io import glob_wildcards
 PACKAGE_DIR=cemba_data.__path__[0]
 from cemba_data.demultiplex.fastq_dataframe import _parse_v2_fastq_path
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.expanduser(
+		'~/.config/gcloud/application_default_credentials.json')
 from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
+import json
+with open(os.environ['GOOGLE_APPLICATION_CREDENTIALS'] ,'r') as f:
+	D=json.load(f)
+gcp_project=D['quota_project_id']
 
 def make_v2_fastq_df(fq_dir,run_on_gcp):
 	# For example: UWA7648_CX05_A10_2_P8-1-O4_22F25JLT3_S15_L001_I1_001.fastq.gz
 	# depth = 2
 	if run_on_gcp:
-		GS = GSRemoteProvider()
+		GS = GSRemoteProvider(project=gcp_project)
 		os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
 
 		bucket_name = fq_dir.replace('gs://', '').split('/')[0]
@@ -86,9 +92,7 @@ def get_lanes_info(outdir,barcode_version):
 	return df1
 
 def get_fastq_dirs(remote_prefix=None):
-	GS = GSRemoteProvider()
-	os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.expanduser(
-		'~/.config/gcloud/application_default_credentials.json')
+	GS = GSRemoteProvider(project=gcp_project)
 	bucket_name = remote_prefix.replace('gs://', '').split('/')[0]
 	indir = '/'.join(remote_prefix.replace('gs://', '').split('/')[1:])
 	if indir == '':
