@@ -72,8 +72,8 @@ if len(missing_key) > 0:
 
 mcg_context = 'CGN' if int(config['num_upstr_bases']) == 0 else 'HCGN'
 repeat_index_flag = "--repeat" if config['hisat3n_repeat_index_type'] == 'repeat' else "--no-repeat-index"
-allc_mcg_dir=workflow.default_remote_prefix+f"allc-{mcg_context}" if gcp else f"allc-{mcg_context}"
-allc_multi_dir=workflow.default_remote_prefix+"allc-multi" if gcp else "allc-multi"
+allc_mcg_dir=workflow.default_remote_prefix+f"/allc-{mcg_context}" if gcp else f"allc-{mcg_context}"
+allc_multi_dir=workflow.default_remote_prefix+"/allc-multi" if gcp else "allc-multi"
 print(f"bam_dir: {bam_dir}\n allc_dir: {allc_dir}\n hic_dir: {hic_dir} \n allc_mcg_dir: {allc_mcg_dir}\n allc_multi_dir: {allc_multi_dir}")
 # module m3c:
 #     snakefile:
