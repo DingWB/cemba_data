@@ -2,6 +2,7 @@ import os,sys
 import pandas as pd
 import cemba_data
 import glob
+from cemba_data.mapping.pipelines import make_gcp_snakefile
 from snakemake.io import glob_wildcards
 PACKAGE_DIR=cemba_data.__path__[0]
 from cemba_data.demultiplex.fastq_dataframe import _parse_v2_fastq_path
@@ -158,50 +159,9 @@ def run_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 		print(f"CMD: {cmd}")
 		os.system(cmd)
 
-def make_gcp_snakefile(fastq_prefix,subdir):
-	GS = GSRemoteProvider()
-	os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.expanduser(
-		'~/.config/gcloud/application_default_credentials.json')
-
-	config = get_configuration(os.path.join(fastq_prefix,'mapping_config.ini'))
-	try:
-		mode = config['mode']
-	except KeyError:
-		raise KeyError('mode not found in the config file.')
-
-	if mode == 'mc':
-		config_str = mc_config_str(config)
-	elif mode == 'mct':
-		config_str = mct_config_str(config)
-	elif mode == 'm3c':
-		config_str = m3c_config_str(config)
-	elif mode == '4m':
-		config_str = _4m_config_str(config)
-	else:
-		raise ValueError(f'Unknown mode {mode}')
-	print('Making Snakefile based on mapping config INI file. The parameters are:')
-	print(config_str)
-
-	with open(PACKAGE_DIR / f'mapping/Snakefile_template/{mode}.Snakefile') as f:
-		snake_template = f.read()
-
-	sub_folder=os.path.join(fastq_prefix,subdir)
-	if not os.path.exists(sub_folder):
-		os.makedirs(sub_folder,exist_ok=True)
-	cell_ids = GS.glob_wildcards(os.path.join(sub_folder,"fastq/{cell_id}-R1.fq.gz"))[0]
-	if len(cell_ids) == 0: # length should be 64
-		raise ValueError(f"No cell fastq were identified under {sub_folder}/fastq")
-	cell_id_str = f'CELL_IDS = {cell_ids}\n'
-
-	total_snakefile = config_str + cell_id_str + snake_template
-	with open(os.path.join(sub_folder,'Snakefile'), 'w') as f:
-		f.write(total_snakefile)
-	return
-
-
 def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 					config_path="config.ini",aligner='hisat-3n',
-					tmp_dir="mapping_gcp",chunk_size=2,
+					tmp_dir="mapping_gcp_tmp",chunk_size=2,
 					region='us-west1',keep_remote=False,gcp=True,
 					skypilot_template=None,job_name='mapping',
 					env_name='base',n_jobs=96,output="run_mapping.yaml"):
@@ -240,14 +200,17 @@ def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 	with open(os.path.abspath(os.path.expanduser(output)), 'w') as f:
 		f.write(template.format(job_name=job_name, workdir=outdir,
 								CMD=CMD, env_name=env_name))
+	print(f"To run this job: sky spot launch -y -n {job_name} -y {output} [spot] \n")
+	print(f"Or: sky launch -y -n {job_name} {output}")
 
 def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 				gcp=True,region='us-west1',keep_remote=False,
 				config_path="config.ini",aligner='hisat-3n',
 				n_jobs=96,node_rank=0):
-	if not os.path.exists(fastq_prefix):
-		os.makedirs(fastq_prefix,exist_ok=True) #on loal GCP VM machine
-	os.system(f"cp {config_path} {fastq_prefix}/mapping_config.ini")
+	output_dir=fastq_prefix.replace("gs://","")
+	if not os.path.exists(output_dir):
+		os.makedirs(output_dir,exist_ok=True) #on loal GCP VM machine
+	os.system(f"cp {config_path} {output_dir}/mapping_config.ini")
 
 	input_fastq_dir=f"fastq_dirs_{node_rank}"
 	with open(input_fastq_dir,'r') as f:
@@ -258,11 +221,11 @@ def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 		config_str+="--keep-remote "
 	cmds=[]
 	for subdir in subdirs:
-		make_gcp_snakefile(fastq_prefix,subdir) #
+		make_gcp_snakefile(output_dir,subdir) #
 		# mapping_config.ini need to be under local_output_dir
-		cmd_str=f"--default-remote-prefix {fastq_prefix}/{subdir} "
+		cmd_str=f"--default-remote-prefix {output_dir}/{subdir}"
 		# there should be fastq dir under default-remote-prefix
-		cmd=f"snakemake -s {fastq_prefix}/{subdir}/Snakefile {common_str} {cmd_str}"
+		cmd=f"snakemake -s {output_dir}/{subdir}/Snakefile --default-resources mem_mb=100 --resources mem_mb=50000 {common_str} {cmd_str}"
 		cmds.append(cmd)
 
 	for cmd in cmds:

@@ -60,7 +60,6 @@ def validate_mapping_config(output_dir):
 	print(f'Mapping config file looks good. Here is what will be used in generating Snakefile:\n{config_str}')
 	return
 
-
 def make_snakefile(output_dir,sky_template=None):
 	output_dir = pathlib.Path(output_dir).absolute()
 	config = get_configuration(output_dir / 'mapping_config.ini')
@@ -95,6 +94,45 @@ def make_snakefile(output_dir,sky_template=None):
 		write_gcp_skypolit_yaml(output_dir=output_dir, template_path=sky_template)
 	return
 
+def make_gcp_snakefile(output_dir,subdir):
+	GS = GSRemoteProvider()
+	os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.expanduser(
+		'~/.config/gcloud/application_default_credentials.json')
+
+	config = get_configuration(os.path.join(output_dir,'mapping_config.ini'))
+	try:
+		mode = config['mode']
+	except KeyError:
+		raise KeyError('mode not found in the config file.')
+
+	if mode == 'mc':
+		config_str = mc_config_str(config)
+	elif mode == 'mct':
+		config_str = mct_config_str(config)
+	elif mode == 'm3c':
+		config_str = m3c_config_str(config)
+	elif mode == '4m':
+		config_str = _4m_config_str(config)
+	else:
+		raise ValueError(f'Unknown mode {mode}')
+	print('Making Snakefile based on mapping config INI file. The parameters are:')
+	print(config_str)
+
+	with open(os.path.join(PACKAGE_DIR,f'mapping/Snakefile_template/{mode}.Snakefile')) as f:
+		snake_template = f.read()
+
+	sub_folder=os.path.join(output_dir,subdir)
+	if not os.path.exists(sub_folder):
+		os.makedirs(sub_folder,exist_ok=True)
+	cell_ids = GS.glob_wildcards(os.path.join(sub_folder,"fastq/{cell_id}-R1.fq.gz"))[0]
+	if len(cell_ids) == 0: # length should be 64
+		raise ValueError(f"No cell fastq were identified under {sub_folder}/fastq")
+	cell_id_str = f'CELL_IDS = {cell_ids}\n'
+
+	total_snakefile = config_str + cell_id_str + snake_template
+	with open(os.path.join(sub_folder,'Snakefile'), 'w') as f:
+		f.write(total_snakefile)
+	return
 
 def write_qsub_commands(output_dir, cores_per_job, memory_gb_per_core, script_dir):
 	memory_per_core = int(memory_gb_per_core[:-1]) * 1000

@@ -87,7 +87,9 @@ yap-gcp prepare_demultiplex ----fq_dir gs://mapping_example/fastq/test_fastq \
 sky launch -y -n demultiplex run_demultiplex.yaml # Do Not use spot mode.
 
 # mapping
+yap default-mapping-config --mode m3c --barcode_version V2 --bismark_ref "~/Ref/hg38/hg38_ucsc_with_chrL.bismark1" --genome "~/Ref/hg38/hg38_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/hg38/hg38_ucsc.main.chrom.sizes"  > config.ini
+
 yap-gcp prepare_mapping --fastq_prefix gs://mapping_example/test_gcp --config_path config.ini --aligner hisat-3n \
-            --chunk_size 2 --job_name='mapping' --env_name='yap' --n_jobs=96
+            --chunk_size 2 --job_name='mapping' --env_name='yap' --n_jobs=8
 # view and edit run_mapping.yaml 
 ```
