@@ -102,7 +102,7 @@ def make_gcp_snakefile(output_dir,subdir):
 		D = json.load(f)
 	gcp_project = D['quota_project_id']
 	GS = GSRemoteProvider(project=gcp_project)
-
+	assert os.path.exists(os.path.join(output_dir,'mapping_config.ini'))
 	config = get_configuration(os.path.join(output_dir,'mapping_config.ini'))
 	try:
 		mode = config['mode']
