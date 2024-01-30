@@ -114,15 +114,16 @@ def make_gcp_snakefile(output_dir,subdir,aligner="hisat-3n"):
 	except KeyError:
 		raise KeyError('mode not found in the config file.')
 
-	if mode.startswith('mc'):
+	if mode =='mc':
 		config_str = mc_config_str(config)
-	elif mode.startswith('mct'):
+	elif mode == 'mct':
 		config_str = mct_config_str(config)
-	elif mode.startswith('m3c'):
+	elif mode in ['m3c','m3c-multi']:
 		config_str = m3c_config_str(config)
-	elif mode.startswith('4m'):
+	elif mode =='4m':
 		config_str = _4m_config_str(config)
 	else:
+		print(mode)
 		raise ValueError(f'Unknown mode {mode}')
 	print('Making Snakefile based on mapping config INI file. The parameters are:')
 	print(config_str)
