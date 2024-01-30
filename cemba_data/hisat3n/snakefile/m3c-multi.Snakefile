@@ -175,7 +175,7 @@ rule index_multi_bam_dna_reads:
 # generate ALLC
 rule multi_reads_allc:
     input:
-        bam=rules.dedup_multi_bam.output.bam #"bam/{cell_id}.hisat3n_dna.multi_align.deduped.bam",
+        bam=rules.dedup_multi_bam.output.bam, #"bam/{cell_id}.hisat3n_dna.multi_align.deduped.bam",
         bai=rules.index_multi_bam_dna_reads.output.bai #"bam/{cell_id}.hisat3n_dna.multi_align.deduped.bam.bai"
     output:
         allc="allc-multi/{cell_id}.allc_multi.tsv.gz",

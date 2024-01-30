@@ -183,7 +183,7 @@ rule trim:
 # Paired-end Hisat3n mapping using DNA mode
 rule hisat_3n_pair_end_mapping_dna_mode:
     input:
-        R1=rules.trim.output.R1 #local("fastq/{cell_id}-R1.trimmed.fq.gz"),
+        R1=rules.trim.output.R1, #local("fastq/{cell_id}-R1.trimmed.fq.gz"),
         R2=rules.trim.output.R2 #local("fastq/{cell_id}-R2.trimmed.fq.gz")
     output:
         bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.unsort.bam")),
@@ -232,7 +232,7 @@ rule split_unmapped_reads:
         unmapped_reads=rules.separate_unmapped_reads.output.unmapped_fastq #"bam/{cell_id}.hisat3n_dna.unmapped.fastq"
     output:
         split_r1=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.split_reads.R1.fastq")),
-        split_r2=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.split_reads.R2.fastq")),
+        split_r2=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.split_reads.R2.fastq"))
     params:
         output_prefix=lambda wildcards: bam_dir+f"/{wildcards.cell_id}.hisat3n_dna.split_reads"
     threads:
@@ -303,7 +303,7 @@ rule remove_overlap_read_parts:
 # merge all mapped reads
 rule merge_original_and_split_bam:
     input:
-        bam=rules.separate_unmapped_reads.output.unique_bam #"bam/{cell_id}.hisat3n_dna.unique_aligned.bam",
+        bam=rules.separate_unmapped_reads.output.unique_bam, #"bam/{cell_id}.hisat3n_dna.unique_aligned.bam",
         split_bam=rules.remove_overlap_read_parts.output.bam
     output:
         bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.bam"))
@@ -386,7 +386,7 @@ rule index_unique_bam_dna_reads:
 # generate ALLC
 rule unique_reads_allc:
     input:
-        bam=rules.dedup_unique_bam.output.bam #"bam/{cell_id}.hisat3n_dna.all_reads.deduped.bam",
+        bam=rules.dedup_unique_bam.output.bam, #"bam/{cell_id}.hisat3n_dna.all_reads.deduped.bam",
         bai=rules.index_unique_bam_dna_reads.output.bai #"bam/{cell_id}.hisat3n_dna.all_reads.deduped.bam.bai"
     output:
         allc="allc/{cell_id}.allc.tsv.gz",

@@ -114,13 +114,13 @@ def make_gcp_snakefile(output_dir,subdir,aligner="hisat-3n"):
 	except KeyError:
 		raise KeyError('mode not found in the config file.')
 
-	if mode == 'mc':
+	if mode.startswith('mc'):
 		config_str = mc_config_str(config)
-	elif mode == 'mct':
+	elif mode.startswith('mct'):
 		config_str = mct_config_str(config)
-	elif mode == 'm3c':
+	elif mode.startswith('m3c'):
 		config_str = m3c_config_str(config)
-	elif mode == '4m':
+	elif mode.startswith('4m'):
 		config_str = _4m_config_str(config)
 	else:
 		raise ValueError(f'Unknown mode {mode}')
