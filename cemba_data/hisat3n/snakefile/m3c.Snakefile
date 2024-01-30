@@ -193,23 +193,17 @@ rule hisat_3n_pair_end_mapping_dna_mode:
     resources:
         mem_mb=14000
     shell:
-        "hisat-3n "
-        "{config[hisat3n_dna_reference]} "
-        "-q "
-        "-1 {input.R1} "
-        "-2 {input.R2} "
-        "--directional-mapping-reverse "  # this can speed up 2X as the snmC reads are directional
-        "--base-change C,T "
-        "{repeat_index_flag} "
-        "--no-spliced-alignment "  # this is important for DNA mapping
-        "--no-temp-splicesite "
-        "-t "
-        "--new-summary "
-        "--summary-file {output.stats} "
-        "--threads {threads} "
-        "| "
-        "samtools view "
-        "-b -q 0 -o {output.bam}"  # do not filter any reads in this step
+        """
+        hisat-3n {config[hisat3n_dna_reference]} -q -1 {input.R1} -2 {input.R2} \
+            --directional-mapping-reverse   \ # this can speed up 2X as the snmC reads are directional
+            --base-change C,T \
+            {repeat_index_flag} \
+            --no-spliced-alignment " \ # this is important for DNA mapping
+            --no-temp-splicesite -t --new-summary \
+            --summary-file {output.stats} \
+            --threads {threads} | samtools view
+            -b -q 0 -o {output.bam}   # do not filter any reads in this step
+        """
 
 
 # separate hisat-3n unmapped reads

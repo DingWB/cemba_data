@@ -80,17 +80,20 @@ sh mapping/snakemake/gcp/sky_spot.sh
 ## 2.1 Run demultiplex on GCP
 ```shell
 #yap-gcp get_demultiplex_skypilot_yaml > skypilot.yaml
-yap-gcp prepare_demultiplex ----fq_dir gs://mapping_example/fastq/test_fastq \
-              --remote_prefix mapping_example --outdir test_gcp \
+# there are two test fastq files under gs://mapping_example/fastq/test_fastq (before demultiplex)
+yap-gcp prepare_demultiplex --fq_dir gs://mapping_example/fastq/test_fastq \
+              --remote_prefix mapping_example --outdir test_gcp_hisat3n \
               --env_name yap --n_jobs 96 --output run_demultiplex.yaml
 # vim and change config in run_demultiplex.yaml
 sky launch -y -n demultiplex run_demultiplex.yaml # Do Not use spot mode.
 
-# mapping
-yap default-mapping-config --mode m3c --barcode_version V2 --bismark_ref "~/Ref/hg38/hg38_ucsc_with_chrL.bismark1" --genome "~/Ref/hg38/hg38_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/hg38/hg38_ucsc.main.chrom.sizes"  > config.ini
+# mapping (bismark or hisat-3n)
+yap default-mapping-config --mode m3c-multi --barcode_version V2 --bismark_ref "~/Ref/hg38/hg38_ucsc_with_chrL.bismark1" --genome "~/Ref/hg38/hg38_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/hg38/hg38_ucsc.main.chrom.sizes" --hisat3n_dna_ref  "~/Ref/hg38/hg38_ucsc_with_chrL" > config.ini
+# vim config.ini, change hisat3n_repeat_index_type to: repeat
 
-yap-gcp prepare_mapping --fastq_prefix gs://mapping_example/test_gcp --config_path config.ini --aligner hisat-3n \
+# gs://mapping_example/test_gcp_hisat3n is the outdir of prepare_demultiplex
+yap-gcp prepare_mapping --fastq_prefix gs://mapping_example/test_gcp_hisat3n --config_path config.ini --aligner hisat-3n \
             --chunk_size 2 --job_name='mapping' --env_name='yap' --n_jobs=8
-# view and edit run_mapping.yaml 
+# view and edit run_mapping.yaml; Note: remember to copy reference to VM machine
 sky spot launch -y -n mapping -y run_mapping.yaml
 ```

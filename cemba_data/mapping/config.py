@@ -47,7 +47,7 @@ def print_default_mapping_config(mode,
         raise ValueError('chrom_size_path must be provided.')
     chrom_size_path = chrom_size_path #pathlib.Path(chrom_size_path).absolute()
 
-    if mode == 'm3c':
+    if mode.startswith('m3c'): #m3c or m3c-multi
         pass
 
     if mode == '4m':
@@ -81,7 +81,7 @@ def print_default_mapping_config(mode,
             config_content = config_content.replace('CHANGE_THIS_TO_YOUR_HISAT3N_RNA_REFERENCE',
                                                     str(hisat3n_rna_ref))
         config_content = config_content.replace('CHANGE_THIS_TO_YOUR_GENE_ANNOTATION_GTF', str(gtf))
-    elif mode == 'm3c':
+    elif mode.startswith('m3c'):
         config_path = PACKAGE_DIR / 'files/default_config/mapping_config_m3c.ini'
         with open(config_path) as f:
             config_content = f.read()

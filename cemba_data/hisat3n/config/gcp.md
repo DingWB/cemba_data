@@ -20,11 +20,10 @@ wget https://raw.githubusercontent.com/lhqing/cemba_data/master/hisat3n_env.yml
 mamba env update -f hisat3n_env.yml  # this should install things in the base env
 
 # Install packages
-mkdir -p ~/pkg
 
 # install hisat-3n
 # https://daehwankimlab.github.io/hisat2/hisat-3n/
-cd ~/pkg
+mkdir -p ~/Software && cd ~/Software
 git clone https://github.com/DaehwanKimLab/hisat2.git hisat-3n
 cd hisat-3n
 git checkout -b hisat-3n origin/hisat-3n
@@ -32,9 +31,9 @@ git checkout -b hisat-3n origin/hisat-3n
 make
 
 # put hisat-3n in the PATH
-echo 'export PATH=$HOME/pkg/hisat-3n:$PATH' >> ~/.bashrc
+echo 'export PATH=$HOME/Software/hisat-3n:$PATH' >> ~/.bashrc
 source ~/.bashrc 
-echo 'export PATH=$HOME/pkg/hisat-3n:$PATH' >> ~/.zshrc 
+echo 'export PATH=$HOME/Software/hisat-3n:$PATH' >> ~/.zshrc 
 source ~/.zshrc
 
 # make sure allcools and yap is upto date
