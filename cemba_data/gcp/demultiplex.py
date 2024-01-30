@@ -346,7 +346,7 @@ def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 		# mapping_config.ini need to be under local_output_dir
 		cmd_str=f"--default-remote-prefix {output_dir}/{subdir}"
 		# there should be fastq dir under default-remote-prefix
-		cmd=f"snakemake -s {subdir}.Snakefile {common_str} {cmd_str}"
+		cmd=f"snakemake -s {output_dir}/{subdir}/Snakefile {common_str} {cmd_str}"
 		# workdir should be current, not {output_dir}/{subdir}
 		cmds.append(cmd)
 

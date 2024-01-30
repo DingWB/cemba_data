@@ -154,8 +154,8 @@ def make_gcp_snakefile(output_dir,subdir,aligner="hisat-3n"):
 		if not os.path.exists(os.path.join(output_dir,'snakemake')):
 			os.makedirs(os.path.join(output_dir,'snakemake'),exist_ok=True)
 		subprocess.run(['touch', os.path.join(output_dir,'snakemake/hisat3n')], check=True)
-	# with open(os.path.join(sub_folder,'Snakefile'), 'w') as f:
-	with open(f'{subdir}.Snakefile', 'w') as f:
+	with open(os.path.join(sub_folder,'Snakefile'), 'w') as f:
+	# with open(f'{subdir}.Snakefile', 'w') as f:
 		f.write(total_snakefile)
 	return
 
