@@ -143,6 +143,7 @@ def make_gcp_snakefile(output_dir,subdir,aligner="hisat-3n"):
 		os.makedirs(sub_folder,exist_ok=True)
 	cell_ids = GS.glob_wildcards(os.path.join(sub_folder,"fastq/{cell_id}-R1.fq.gz"))[0]
 	#sub_folder can startwith gs://, if gs:// not present at the beginning, it also OK
+
 	if len(cell_ids) == 0: # length should be 64
 		raise ValueError(f"No cell fastq were identified under {sub_folder}/fastq")
 	cell_id_str = f'CELL_IDS = {cell_ids}\n'

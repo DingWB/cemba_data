@@ -106,6 +106,9 @@ def get_fastq_dirs(remote_prefix=None):
 		if 'fastq/' not in file.name:
 			continue
 		path=file.name.split('/')[1]
+		if bucket.blob(f"{prefix}/{path}/MappingSummary.csv.gz").exists():
+			print(f"{prefix}/{path}/MappingSummary.csv.gz existed, skipped")
+			continue # existed, skip
 		if path not in fastq_dirs:
 			fastq_dirs.append(path)
 	return fastq_dirs
@@ -210,7 +213,7 @@ def run_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 	smk2 = os.path.join(PACKAGE_DIR, "gcp", 'smk', "merge_lanes.Snakefile")
 
 	# Demultiplex
-	config_str=f'--config gcp={gcp} fq_dir="{fq_dir}" outdir="{outdir}" barcode_version="{barcode_version}" '
+	config_str=f'--google-lifesciences --config gcp={gcp} fq_dir="{fq_dir}" outdir="{outdir}" barcode_version="{barcode_version}" '
 	common_str=f"--default-remote-prefix {remote_prefix} --default-remote-provider GS --google-lifesciences-region {region} "
 	if keep_remote:
 		common_str+="--keep-remote "
@@ -337,7 +340,7 @@ def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 	with open(input_fastq_dir,'r') as f:
 		subdirs=f.read().strip().split('\n')
 
-	common_str = f'--default-resources mem_mb=100 --resources mem_mb=50000 --scheduler greedy --rerun-incomplete --config gcp={gcp} local_fastq=False -j {n_jobs} --default-remote-provider GS --google-lifesciences-region {region} '
+	common_str = f'--google-lifesciences --default-resources mem_mb=100 --resources mem_mb=50000 --scheduler greedy --rerun-incomplete --config gcp={gcp} local_fastq=False -j {n_jobs} --default-remote-provider GS --google-lifesciences-region {region} '
 	if keep_remote:
 		config_str+="--keep-remote "
 	cmds=[]

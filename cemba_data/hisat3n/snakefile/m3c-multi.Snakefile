@@ -74,7 +74,6 @@ mcg_context = 'CGN' if int(config['num_upstr_bases']) == 0 else 'HCGN'
 repeat_index_flag = "--repeat" if config['hisat3n_repeat_index_type'] == 'repeat' else "--no-repeat-index"
 allc_mcg_dir=os.path.abspath(workflow.default_remote_prefix+f"/allc-{mcg_context}") if gcp else f"allc-{mcg_context}"
 allc_multi_dir=os.path.abspath(workflow.default_remote_prefix+"/allc-multi") if gcp else "allc-multi"
-cur_dir=os.path.abspath(workflow.default_remote_prefix) if gcp else "."
 
 for dir in [bam_dir,allc_dir,hic_dir,allc_mcg_dir,allc_multi_dir]:
     if not os.path.exists(dir):
@@ -114,13 +113,13 @@ rule summary:
         expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz",
                cell_id=CELL_IDS, mcg_context=mcg_context),
     output:
-        cur_dir+"/MappingSummary.csv.gz"
+        csv="MappingSummary.csv.gz"
     run:
         # execute any post-mapping script before generating the final summary
         shell(config['post_mapping_script'])
 
         # generate the final summary
-        snm3c_summary()
+        snm3c_summary(outname=output.csv)
 
         # cleanup
         shell(f"rm -rf {bam_dir}/temp")

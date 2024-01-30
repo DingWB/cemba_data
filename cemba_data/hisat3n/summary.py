@@ -110,7 +110,7 @@ def snmct_summary():
     return all_stats
 
 
-def snm3c_summary():
+def snm3c_summary(outname="MappingSummary.csv.gz"):
     """
     Generate snm3C pipeline MappingSummary.csv.gz and save into cwd
 
@@ -153,5 +153,5 @@ def snm3c_summary():
     # concatenate all stats
     all_stats = pd.concat(all_stats, axis=1)
     all_stats.index.name = 'cell'
-    all_stats.to_csv(f'MappingSummary.csv.gz')
+    all_stats.to_csv(outname)
     return all_stats

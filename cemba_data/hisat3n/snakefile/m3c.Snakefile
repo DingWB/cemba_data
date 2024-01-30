@@ -64,7 +64,6 @@ if not local_fastq or gcp:
 bam_dir=os.path.abspath(workflow.default_remote_prefix+"/bam") if gcp else "bam"
 allc_dir=os.path.abspath(workflow.default_remote_prefix+"/allc") if gcp else "allc"
 hic_dir=os.path.abspath(workflow.default_remote_prefix+"/hic") if gcp else "hic"
-cur_dir=os.path.abspath(workflow.default_remote_prefix) if gcp else "."
 
 local_config = read_mapping_config()
 DEFAULT_CONFIG.update(local_config)
@@ -120,13 +119,13 @@ rule summary:
         expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz",
                cell_id=CELL_IDS, mcg_context=mcg_context),
     output:
-        cur_dir+"/MappingSummary.csv.gz"
+        csv="MappingSummary.csv.gz"
     run:
         # execute any post-mapping script before generating the final summary
         shell(config['post_mapping_script'])
 
         # generate the final summary
-        snm3c_summary()
+        snm3c_summary(outname=output.csv)
 
         # cleanup
         shell(f"rm -rf {bam_dir}/temp")
