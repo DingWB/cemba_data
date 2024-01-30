@@ -337,7 +337,7 @@ def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 	with open(input_fastq_dir,'r') as f:
 		subdirs=f.read().strip().split('\n')
 
-	common_str = f'--config gcp={gcp} local_fastq=False -j {n_jobs} --default-remote-provider GS --google-lifesciences-region {region} '
+	common_str = f'--default-resources mem_mb=100 --resources mem_mb=50000 --scheduler greedy --rerun-incomplete --config gcp={gcp} local_fastq=False -j {n_jobs} --default-remote-provider GS --google-lifesciences-region {region} '
 	if keep_remote:
 		config_str+="--keep-remote "
 	cmds=[]
@@ -346,7 +346,7 @@ def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 		# mapping_config.ini need to be under local_output_dir
 		cmd_str=f"--default-remote-prefix {output_dir}/{subdir}"
 		# there should be fastq dir under default-remote-prefix
-		cmd=f"snakemake -s {output_dir}/{subdir}/Snakefile -d {output_dir}/{subdir} --default-resources mem_mb=100 --resources mem_mb=50000 {common_str} {cmd_str}"
+		cmd=f"snakemake -s {output_dir}/{subdir}/Snakefile -d {output_dir}/{subdir} {common_str} {cmd_str}"
 		cmds.append(cmd)
 
 	for cmd in cmds:

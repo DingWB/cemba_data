@@ -32,9 +32,13 @@ if not local_fastq or gcp:
     GS = GSRemoteProvider()
     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
 
-bam_dir=workflow.default_remote_prefix+"/bam" if gcp else "bam"
-allc_dir=workflow.default_remote_prefix+"/allc" if gcp else "allc"
-hic_dir=workflow.default_remote_prefix+"/hic" if gcp else "hic"
+# bam_dir=workflow.default_remote_prefix+"/bam" if gcp else "bam"
+# allc_dir=workflow.default_remote_prefix+"/allc" if gcp else "allc"
+# hic_dir=workflow.default_remote_prefix+"/hic" if gcp else "hic"
+
+bam_dir="bam"
+allc_dir="allc"
+hic_dir="hic"
 
 fastq_dir=os.path.abspath("fastq")
 
