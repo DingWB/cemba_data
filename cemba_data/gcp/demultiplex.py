@@ -107,7 +107,6 @@ def get_fastq_dirs(remote_prefix=None):
 			continue
 		path=file.name.split('/')[1]
 		if bucket.blob(f"{prefix}/{path}/MappingSummary.csv.gz").exists():
-			print(f"{prefix}/{path}/MappingSummary.csv.gz existed, skipped")
 			continue # existed, skip
 		if path not in fastq_dirs:
 			fastq_dirs.append(path)
@@ -335,8 +334,10 @@ def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 
 	if node_rank < 0:
 		input_fastq_dir="fastq_dirs.txt"
-	else:
+	elif os.path.exists(f"fastq_dirs_{node_rank}"):
 		input_fastq_dir=f"fastq_dirs_{node_rank}"
+	else:
+		input_fastq_dir = "fastq_dirs.txt"
 	with open(input_fastq_dir,'r') as f:
 		subdirs=f.read().strip().split('\n')
 
