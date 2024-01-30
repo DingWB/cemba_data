@@ -330,7 +330,10 @@ def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 		os.makedirs(output_dir,exist_ok=True) #on loal GCP VM machine
 	os.system(f"cp {config_path} {output_dir}/mapping_config.ini")
 
-	input_fastq_dir=f"fastq_dirs_{node_rank}"
+	if node_rank < 0:
+		input_fastq_dir="fastq_dirs.txt"
+	else:
+		input_fastq_dir=f"fastq_dirs_{node_rank}"
 	with open(input_fastq_dir,'r') as f:
 		subdirs=f.read().strip().split('\n')
 
