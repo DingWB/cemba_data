@@ -148,8 +148,10 @@ def make_gcp_snakefile(output_dir,subdir,aligner="hisat-3n"):
 
 	if aligner=="bismark":
 		total_snakefile = config_str + cell_id_str + snake_template
-	else:
+	else: # hisat-3n
 		total_snakefile = cell_id_str + snake_template
+		if not os.path.exists(os.path.join(output_dir,'snakemake')):
+			os.makedirs(os.path.join(output_dir,'snakemake'),exist_ok=True)
 		subprocess.run(['touch', os.path.join(output_dir,'snakemake/hisat3n')], check=True)
 	with open(os.path.join(sub_folder,'Snakefile'), 'w') as f:
 		f.write(total_snakefile)

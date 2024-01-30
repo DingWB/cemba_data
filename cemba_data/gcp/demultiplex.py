@@ -265,7 +265,9 @@ def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 		skypilot template used to generate output, default is None, will used
 		PACKAGE_DIR/gcp/yaml/skypilot.yaml, see https://raw.githubusercontent.com/DingWB/cemba_data/master/cemba_data/gcp/yaml/skypilot.yaml,
 		users could also provide their own template, but keep wildcard
-		{job_name}, {workdir},{CMD},and {env_name} in this template.
+		{job_name}, {workdir},{CMD},and {env_name} in this template. Please Note:
+		the instance_type in template should match n_jobs, for example, if n_jobs=96,
+		type should be n2-standard-96, other options are n2-standard-64, n2-standard-8 and so on.
 	job_name : str
 	env_name : str
 		conda env name to run snakemake pipeline
