@@ -411,7 +411,7 @@ rule unique_reads_cgn_extraction:
         allc="allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz",
         tbi="allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz.tbi",
     params:
-        prefix="allc-{mcg_context}/{cell_id}",
+        prefix=allc_mcg_dir+"/{cell_id}",
     threads:
         1
     resources:
