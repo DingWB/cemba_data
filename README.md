@@ -96,4 +96,5 @@ yap-gcp prepare_mapping --fastq_prefix gs://mapping_example/test_gcp_hisat3n --c
             --chunk_size 2 --job_name='mapping' --env_name='yap' --n_jobs=64
 # view and edit run_mapping.yaml; Note: remember to copy reference to VM machine
 sky spot launch -y -n mapping -y run_mapping.yaml
+# or: sky launch -y -n mapping -y run_mapping.yaml
 ```

@@ -187,7 +187,7 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 def run_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 						barcode_version="V2",
 						gcp=True,region='us-west1',keep_remote=False,
-						n_jobs=96):
+						n_jobs=96,print_only=False):
 	"""
 		This function need to be executed on the GCP VM machine. Please see
 		prepare_demultiplex for parameters.
@@ -221,6 +221,8 @@ def run_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 
 	for cmd in [CMD1, CMD2]:
 		print(f"CMD: {cmd}")
+		if print_only:
+			continue
 		os.system(cmd)
 
 def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
@@ -322,7 +324,7 @@ def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 				gcp=True,region='us-west1',keep_remote=False,
 				config_path="mapping_config.ini",aligner='hisat-3n',
-				n_jobs=96,node_rank=0):
+				n_jobs=96,node_rank=0,print_only=False):
 	output_dir=fastq_prefix.replace("gs://","")
 	if not os.path.exists(output_dir):
 		os.makedirs(output_dir,exist_ok=True) #on loal GCP VM machine
@@ -346,4 +348,6 @@ def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 
 	for cmd in cmds:
 		print(f"CMD: {cmd}")
+		if print_only:
+			continue
 		os.system(cmd)
