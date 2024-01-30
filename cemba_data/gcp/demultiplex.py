@@ -106,6 +106,9 @@ def get_fastq_dirs(remote_prefix=None):
 		if 'fastq/' not in file.name:
 			continue
 		path=file.name.split('/')[1]
+		if bucket.blob(f"{prefix}/{path}/MappingSummary.csv.gz").exists():
+			print(f"{prefix}/{path}/MappingSummary.csv.gz existed, skipped")
+			continue # existed, skip
 		if path not in fastq_dirs:
 			fastq_dirs.append(path)
 	return fastq_dirs
