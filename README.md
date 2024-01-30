@@ -89,7 +89,7 @@ sky launch -y -n demultiplex run_demultiplex.yaml # Do Not use spot mode.
 
 # mapping (bismark or hisat-3n)
 yap default-mapping-config --mode m3c-multi --barcode_version V2 --bismark_ref "~/Ref/hg38/hg38_ucsc_with_chrL.bismark1" --genome "~/Ref/hg38/hg38_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/hg38/hg38_ucsc.main.chrom.sizes" --hisat3n_dna_ref  "~/Ref/hg38/hg38_ucsc_with_chrL" > config.ini
-# vim config.ini, change hisat3n_repeat_index_type to: repeat, mode to m3c-multi
+# vim config.ini, check hisat3n_repeat_index_type should be: repeat, mode is m3c-multi
 
 # gs://mapping_example/test_gcp_hisat3n is the outdir of prepare_demultiplex
 yap-gcp prepare_mapping --fastq_prefix gs://mapping_example/test_gcp_hisat3n --config_path config.ini --aligner hisat-3n \

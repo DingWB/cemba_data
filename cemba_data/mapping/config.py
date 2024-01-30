@@ -81,7 +81,7 @@ def print_default_mapping_config(mode,
 			config_content = config_content.replace('CHANGE_THIS_TO_YOUR_HISAT3N_RNA_REFERENCE',
 													str(hisat3n_rna_ref))
 		config_content = config_content.replace('CHANGE_THIS_TO_YOUR_GENE_ANNOTATION_GTF', str(gtf))
-	elif mode.startswith('m3c'):
+	elif mode =='m3c':
 		config_path = PACKAGE_DIR / 'files/default_config/mapping_config_m3c.ini'
 		with open(config_path) as f:
 			config_content = f.read()
