@@ -139,8 +139,8 @@ def make_gcp_snakefile(output_dir,subdir,aligner="hisat-3n"):
 		snake_template = f.read()
 
 	sub_folder=os.path.join(output_dir,subdir)
-	if not os.path.exists(sub_folder):
-		os.makedirs(sub_folder,exist_ok=True)
+	# if not os.path.exists(sub_folder):
+	# 	os.makedirs(sub_folder,exist_ok=True)
 	cell_ids = GS.glob_wildcards(os.path.join(sub_folder,"fastq/{cell_id}-R1.fq.gz"))[0]
 	#sub_folder can startwith gs://, if gs:// not present at the beginning, it also OK
 	if len(cell_ids) == 0: # length should be 64
@@ -154,7 +154,8 @@ def make_gcp_snakefile(output_dir,subdir,aligner="hisat-3n"):
 		if not os.path.exists(os.path.join(output_dir,'snakemake')):
 			os.makedirs(os.path.join(output_dir,'snakemake'),exist_ok=True)
 		subprocess.run(['touch', os.path.join(output_dir,'snakemake/hisat3n')], check=True)
-	with open(os.path.join(sub_folder,'Snakefile'), 'w') as f:
+	# with open(os.path.join(sub_folder,'Snakefile'), 'w') as f:
+	with open(f'{subdir}.Snakefile', 'w') as f:
 		f.write(total_snakefile)
 	return
 

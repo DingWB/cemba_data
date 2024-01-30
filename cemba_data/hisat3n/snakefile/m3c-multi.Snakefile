@@ -48,13 +48,9 @@ if not local_fastq or gcp:
     GS = GSRemoteProvider()
     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
 
-# bam_dir=os.path.abspath(workflow.default_remote_prefix+"/bam") if gcp else "bam"
-# allc_dir=os.path.abspath(workflow.default_remote_prefix+"/allc") if gcp else "allc"
-# hic_dir=os.path.abspath(workflow.default_remote_prefix+"/hic") if gcp else "hic"
-
-bam_dir="bam"
-allc_dir="allc"
-hic_dir="hic"
+bam_dir=os.path.abspath(workflow.default_remote_prefix+"/bam") if gcp else "bam"
+allc_dir=os.path.abspath(workflow.default_remote_prefix+"/allc") if gcp else "allc"
+hic_dir=os.path.abspath(workflow.default_remote_prefix+"/hic") if gcp else "hic"
 
 local_config = read_mapping_config()
 DEFAULT_CONFIG.update(local_config)
@@ -76,10 +72,8 @@ if len(missing_key) > 0:
 
 mcg_context = 'CGN' if int(config['num_upstr_bases']) == 0 else 'HCGN'
 repeat_index_flag = "--repeat" if config['hisat3n_repeat_index_type'] == 'repeat' else "--no-repeat-index"
-# allc_mcg_dir=os.path.abspath(workflow.default_remote_prefix+f"/allc-{mcg_context}") if gcp else f"allc-{mcg_context}"
-# allc_multi_dir=os.path.abspath(workflow.default_remote_prefix+"/allc-multi") if gcp else "allc-multi"
-allc_mcg_dir=f"allc-{mcg_context}"
-allc_multi_dir="allc-multi"
+allc_mcg_dir=os.path.abspath(workflow.default_remote_prefix+f"/allc-{mcg_context}") if gcp else f"allc-{mcg_context}"
+allc_multi_dir=os.path.abspath(workflow.default_remote_prefix+"/allc-multi") if gcp else "allc-multi"
 print(f"bam_dir: {bam_dir}\n allc_dir: {allc_dir}\n hic_dir: {hic_dir} \n allc_mcg_dir: {allc_mcg_dir}\n allc_multi_dir: {allc_multi_dir}")
 # module m3c:
 #     snakefile:
