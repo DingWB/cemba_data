@@ -174,8 +174,8 @@ rule trim:
 # Paired-end Hisat3n mapping using DNA mode
 rule hisat_3n_pair_end_mapping_dna_mode:
     input:
-        R1=rules.trim.output.R1, #local("fastq/{cell_id}-R1.trimmed.fq.gz"),
-        R2=rules.trim.output.R2 #local("fastq/{cell_id}-R2.trimmed.fq.gz")
+        R1=local("fastq/{cell_id}-R1.trimmed.fq.gz"),
+        R2=local("fastq/{cell_id}-R2.trimmed.fq.gz")
     output:
         bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.unsort.bam")),
         stats=local(temp(bam_dir+"/{cell_id}.hisat3n_dna_summary.txt")),
@@ -200,7 +200,7 @@ rule hisat_3n_pair_end_mapping_dna_mode:
 # separate hisat-3n unmapped reads
 rule separate_unmapped_reads:
     input:
-        bam=rules.hisat_3n_pair_end_mapping_dna_mode.output.bam #local(temp(bam_dir+"/{cell_id}.hisat3n_dna.unsort.bam"
+        bam=local(bam_dir+"/{cell_id}.hisat3n_dna.unsort.bam"),
     output:
         unique_bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.unique_aligned.bam")),
         multi_bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.multi_aligned.bam")),
@@ -220,7 +220,7 @@ rule separate_unmapped_reads:
 # split unmapped reads
 rule split_unmapped_reads:
     input:
-        unmapped_reads=rules.separate_unmapped_reads.output.unmapped_fastq #"bam/{cell_id}.hisat3n_dna.unmapped.fastq"
+        unmapped_reads=local(bam_dir+"/{cell_id}.hisat3n_dna.unmapped.fastq")
     output:
         split_r1=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.split_reads.R1.fastq")),
         split_r2=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.split_reads.R2.fastq"))
@@ -282,7 +282,7 @@ rule merge_and_sort_split_reads_by_name:
 # remove overlap read parts from the split alignment bam file
 rule remove_overlap_read_parts:
     input:
-        bam=rules.merge_and_sort_split_reads_by_name.output.bam
+        bam=local(bam_dir+"/{cell_id}.hisat3n_dna.split_reads.name_sort.bam") #rules.merge_and_sort_split_reads_by_name.output.bam
     output:
         bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.split_reads.no_overlap.bam"))
     threads:
@@ -294,8 +294,8 @@ rule remove_overlap_read_parts:
 # merge all mapped reads
 rule merge_original_and_split_bam:
     input:
-        bam=rules.separate_unmapped_reads.output.unique_bam, #"bam/{cell_id}.hisat3n_dna.unique_aligned.bam",
-        split_bam=rules.remove_overlap_read_parts.output.bam
+        bam=local(bam_dir+"/{cell_id}.hisat3n_dna.unique_aligned.bam"),
+        split_bam=local(bam_dir+"/{cell_id}.hisat3n_dna.split_reads.no_overlap.bam")
     output:
         bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.bam"))
     threads:
@@ -307,7 +307,7 @@ rule merge_original_and_split_bam:
 # sort split reads bam file by read name
 rule sort_all_reads_by_name:
     input:
-        bam=rules.merge_original_and_split_bam.output.bam #"bam/{cell_id}.hisat3n_dna.all_reads.bam"
+        bam=local(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.bam")
     output:
         bam="bam/{cell_id}.hisat3n_dna.all_reads.name_sort.bam" #do not add local, upload to remote
     threads:
@@ -349,7 +349,7 @@ rule sort_bam:
 # remove PCR duplicates
 rule dedup_unique_bam:
     input:
-        bam=rules.sort_bam.output.bam #"bam/{cell_id}.hisat3n_dna.all_reads.pos_sort.bam"
+        bam=local(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.pos_sort.bam")
     output:
         bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam")),
         stats=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.matrix.txt"))
@@ -365,7 +365,7 @@ rule dedup_unique_bam:
 # index the bam file
 rule index_unique_bam_dna_reads:
     input:
-        bam=rules.dedup_unique_bam.output.bam #"bam/{cell_id}.hisat3n_dna.all_reads.deduped.bam"
+        bam=local(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam")
     output:
         bai=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam.bai"))
     shell:
@@ -377,8 +377,8 @@ rule index_unique_bam_dna_reads:
 # generate ALLC
 rule unique_reads_allc:
     input:
-        bam=rules.dedup_unique_bam.output.bam, #"bam/{cell_id}.hisat3n_dna.all_reads.deduped.bam",
-        bai=rules.index_unique_bam_dna_reads.output.bai #"bam/{cell_id}.hisat3n_dna.all_reads.deduped.bam.bai"
+        bam=local(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam"),
+        bai=local(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam.bai")
     output:
         allc="allc/{cell_id}.allc.tsv.gz",
         tbi="allc/{cell_id}.allc.tsv.gz.tbi",
@@ -445,7 +445,7 @@ rule sort_multi_bam:
 
 rule dedup_multi_bam:
     input:
-        bam=rules.sort_multi_bam.output.bam #"bam/{cell_id}.hisat3n_dna_sorted.multi_align.bam"
+        bam=local(bam_dir+"/{cell_id}.hisat3n_dna_sorted.multi_align.bam")
     output:
         bam="bam/{cell_id}.hisat3n_dna.multi_align.deduped.bam",
         stats=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.multi_align.deduped.matrix.txt"))
