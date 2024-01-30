@@ -114,7 +114,7 @@ rule summary:
                         cell_id=CELL_IDS,read_type=['R1','R2'])),
 
         # 3C contacts
-        local(expand(hic_dir+"/{cell_id}.hisat3n_dna.all_reads.contact_stats.csv"), cell_id=CELL_IDS),
+        local(expand(hic_dir+"/{cell_id}.hisat3n_dna.all_reads.contact_stats.csv", cell_id=CELL_IDS)),
         # allc
 #         expand("allc/{cell_id}.allc.tsv.gz", cell_id=CELL_IDS),
         local(expand("allc/{cell_id}.allc.tsv.gz.count.csv", cell_id=CELL_IDS)),
