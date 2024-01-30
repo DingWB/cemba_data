@@ -95,9 +95,12 @@ def make_snakefile(output_dir,sky_template=None):
 	return
 
 def make_gcp_snakefile(output_dir,subdir):
-	GS = GSRemoteProvider()
-	os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.expanduser(
-		'~/.config/gcloud/application_default_credentials.json')
+	from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
+	import json
+	with open(os.environ['GOOGLE_APPLICATION_CREDENTIALS'], 'r') as f:
+		D = json.load(f)
+	gcp_project = D['quota_project_id']
+	GS = GSRemoteProvider(project=gcp_project)
 
 	config = get_configuration(os.path.join(output_dir,'mapping_config.ini'))
 	try:
