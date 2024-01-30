@@ -86,7 +86,12 @@ if len(missing_key) > 0:
 mcg_context = 'CGN' if int(config['num_upstr_bases']) == 0 else 'HCGN'
 repeat_index_flag = "--repeat" if config['hisat3n_repeat_index_type'] == 'repeat' else "--no-repeat-index"
 allc_mcg_dir=os.path.abspath(workflow.default_remote_prefix+f"/allc-{mcg_context}") if gcp else f"allc-{mcg_context}"
-print(f"bam_dir: {bam_dir}\n allc_dir: {allc_dir}\n hic_dir: {hic_dir} \n allc_mcg_dir: {allc_mcg_dir}")
+# print(f"bam_dir: {bam_dir}\n allc_dir: {allc_dir}\n hic_dir: {hic_dir} \n allc_mcg_dir: {allc_mcg_dir}")
+
+for dir in [bam_dir,allc_dir,hic_dir,allc_mcg_dir]:
+    if not os.path.exists(dir):
+        os.mkdir(dir)
+
 # ==================================================
 # Mapping summary
 # ==================================================

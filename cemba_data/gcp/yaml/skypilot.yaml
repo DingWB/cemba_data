@@ -13,6 +13,10 @@ resources:
     disk_size: 500
     disk_tier: 'medium'
     image_id: projects/ecker-wding/global/images/myimage
+#    GCP: gcloud compute images list --uri
+#    To find GCP images: https://cloud.google.com/compute/docs/images
+#    or: gcloud compute images list
+#    gcloud compute images describe
 
 # file_mounts:
 #   ~/Ref/hg38: ~/Ref/hg38
