@@ -43,7 +43,7 @@ rule summary:
     input:
         expand("allc/{cell_id}.allc.tsv.gz", cell_id=CELL_IDS),
         # also add all the stats path here, so they won't be deleted until summary is generated
-        expand("allc/{cell_id}.allc.tsv.gz.count.csv", cell_id=CELL_IDS),
+        local(expand("allc/{cell_id}.allc.tsv.gz.count.csv", cell_id=CELL_IDS)),
         local(expand("fastq/{cell_id}-{read_type}.trimmed.stats.tsv", 
                         cell_id=CELL_IDS,read_type=['R1','R2'])),
         # add local, mean not uploading to cloud
@@ -54,7 +54,7 @@ rule summary:
         local(expand(bam_dir+"/{cell_id}-{read_type}.two_mapping.deduped.bam", 
                         cell_id=CELL_IDS,read_type=['R1','R2'])),
         expand("hic/{cell_id}.3C.contact.tsv.gz", cell_id=CELL_IDS),
-        expand("hic/{cell_id}.3C.contact.tsv.counts.txt", cell_id=CELL_IDS)
+        local(expand("hic/{cell_id}.3C.contact.tsv.counts.txt", cell_id=CELL_IDS))
     output:
         "MappingSummary.csv.gz"
     params:
@@ -214,7 +214,7 @@ rule allc:
     output:
         allc="{indir}/{cell_id}.allc.tsv.gz",
         tbi="{indir}/{cell_id}.allc.tsv.gz.tbi",
-        stats="{indir}/{cell_id}.allc.tsv.gz.count.csv"
+        stats=local(temp("{indir}/{cell_id}.allc.tsv.gz.count.csv"))
     threads:
         2
     resources:
@@ -260,7 +260,7 @@ rule generate_contact:
         "bam/{cell_id}.3C.sorted.bam"
     output:
         contact="{indir}/{cell_id}.3C.contact.tsv.gz",
-        stats="{indir}/{cell_id}.3C.contact.tsv.counts.txt"
+        stats=local(temp("{indir}/{cell_id}.3C.contact.tsv.counts.txt"))
     resources:
         mem_mb=300
     shell:

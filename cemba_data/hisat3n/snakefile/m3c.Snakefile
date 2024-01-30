@@ -80,8 +80,8 @@ if len(missing_key) > 0:
     raise ValueError('Missing required config: {}'.format(missing_key))
 
 # fastq table and cell IDs
-fastq_table = validate_cwd_fastq_paths()
-CELL_IDS = fastq_table.index.tolist()
+# fastq_table = validate_cwd_fastq_paths()
+# CELL_IDS = fastq_table.index.tolist() # CELL_IDS will be writen in the beginning of this snakemake file.
 
 mcg_context = 'CGN' if int(config['num_upstr_bases']) == 0 else 'HCGN'
 repeat_index_flag = "--repeat" if config['hisat3n_repeat_index_type'] == 'repeat' else "--no-repeat-index"

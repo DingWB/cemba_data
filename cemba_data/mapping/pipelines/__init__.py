@@ -3,7 +3,6 @@ import pathlib
 import subprocess
 import os
 import pandas as pd
-
 import cemba_data
 from .m3c import m3c_config_str
 from .mc import mc_config_str
@@ -95,15 +94,21 @@ def make_snakefile(output_dir,sky_template=None):
 		write_gcp_skypolit_yaml(output_dir=output_dir, template_path=sky_template)
 	return
 
-def make_gcp_snakefile(output_dir,subdir):
+def make_gcp_snakefile(output_dir,subdir,aligner="hisat-3n"):
 	from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
 	import json
+	os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.expanduser(
+		'~/.config/gcloud/application_default_credentials.json')
 	with open(os.environ['GOOGLE_APPLICATION_CREDENTIALS'], 'r') as f:
 		D = json.load(f)
 	gcp_project = D['quota_project_id']
 	GS = GSRemoteProvider(project=gcp_project)
-	assert os.path.exists(os.path.join(output_dir,'mapping_config.ini'))
-	config = get_configuration(os.path.join(output_dir,'mapping_config.ini'))
+	# assert os.path.exists(os.path.join(output_dir,'mapping_config.ini'))
+	try:
+		mapping_config_name = [file for file in os.listdir(output_dir) if file.startswith('mapping_config.')][0]
+	except:
+		raise ValueError(f"Could not find mapping_config.* under {output_dir}")
+	config = get_configuration(os.path.join(output_dir,mapping_config_name))
 	try:
 		mode = config['mode']
 	except KeyError:
@@ -122,18 +127,30 @@ def make_gcp_snakefile(output_dir,subdir):
 	print('Making Snakefile based on mapping config INI file. The parameters are:')
 	print(config_str)
 
-	with open(os.path.join(PACKAGE_DIR,f'mapping/Snakefile_template/{mode}.Snakefile')) as f:
+	if aligner.lower()=="bismark":
+		snakefile_path=os.path.join(PACKAGE_DIR, f'mapping/Snakefile_template/{mode}.Snakefile')
+	elif aligner.lower() in ['hisat3n', 'hisat-3n', 'hisat_3n', 'hisat']:
+		snakefile_path = os.path.join(PACKAGE_DIR, f'hisat3n/snakefile/{mode.lower()}.Snakefile')
+	else:
+		raise ValueError(f"Unknown aligner: {aligner}")
+
+	with open(snakefile_path) as f:
 		snake_template = f.read()
 
 	sub_folder=os.path.join(output_dir,subdir)
 	if not os.path.exists(sub_folder):
 		os.makedirs(sub_folder,exist_ok=True)
 	cell_ids = GS.glob_wildcards(os.path.join(sub_folder,"fastq/{cell_id}-R1.fq.gz"))[0]
+	#sub_folder can startwith gs://, if gs:// not present at the beginning, it also OK
 	if len(cell_ids) == 0: # length should be 64
 		raise ValueError(f"No cell fastq were identified under {sub_folder}/fastq")
 	cell_id_str = f'CELL_IDS = {cell_ids}\n'
 
-	total_snakefile = config_str + cell_id_str + snake_template
+	if aligner=="bismark":
+		total_snakefile = config_str + cell_id_str + snake_template
+	else:
+		total_snakefile = cell_id_str + snake_template
+		subprocess.run(['touch', os.path.join(output_dir,'snakemake/hisat3n')], check=True)
 	with open(os.path.join(sub_folder,'Snakefile'), 'w') as f:
 		f.write(total_snakefile)
 	return

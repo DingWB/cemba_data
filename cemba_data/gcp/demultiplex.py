@@ -226,7 +226,7 @@ def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 		config_str+="--keep-remote "
 	cmds=[]
 	for subdir in subdirs:
-		make_gcp_snakefile(output_dir,subdir) #
+		make_gcp_snakefile(output_dir,subdir,aligner=aligner) #
 		# mapping_config.ini need to be under local_output_dir
 		cmd_str=f"--default-remote-prefix {output_dir}/{subdir}"
 		# there should be fastq dir under default-remote-prefix
