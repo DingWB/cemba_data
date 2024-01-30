@@ -87,7 +87,7 @@ mcg_context = 'CGN' if int(config['num_upstr_bases']) == 0 else 'HCGN'
 repeat_index_flag = "--repeat" if config['hisat3n_repeat_index_type'] == 'repeat' else "--no-repeat-index"
 allc_mcg_dir=workflow.default_remote_prefix+f"allc-{mcg_context}" if gcp else f"allc-{mcg_context}"
 allc_multi_dir=workflow.default_remote_prefix+"allc-multi" if gcp else "allc-multi"
-
+print(f"bam_dir: {bam_dir}\n allc_dir: {allc_dir}\n hic_dir: {hic_dir} \n allc_mcg_dir: {allc_mcg_dir}\n allc_multi_dir: {allc_multi_dir}")
 # module m3c:
 #     snakefile:
 #         # here, plain paths, URLs and the special markers for code hosting providers (see below) are possible.
@@ -253,7 +253,7 @@ rule split_unmapped_reads:
 # - [16, 60], uniquely mapped to reverse strand
 rule hisat_3n_single_end_mapping_dna_mode:
     input:
-        fastq=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.split_reads.{read_type}.fastq")), #"bam/{cell_id}.hisat3n_dna.split_reads.R1.fastq"
+        fastq=local(bam_dir+"/{cell_id}.hisat3n_dna.split_reads.{read_type}.fastq"), #"bam/{cell_id}.hisat3n_dna.split_reads.R1.fastq"
     output:
         bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.split_reads.{read_type}.bam")),
         stats=local(temp(bam_dir+"/{cell_id}.hisat3n_dna_split_reads_summary.{read_type}.txt"))
@@ -282,8 +282,8 @@ rule hisat_3n_single_end_mapping_dna_mode:
 # sort split reads bam file by read name
 rule merge_and_sort_split_reads_by_name:
     input:
-        r1_bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.split_reads.R1.bam")),
-        r2_bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.split_reads.R2.bam"))
+        r1_bam=local(bam_dir+"/{cell_id}.hisat3n_dna.split_reads.R1.bam"),
+        r2_bam=local(bam_dir+"/{cell_id}.hisat3n_dna.split_reads.R2.bam")
     output:
         bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.split_reads.name_sort.bam"))
     threads:
@@ -445,7 +445,7 @@ rule unique_reads_cgn_extraction:
 #=====================================================================
 rule sort_multi_bam:
     input:
-        bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.multi_aligned.bam")), #"bam/{cell_id}.hisat3n_dna.multi_aligned.bam"
+        bam=local(bam_dir+"/{cell_id}.hisat3n_dna.multi_aligned.bam"), #"bam/{cell_id}.hisat3n_dna.multi_aligned.bam"
     output:
         bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna_sorted.multi_align.bam"))
     resources:
