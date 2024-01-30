@@ -4,6 +4,7 @@ Snakemake pipeline for hisat-3n mapping of snm3C-seq data
 hg38 normal index uses ~9 GB of memory
 repeat index will use more memory
 """
+import os,sys
 import yaml
 import pathlib
 from cemba_data.hisat3n import *
@@ -45,6 +46,25 @@ DEFAULT_CONFIG = {
 }
 REQUIRED_CONFIG = ['hisat3n_dna_reference', 'reference_fasta', 'chrom_size_path']
 
+if "gcp" in config:
+    gcp=config["gcp"] # if the fastq files stored in GCP cloud, set gcp=True in snakemake: --config gcp=True
+else:
+    gcp=False
+
+if "local_fastq" in config:
+    local_fastq=config["local_fastq"] # if the fastq files stored in GCP cloud, set local_fastq=False in snakemake: --config local_fastq=False
+else:
+    local_fastq=True
+
+if not local_fastq or gcp:
+    from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
+    GS = GSRemoteProvider()
+    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
+
+bam_dir=workflow.default_remote_prefix+"/bam" if gcp else "bam"
+allc_dir=workflow.default_remote_prefix+"/allc" if gcp else "allc"
+hic_dir=workflow.default_remote_prefix+"/hic" if gcp else "hic"
+
 local_config = read_mapping_config()
 DEFAULT_CONFIG.update(local_config)
 
@@ -65,7 +85,7 @@ CELL_IDS = fastq_table.index.tolist()
 
 mcg_context = 'CGN' if int(config['num_upstr_bases']) == 0 else 'HCGN'
 repeat_index_flag = "--repeat" if config['hisat3n_repeat_index_type'] == 'repeat' else "--no-repeat-index"
-
+allc_mcg_dir=workflow.default_remote_prefix+f"allc-{mcg_context}" if gcp else f"allc-{mcg_context}"
 # ==================================================
 # Mapping summary
 # ==================================================
@@ -74,18 +94,23 @@ repeat_index_flag = "--repeat" if config['hisat3n_repeat_index_type'] == 'repeat
 rule summary:
     input:
         # fastq trim
-        expand("fastq/{cell_id}.trimmed.stats.txt", cell_id=CELL_IDS),
+        local(expand("fastq/{cell_id}.trimmed.stats.tsv",
+                        cell_id=CELL_IDS)),
         # dna mapping
         expand("bam/{cell_id}.hisat3n_dna_summary.txt", cell_id=CELL_IDS),
-        expand("bam/{cell_id}.hisat3n_dna_split_reads_summary.R1.txt", cell_id=CELL_IDS),
-        expand("bam/{cell_id}.hisat3n_dna_split_reads_summary.R2.txt", cell_id=CELL_IDS),
-        expand("bam/{cell_id}.hisat3n_dna.all_reads.deduped.matrix.txt", cell_id=CELL_IDS),
+
+        # bam dir
+        local(expand(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.matrix.txt",cell_id=CELL_IDS)),
+        local(expand(bam_dir+"/{cell_id}.hisat3n_dna_split_reads_summary.{read_type}.txt",
+                        cell_id=CELL_IDS,read_type=['R1','R2'])),
+
         # 3C contacts
-        expand("hic/{cell_id}.hisat3n_dna.all_reads.contact_stats.csv", cell_id=CELL_IDS),
+        local(expand(hic_dir+"/{cell_id}.hisat3n_dna.all_reads.contact_stats.csv"), cell_id=CELL_IDS),
         # allc
         expand("allc/{cell_id}.allc.tsv.gz", cell_id=CELL_IDS),
         expand("allc/{cell_id}.allc.tsv.gz.count.csv", cell_id=CELL_IDS),
-        expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz.tbi",
+        expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz.tbi",cell_id=CELL_IDS, mcg_context=mcg_context),
+        expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz",
                cell_id=CELL_IDS, mcg_context=mcg_context),
     output:
         "MappingSummary.csv.gz"
@@ -97,7 +122,7 @@ rule summary:
         snm3c_summary()
 
         # cleanup
-        shell("rm -rf bam/temp")
+        shell(f"rm -rf {bam_dir}/temp")
 
 
 # ==================================================
@@ -107,41 +132,27 @@ rule summary:
 
 # Trim reads
 # sort the fastq files so that R1 and R2 are in the same order
-rule sort_R1:
+rule sort_fq:
     input:
-        "fastq/{cell_id}-R1.fq.gz",
+        fq=local("fastq/{cell_id}-{read_type}.fq.gz") if local_fastq else GS.remote("gs://"+workflow.default_remote_prefix+"/fastq/{cell_id}-{read_type}.fq.gz"),
     output:
-        temp("fastq/{cell_id}-R1_sort.fq")
+        fq=local(temp("fastq/{cell_id}-{read_type}_sort.fq")),
     threads:
         1.5
     resources:
         high_io_job=1
     shell:
-        'zcat {input} | paste - - - - | sort -k1,1 -t " " | tr "\t" "\n" > {output} '
-
-
-rule sort_R2:
-    input:
-        "fastq/{cell_id}-R2.fq.gz",
-    output:
-        temp("fastq/{cell_id}-R2_sort.fq")
-    threads:
-        1.5
-    resources:
-        high_io_job=1
-    shell:
-        'zcat {input} | paste - - - - | sort -k1,1 -t " " | tr "\t" "\n" > {output} '
-
+        'zcat {input.fq} | paste - - - - | sort -k1,1 -t " " | tr "\t" "\n" > {output.fq} '
 
 rule trim:
     input:
-        # change to sort_R1 and sort_R2 output if the FASTQ name is disordered
-        R1="fastq/{cell_id}-R1.fq.gz",
-        R2="fastq/{cell_id}-R2.fq.gz"
+        # change to R1_sort and R2_sort output if the FASTQ name is disordered
+        R1=local("fastq/{cell_id}-R1.fq.gz") if local_fastq else GS.remote("gs://"+workflow.default_remote_prefix+"/fastq/{cell_id}-R1.fq.gz"),
+        R2=local("fastq/{cell_id}-R2.fq.gz") if local_fastq else GS.remote("gs://"+workflow.default_remote_prefix+"/fastq/{cell_id}-R2.fq.gz")
     output:
-        R1=temp("fastq/{cell_id}-R1.trimmed.fq.gz"),
-        R2=temp("fastq/{cell_id}-R2.trimmed.fq.gz"),
-        stats=temp("fastq/{cell_id}.trimmed.stats.txt")
+        R1=local(temp("fastq/{cell_id}-R1.trimmed.fq.gz")),
+        R2=local(temp("fastq/{cell_id}-R2.trimmed.fq.gz")),
+        stats=local(temp("fastq/{cell_id}.trimmed.stats.tsv"))
     threads:
         1
     shell:
@@ -172,11 +183,11 @@ rule trim:
 # Paired-end Hisat3n mapping using DNA mode
 rule hisat_3n_pair_end_mapping_dna_mode:
     input:
-        R1="fastq/{cell_id}-R1.trimmed.fq.gz",
-        R2="fastq/{cell_id}-R2.trimmed.fq.gz"
+        R1=rules.trim.output.R1 #local("fastq/{cell_id}-R1.trimmed.fq.gz"),
+        R2=rules.trim.output.R2 #local("fastq/{cell_id}-R2.trimmed.fq.gz")
     output:
-        bam=temp("bam/{cell_id}.hisat3n_dna.unsort.bam"),
-        stats=temp("bam/{cell_id}.hisat3n_dna_summary.txt")
+        bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.unsort.bam")),
+        stats=local(temp(bam_dir+"/{cell_id}.hisat3n_dna_summary.txt")),
     threads:
         config['hisat3n_threads']
     resources:
@@ -204,11 +215,11 @@ rule hisat_3n_pair_end_mapping_dna_mode:
 # separate hisat-3n unmapped reads
 rule separate_unmapped_reads:
     input:
-        bam="bam/{cell_id}.hisat3n_dna.unsort.bam"
+        bam=rules.hisat_3n_pair_end_mapping_dna_mode.output.bam #local(temp(bam_dir+"/{cell_id}.hisat3n_dna.unsort.bam"
     output:
-        unique_bam=temp("bam/{cell_id}.hisat3n_dna.unique_aligned.bam"),
-        multi_bam=temp("bam/{cell_id}.hisat3n_dna.multi_aligned.bam"),
-        unmapped_fastq=temp("bam/{cell_id}.hisat3n_dna.unmapped.fastq")
+        unique_bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.unique_aligned.bam")),
+        multi_bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.multi_aligned.bam")),
+        unmapped_fastq=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.unmapped.fastq"))
     threads:
         1
     run:
@@ -224,12 +235,12 @@ rule separate_unmapped_reads:
 # split unmapped reads
 rule split_unmapped_reads:
     input:
-        unmapped_reads="bam/{cell_id}.hisat3n_dna.unmapped.fastq"
+        unmapped_reads=rules.separate_unmapped_reads.output.unmapped_fastq #"bam/{cell_id}.hisat3n_dna.unmapped.fastq"
     output:
-        split_r1=temp("bam/{cell_id}.hisat3n_dna.split_reads.R1.fastq"),
-        split_r2=temp("bam/{cell_id}.hisat3n_dna.split_reads.R2.fastq"),
+        split_r1=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.split_reads.R1.fastq")),
+        split_r2=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.split_reads.R2.fastq")),
     params:
-        output_prefix=lambda wildcards: f"bam/{wildcards.cell_id}.hisat3n_dna.split_reads"
+        output_prefix=lambda wildcards: bam_dir+f"/{wildcards.cell_id}.hisat3n_dna.split_reads"
     threads:
         1
     run:
@@ -242,12 +253,14 @@ rule split_unmapped_reads:
 # Aligned reads FLAG and MAPQ possibilities:
 # - [0, 60], uniquely mapped to forward strand
 # - [16, 60], uniquely mapped to reverse strand
-rule hisat_3n_single_end_r1_mapping_dna_mode:
+rule hisat_3n_single_end_mapping_dna_mode:
     input:
-        fastq="bam/{cell_id}.hisat3n_dna.split_reads.R1.fastq"
+        fastq=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.split_reads.{read_type}.fastq")), #"bam/{cell_id}.hisat3n_dna.split_reads.R1.fastq"
     output:
-        bam=temp("bam/{cell_id}.hisat3n_dna.split_reads.R1.bam"),
-        stats=temp("bam/{cell_id}.hisat3n_dna_split_reads_summary.R1.txt")
+        bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.split_reads.{read_type}.bam")),
+        stats=local(temp(bam_dir+"/{cell_id}.hisat3n_dna_split_reads_summary.{read_type}.txt"))
+    params:
+        direction=lambda wildcards: "--directional-mapping-reverse " if wildcards.read_type=="R1" else "--directional-mapping "
     threads:
         config['hisat3n_threads']
     shell:
@@ -268,41 +281,13 @@ rule hisat_3n_single_end_r1_mapping_dna_mode:
         "samtools view "
         "-b -q 10 -o {output.bam}"  # only take the unique aligned reads
 
-
-rule hisat_3n_single_end_r2_mapping_dna_mode:
-    input:
-        fastq="bam/{cell_id}.hisat3n_dna.split_reads.R2.fastq"
-    output:
-        bam=temp("bam/{cell_id}.hisat3n_dna.split_reads.R2.bam"),
-        stats=temp("bam/{cell_id}.hisat3n_dna_split_reads_summary.R2.txt")
-    threads:
-        config['hisat3n_threads']
-    shell:
-        "hisat-3n "
-        "{config[hisat3n_dna_reference]} "
-        "-q "
-        "-U {input.fastq} "
-        "--directional-mapping "  # map R2 in normal mode
-        "--base-change C,T "
-        "{repeat_index_flag} "
-        "--no-spliced-alignment "  # this is important for DNA mapping
-        "--no-temp-splicesite "
-        "-t "
-        "--new-summary "
-        "--summary-file {output.stats} "
-        "--threads {threads} "
-        "| "
-        "samtools view "
-        "-b -q 10 -o {output.bam}"  # only take the unique aligned reads
-
-
 # sort split reads bam file by read name
 rule merge_and_sort_split_reads_by_name:
     input:
-        r1_bam="bam/{cell_id}.hisat3n_dna.split_reads.R1.bam",
-        r2_bam="bam/{cell_id}.hisat3n_dna.split_reads.R2.bam"
+        r1_bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.split_reads.R1.bam")),
+        r2_bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.split_reads.R2.bam"))
     output:
-        bam=temp("bam/{cell_id}.hisat3n_dna.split_reads.name_sort.bam")
+        bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.split_reads.name_sort.bam"))
     threads:
         1
     shell:
@@ -312,9 +297,9 @@ rule merge_and_sort_split_reads_by_name:
 # remove overlap read parts from the split alignment bam file
 rule remove_overlap_read_parts:
     input:
-        bam="bam/{cell_id}.hisat3n_dna.split_reads.name_sort.bam"
+        bam=rules.merge_and_sort_split_reads_by_name.output.bam
     output:
-        bam=temp("bam/{cell_id}.hisat3n_dna.split_reads.no_overlap.bam")
+        bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.split_reads.no_overlap.bam"))
     threads:
         1
     run:
@@ -324,10 +309,10 @@ rule remove_overlap_read_parts:
 # merge all mapped reads
 rule merge_original_and_split_bam:
     input:
-        bam="bam/{cell_id}.hisat3n_dna.unique_aligned.bam",
-        split_bam="bam/{cell_id}.hisat3n_dna.split_reads.no_overlap.bam"
+        bam=rules.separate_unmapped_reads.output.unique_bam #"bam/{cell_id}.hisat3n_dna.unique_aligned.bam",
+        split_bam=rules.remove_overlap_read_parts.output.bam
     output:
-        bam=temp("bam/{cell_id}.hisat3n_dna.all_reads.bam")
+        bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.bam"))
     threads:
         1
     shell:
@@ -337,26 +322,27 @@ rule merge_original_and_split_bam:
 # sort split reads bam file by read name
 rule sort_all_reads_by_name:
     input:
-        bam="bam/{cell_id}.hisat3n_dna.all_reads.bam"
+        bam=rules.merge_original_and_split_bam.output.bam #"bam/{cell_id}.hisat3n_dna.all_reads.bam"
     output:
-        bam="bam/{cell_id}.hisat3n_dna.all_reads.name_sort.bam"
+        bam="bam/{cell_id}.hisat3n_dna.all_reads.name_sort.bam" #do not add local, upload to remote
     threads:
         1
     shell:
         "samtools sort -n -o {output.bam} {input.bam}"
 
-
 # remove overlap parts and call contacts
 rule call_chromatin_contacts:
     input:
-        bam="bam/{cell_id}.hisat3n_dna.all_reads.name_sort.bam"
+        bam=rules.sort_all_reads_by_name.output.bam #"bam/{cell_id}.hisat3n_dna.all_reads.name_sort.bam"
     output:
-        stats=temp("hic/{cell_id}.hisat3n_dna.all_reads.contact_stats.csv")
+        stats=local(temp(hic_dir+"/{cell_id}.hisat3n_dna.all_reads.contact_stats.csv"))
     params:
-        contact_prefix=lambda wildcards: f"hic/{wildcards.cell_id}.hisat3n_dna.all_reads",
+        contact_prefix=lambda wildcards: hic_dir+f"/{wildcards.cell_id}.hisat3n_dna.all_reads",
     threads:
         1
     run:
+        if not os.path.exists(hic_dir):
+            os.mkdir(hic_dir)
         call_chromatin_contacts(bam_path=input.bam,
                                 contact_prefix=params.contact_prefix,
                                 save_raw=False,
@@ -365,70 +351,69 @@ rule call_chromatin_contacts:
 
 rule sort_bam:
     input:
-        bam="bam/{cell_id}.hisat3n_dna.all_reads.name_sort.bam"
+        bam=rules.sort_all_reads_by_name.output.bam #"bam/{cell_id}.hisat3n_dna.all_reads.name_sort.bam"
     output:
-        bam=temp("bam/{cell_id}.hisat3n_dna.all_reads.pos_sort.bam")
+        bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.pos_sort.bam"))
     resources:
         mem_mb=1000
     threads:
         1
     shell:
-        "samtools sort -O BAM -o {output} {input}"
+        "samtools sort -O BAM -o {output.bam} {input.bam}"
 
 # remove PCR duplicates
 rule dedup_unique_bam:
     input:
-        "bam/{cell_id}.hisat3n_dna.all_reads.pos_sort.bam"
+        bam=rules.sort_bam.output.bam #"bam/{cell_id}.hisat3n_dna.all_reads.pos_sort.bam"
     output:
-        bam=temp("bam/{cell_id}.hisat3n_dna.all_reads.deduped.bam"),
-        stats=temp("bam/{cell_id}.hisat3n_dna.all_reads.deduped.matrix.txt")
+        bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam")),
+        stats=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.matrix.txt"))
     resources:
         mem_mb=1000
     threads:
         2
     shell:
-        "picard MarkDuplicates I={input} O={output.bam} M={output.stats} "
+        "picard MarkDuplicates I={input.bam} O={output.bam} M={output.stats} "
         "REMOVE_DUPLICATES=true TMP_DIR=bam/temp/"
 
 
 # index the bam file
 rule index_unique_bam_dna_reads:
     input:
-        bam="bam/{cell_id}.hisat3n_dna.all_reads.deduped.bam"
+        bam=rules.dedup_unique_bam.output.bam #"bam/{cell_id}.hisat3n_dna.all_reads.deduped.bam"
     output:
-        bai=temp("bam/{cell_id}.hisat3n_dna.all_reads.deduped.bam.bai")
+        bai=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam.bai"))
     shell:
         "samtools index {input.bam}"
-
 
 # ==================================================
 # Generate ALLC
 # ==================================================
-
-
 # generate ALLC
 rule unique_reads_allc:
     input:
-        bam="bam/{cell_id}.hisat3n_dna.all_reads.deduped.bam",
-        bai="bam/{cell_id}.hisat3n_dna.all_reads.deduped.bam.bai"
+        bam=rules.dedup_unique_bam.output.bam #"bam/{cell_id}.hisat3n_dna.all_reads.deduped.bam",
+        bai=rules.index_unique_bam_dna_reads.output.bai #"bam/{cell_id}.hisat3n_dna.all_reads.deduped.bam.bai"
     output:
         allc="allc/{cell_id}.allc.tsv.gz",
         tbi="allc/{cell_id}.allc.tsv.gz.tbi",
-        stats=temp("allc/{cell_id}.allc.tsv.gz.count.csv")
+        stats=local(temp(allc_dir+"/{cell_id}.allc.tsv.gz.count.csv"))
     threads:
         1.5
     resources:
         mem_mb=500
     shell:
-        'allcools bam-to-allc '
-        '--bam_path {input.bam} '
-        '--reference_fasta {config[reference_fasta]} '
-        '--output_path {output.allc} '
-        '--num_upstr_bases {config[num_upstr_bases]} '
-        '--num_downstr_bases {config[num_downstr_bases]} '
-        '--compress_level {config[compress_level]} '
-        '--save_count_df '
-        '--convert_bam_strandness '
+        """
+        mkdir -p {allc_dir}
+        allcools bam-to-allc --bam_path {input.bam} \
+            --reference_fasta {config[reference_fasta]} \
+            --output_path {output.allc} \
+            --num_upstr_bases {config[num_upstr_bases]} \
+            --num_downstr_bases {config[num_downstr_bases]} \
+            --compress_level {config[compress_level]} \
+            --save_count_df \
+            --convert_bam_strandness
+        """
 
 
 # CGN extraction from ALLC
@@ -446,9 +431,11 @@ rule unique_reads_cgn_extraction:
     resources:
         mem_mb=100
     shell:
-        'allcools extract-allc '
-        '--strandness merge '
-        '--allc_path  {input.allc} '
-        '--output_prefix {params.prefix} '
-        '--mc_contexts {mcg_context} '
-        '--chrom_size_path {config[chrom_size_path]} '
+        """
+        mkdir -p {allc_mcg_dir}
+        allcools extract-allc --strandness merge \
+            --allc_path  {input.allc} \
+            --output_prefix {params.prefix} \
+            --mc_contexts {mcg_context} \
+            --chrom_size_path {config[chrom_size_path]}
+        """

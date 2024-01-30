@@ -196,7 +196,7 @@ def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 		template = f.read()
 
 	CMD = f'yap-gcp run_mapping --fastq_prefix {fastq_prefix} \
-						--config_path {config_path} --aligner {aligner} \
+						--config_path "mapping_config.ini" --aligner {aligner} \
 						--gcp {gcp} --region {region} \
 						--keep_remote {keep_remote} --n_jobs {n_jobs} \
 						--node_rank "$SKYPILOT_NODE_RANK"'
@@ -210,7 +210,7 @@ def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 
 def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 				gcp=True,region='us-west1',keep_remote=False,
-				config_path="config.ini",aligner='hisat-3n',
+				config_path="mapping_config.ini",aligner='hisat-3n',
 				n_jobs=96,node_rank=0):
 	output_dir=fastq_prefix.replace("gs://","")
 	if not os.path.exists(output_dir):
