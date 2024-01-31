@@ -86,7 +86,10 @@ yap-gcp prepare_demultiplex --fq_dir gs://mapping_example/fastq/test_fastq \
               --env_name yap --n_jobs 96 --output run_demultiplex.yaml
 # vim and change config in run_demultiplex.yaml
 sky launch -y -n demultiplex run_demultiplex.yaml # Do Not use spot mode.
+```
 
+## 2.2 Run mapping on GCP
+```shell
 # mapping (bismark or hisat-3n)
 yap default-mapping-config --mode m3c-multi --barcode_version V2 --bismark_ref "~/Ref/hg38/hg38_ucsc_with_chrL.bismark1" --genome "~/Ref/hg38/hg38_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/hg38/hg38_ucsc.main.chrom.sizes" --hisat3n_dna_ref  "~/Ref/hg38/hg38_ucsc_with_chrL" > config.ini
 # vim config.ini, check hisat3n_repeat_index_type should be: repeat, mode is m3c-multi
