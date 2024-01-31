@@ -9,19 +9,6 @@ import yaml
 import pathlib
 from cemba_data.hisat3n import *
 
-# if "gcp" in config:
-#     gcp=config["gcp"] # if the fastq files stored in GCP cloud, set gcp=True in snakemake: --config gcp=True
-# else:
-#     gcp=False
-#
-# if gcp:
-#     from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
-#     GS = GSRemoteProvider()
-#     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
-#
-# bam_dir=workflow.default_remote_prefix+"/bam" if gcp else "bam"
-# allc_dir=workflow.default_remote_prefix+"/allc" if gcp else "allc"
-# hic_dir=workflow.default_remote_prefix+"/hic" if gcp else "hic"
 # ==================================================
 # Preparation
 # ==================================================
@@ -51,7 +38,7 @@ if "gcp" in config:
 else:
     gcp=False
 
-if "local_fastq" in config:
+if "local_fastq" in config and gcp:
     local_fastq=config["local_fastq"] # if the fastq files stored in GCP cloud, set local_fastq=False in snakemake: --config local_fastq=False
 else:
     local_fastq=True
@@ -79,9 +66,10 @@ for k in REQUIRED_CONFIG:
 if len(missing_key) > 0:
     raise ValueError('Missing required config: {}'.format(missing_key))
 
-# fastq table and cell IDs
-# fastq_table = validate_cwd_fastq_paths()
-# CELL_IDS = fastq_table.index.tolist() # CELL_IDS will be writen in the beginning of this snakemake file.
+if not gcp:
+    fastq table and cell IDs
+    fastq_table = validate_cwd_fastq_paths()
+    CELL_IDS = fastq_table.index.tolist() # CELL_IDS will be writen in the beginning of this snakemake file.
 
 mcg_context = 'CGN' if int(config['num_upstr_bases']) == 0 else 'HCGN'
 repeat_index_flag = "--repeat" if config['hisat3n_repeat_index_type'] == 'repeat' else "--no-repeat-index"

@@ -33,15 +33,15 @@ DEFAULT_CONFIG = {
 }
 REQUIRED_CONFIG = ['hisat3n_dna_reference', 'reference_fasta', 'chrom_size_path']
 
-if "gcp" in config:
+if "gcp" in config: #output to GCP bucket
     gcp=config["gcp"] # if the fastq files stored in GCP cloud, set gcp=True in snakemake: --config gcp=True
 else:
     gcp=False
 
-if "local_fastq" in config:
+if "local_fastq" in config and gcp:
     local_fastq=config["local_fastq"] # if the fastq files stored in GCP cloud, set local_fastq=False in snakemake: --config local_fastq=False
 else:
-    local_fastq=True
+    local_fastq=True #input fastq stored on GCP bucket
 
 if not local_fastq or gcp:
     from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
@@ -66,9 +66,10 @@ for k in REQUIRED_CONFIG:
 if len(missing_key) > 0:
     raise ValueError('Missing required config: {}'.format(missing_key))
 
-# fastq table and cell IDs
-# fastq_table = validate_cwd_fastq_paths()
-# CELL_IDS = fastq_table.index.tolist()
+if not gcp:
+    fastq table and cell IDs
+    fastq_table = validate_cwd_fastq_paths()
+    CELL_IDS = fastq_table.index.tolist()
 
 mcg_context = 'CGN' if int(config['num_upstr_bases']) == 0 else 'HCGN'
 repeat_index_flag = "--repeat" if config['hisat3n_repeat_index_type'] == 'repeat' else "--no-repeat-index"
