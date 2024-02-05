@@ -298,7 +298,7 @@ def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 	# split fastq_dirs into multiple files, running with different skypilot nodes
 	j=0
 	i=0
-	while i +chunk_size < len(fastq_dirs):
+	while i < len(fastq_dirs):
 		with open(os.path.join(outdir, f"fastq_dirs_{j}"), 'w') as f:
 			for d in fastq_dirs[i:i+chunk_size]:
 				f.write(d + '\n')
