@@ -67,7 +67,7 @@ if len(missing_key) > 0:
     raise ValueError('Missing required config: {}'.format(missing_key))
 
 if not gcp:
-    fastq table and cell IDs
+    # fastq table and cell IDs
     fastq_table = validate_cwd_fastq_paths()
     CELL_IDS = fastq_table.index.tolist() # CELL_IDS will be writen in the beginning of this snakemake file.
 

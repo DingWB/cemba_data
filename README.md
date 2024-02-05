@@ -148,5 +148,6 @@ yap default-mapping-config --mode m3c-multi --barcode_version V2 --bismark_ref "
 
 # gs://mapping_example/test_gcp_hisat3n is the outdir of prepare_demultiplex
 yap-gcp prepare_mapping --fastq_prefix gs://mapping_example/novaseq_mapping --config_path config.ini --aligner hisat-3n --chunk_size 6 --job_name='mapping' --env_name='yap' --n_jobs=16
+
 sky spot launch -y -n mapping run_mapping.yaml
 ```
