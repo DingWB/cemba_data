@@ -13,35 +13,35 @@ resources:
     disk_size: 500
     disk_tier: 'medium'
     image_id: projects/ecker-wding/global/images/hisat3n-hg38
-#    GCP: gcloud compute images list --uri
-#    To find GCP images: https://cloud.google.com/compute/docs/images
-#    gcloud compute images describe projects/ecker-wding/global/images/hisat3n-hg38
+    # GCP: gcloud compute images list --uri
+    # To find GCP images: https://cloud.google.com/compute/docs/images
+    # gcloud compute images describe projects/ecker-wding/global/images/hisat3n-hg38
 
 # file_mounts:
 #   ~/Ref/hg38: ~/Ref/hg38
 
 setup: |
     pip install --upgrade pip
-#    conda install -y -n base -c conda-forge -c bioconda mamba
-#    mamba env create -f https://raw.githubusercontent.com/DingWB/cemba_data/master/env.yaml
-#
-#    Please copy the reference from GCP bucket to VM machine if the program need ref
-#    For demultiplex, this step can be skipped
-#    mkdir -p ~/Ref && gsutil -m cp -r -n gs://wubin_ref/hg38 ~/Ref
-#
-#    # Install hisat-3n (For demultiplex, this step can be skipped)
-#    mkdir -p ~/Software && cd ~/Software
-#    git clone https://github.com/DaehwanKimLab/hisat2.git hisat-3n
-#    cd hisat-3n
-#    git checkout -b hisat-3n origin/hisat-3n
-#    make
-#    # put hisat-3n in the PATH
-#    echo 'export PATH=$HOME/Software/hisat-3n:$PATH' >> ~/.bashrc
-#    source ~/.bashrc
-#    echo 'export PATH=$HOME/Software/hisat-3n:$PATH' >> ~/.zshrc
-#    source ~/.zshrc
-    conda activate {env_name}
-    pip uninstall -y cemba_data && pip install git+https://github.com/DingWB/cemba_data
+    # conda install -y -n base -c conda-forge -c bioconda mamba
+    # mamba env create -f https://raw.githubusercontent.com/DingWB/cemba_data/master/env.yaml
+
+    # Please copy the reference from GCP bucket to VM machine if the program need ref
+    # For demultiplex, this step can be skipped
+    # mkdir -p ~/Ref && gsutil -m cp -r -n gs://wubin_ref/hg38 ~/Ref
+
+    ## Install hisat-3n (For demultiplex, this step can be skipped)
+    # mkdir -p ~/Software && cd ~/Software
+    # git clone https://github.com/DaehwanKimLab/hisat2.git hisat-3n
+    # cd hisat-3n
+    # git checkout -b hisat-3n origin/hisat-3n
+    # make
+    ## put hisat-3n in the PATH
+    # echo 'export PATH=$HOME/Software/hisat-3n:$PATH' >> ~/.bashrc
+    # source ~/.bashrc
+    # echo 'export PATH=$HOME/Software/hisat-3n:$PATH' >> ~/.zshrc
+    # source ~/.zshrc
+    # conda activate {env_name}
+    # pip uninstall -y cemba_data && pip install git+https://github.com/DingWB/cemba_data
 
 run: |
     {CMD}

@@ -184,7 +184,7 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 								CMD=CMD,env_name=env_name))
 
 	# print(f"To run this job: sky spot launch -y -n {job_name} {output} [spot] \n")
-	print(f"To run: sky launch -y -n {job_name} {output}")
+	print(f"To run: sky launch -y -i 10 -n {job_name} {output}")
 
 def run_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 						barcode_version="V2",

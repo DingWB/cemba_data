@@ -105,3 +105,46 @@ yap-gcp prepare_mapping --fastq_prefix gs://mapping_example/test_gcp_hisat3n --c
 sky spot launch -y -n mapping run_mapping.yaml
 # or: sky launch -y -n mapping run_mapping.yaml
 ```
+
+
+# Testing pipeline
+## 1.1. Make example fastq files
+Randomly sampling 1000000 reads from 4 big fastq files
+
+```shell
+mkdir -p novaseq_fastq
+
+seqtk sample -s 100 UWA7648_CX182024_Idg_1_P1-1-K15_22HC72LT3_S1_L001_R1_001.fastq.gz 1000000 | paste - - - - | sort -k1,1 -t " " | tr "\t" "\n" |gzip > novaseq_fastq/UWA7648_CX182024_Idg_1_P1-1-K15_22HC72LT3_S1_L001_R1_001.fastq.gz
+
+seqtk sample -s 100 UWA7648_CX182024_Idg_1_P1-1-K15_22HC72LT3_S1_L001_R2_001.fastq.gz 1000000 | paste - - - - | sort -k1,1 -t " " | tr "\t" "\n" |gzip > novaseq_fastq/UWA7648_CX182024_Idg_1_P1-1-K15_22HC72LT3_S1_L001_R2_001.fastq.gz
+
+seqtk sample -s 100 UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L002_R1_001.fastq.gz 1000000 | paste - - - - | sort -k1,1 -t " " | tr "\t" "\n" |gzip > novaseq_fastq/UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L002_R1_001.fastq.gz
+
+seqtk sample -s 100 UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L002_R2_001.fastq.gz 1000000 | paste - - - - | sort -k1,1 -t " " | tr "\t" "\n" |gzip > novaseq_fastq/UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L002_R2_001.fastq.gz
+
+
+seqtk sample -s 100 UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L008_R1_001.fastq.gz 1000000 | paste - - - - | sort -k1,1 -t " " | tr "\t" "\n" |gzip > novaseq_fastq/UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L008_R1_001.fastq.gz
+
+seqtk sample -s 100 UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L008_R2_001.fastq.gz 1000000 | paste - - - - | sort -k1,1 -t " " | tr "\t" "\n" |gzip > novaseq_fastq/UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L008_R2_001.fastq.gz
+```
+
+
+## 2.1 Run demultiplex on GCP
+```shell
+yap-gcp prepare_demultiplex --fq_dir gs://mapping_example/fastq/novaseq_fastq \
+              --remote_prefix mapping_example --outdir novaseq_mapping \
+              --env_name yap --n_jobs 96 --output run_demultiplex.yaml
+# vim and change config in run_demultiplex.yaml, such as instance_type (n2-standard-16) and number of nodes=1
+sky launch -y -n demultiplex run_demultiplex.yaml # Do Not use spot mode.
+```
+
+## 2.2 Run mapping on GCP
+```shell
+# mapping (bismark or hisat-3n)
+yap default-mapping-config --mode m3c-multi --barcode_version V2 --bismark_ref "~/Ref/hg38/hg38_ucsc_with_chrL.bismark1" --genome "~/Ref/hg38/hg38_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/hg38/hg38_ucsc.main.chrom.sizes" --hisat3n_dna_ref  "~/Ref/hg38/hg38_ucsc_with_chrL" > config.ini
+# vim config.ini, check hisat3n_repeat_index_type should be: repeat, mode is m3c-multi
+
+# gs://mapping_example/test_gcp_hisat3n is the outdir of prepare_demultiplex
+yap-gcp prepare_mapping --fastq_prefix gs://mapping_example/novaseq_mapping --config_path config.ini --aligner hisat-3n --chunk_size 6 --job_name='mapping' --env_name='yap' --n_jobs=8
+sky spot launch -y -n mapping run_mapping.yaml
+```
