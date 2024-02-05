@@ -133,7 +133,7 @@ seqtk sample -s 100 UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L008_R2_001.fa
 ```shell
 yap-gcp prepare_demultiplex --fq_dir gs://mapping_example/fastq/novaseq_fastq \
               --remote_prefix mapping_example --outdir novaseq_mapping \
-              --env_name yap --n_jobs 96 --output run_demultiplex.yaml
+              --env_name yap --n_jobs 8 --output run_demultiplex.yaml
 # vim and change config in run_demultiplex.yaml, such as instance_type (n2-standard-16) and number of nodes=1
 sky launch -y -n demultiplex run_demultiplex.yaml # Do Not use spot mode.
 ```

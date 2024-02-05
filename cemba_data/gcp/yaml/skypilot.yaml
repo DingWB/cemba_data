@@ -44,4 +44,4 @@ setup: |
     pip uninstall -y cemba_data && pip install git+https://github.com/DingWB/cemba_data
 
 run: |
-    {CMD}
+  {CMD}
