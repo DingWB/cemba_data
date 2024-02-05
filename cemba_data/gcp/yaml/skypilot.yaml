@@ -40,8 +40,8 @@ setup: |
     # source ~/.bashrc
     # echo 'export PATH=$HOME/Software/hisat-3n:$PATH' >> ~/.zshrc
     # source ~/.zshrc
-    # conda activate {env_name}
-    # pip uninstall -y cemba_data && pip install git+https://github.com/DingWB/cemba_data
+    conda activate {env_name}
+    pip uninstall -y cemba_data && pip install git+https://github.com/DingWB/cemba_data
 
 run: |
     {CMD}
