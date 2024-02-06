@@ -177,11 +177,13 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 		template = f.read()
 	if output is None:
 		print(template.format(job_name=job_name, workdir=workdir,
-								CMD=CMD))
+							  CMD=CMD,env_name=env_name,
+							  n_node=1))
 	else:
 		with open(os.path.abspath(os.path.expanduser(output)), 'w') as f:
 			f.write(template.format(job_name=job_name, workdir=workdir,
-								CMD=CMD,env_name=env_name))
+									CMD=CMD,env_name=env_name,
+									n_node=1))
 
 	# print(f"To run this job: sky spot launch -y -n {job_name} {output} [spot] \n")
 	print(f"To run: sky launch -y -i 10 -n {job_name} {output}")
@@ -304,6 +306,7 @@ def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 				f.write(d + '\n')
 		i+=chunk_size
 		j+=1
+	n_node=j
 
 	if skypilot_template is None:
 		skypilot_template=os.path.join(PACKAGE_DIR,"gcp",'yaml',"skypilot.yaml")
@@ -319,7 +322,8 @@ def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 		CMD=f"conda activate {env_name} \n  "+ CMD
 	with open(os.path.abspath(os.path.expanduser(output)), 'w') as f:
 		f.write(template.format(job_name=job_name, workdir=outdir,
-								CMD=CMD, env_name=env_name))
+								CMD=CMD, env_name=env_name,
+								n_node=n_node))
 	print(f"To run this job: \nsky spot launch -y -n {job_name} {output} [spot] \n")
 	print(f"Or: \nsky launch -y -n {job_name} {output}")
 
@@ -363,6 +367,6 @@ def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 		print(f"CMD: {cmd}")
 		if print_only:
 			continue
-		os.system(cmd)
 		with open(log_path, 'a') as f:
 			f.write(cmd + '\n')
+		os.system(cmd)

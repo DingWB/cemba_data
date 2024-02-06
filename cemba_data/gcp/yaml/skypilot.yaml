@@ -4,7 +4,7 @@
 # user can change all other configuration
 name: {job_name}
 workdir: {workdir}
-num_nodes: 1
+num_nodes: {n_node}
 resources:
     cloud: gcp
     region: us-west1
