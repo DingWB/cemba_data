@@ -326,7 +326,7 @@ def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 				gcp=True,region='us-west1',keep_remote=False,
 				config_path="mapping_config.ini",aligner='hisat-3n',
-				n_jobs=96,node_rank=0,print_only=False):
+				n_jobs=64,node_rank=0,print_only=False):
 	output_dir=fastq_prefix.replace("gs://","")
 	if not os.path.exists(output_dir):
 		os.makedirs(output_dir,exist_ok=True) #on loal GCP VM machine
@@ -340,7 +340,8 @@ def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 		input_fastq_dir = "fastq_dirs.txt"
 	info=f"Node Rank: {node_rank}; input: {input_fastq_dir}'"
 	print(info)
-	with open(os.path.join(output_dir,"logs.txt"),'w') as f:
+	log_path=os.path.join(output_dir,f"logs_{node_rank}.txt")
+	with open(log_path,'w') as f:
 		f.write(info+'\n')
 	with open(input_fastq_dir,'r') as f:
 		subdirs=f.read().strip().split('\n')
@@ -363,5 +364,5 @@ def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 		if print_only:
 			continue
 		os.system(cmd)
-		with open(os.path.join(output_dir, "logs.txt"), 'a') as f:
+		with open(log_path, 'a') as f:
 			f.write(cmd + '\n')

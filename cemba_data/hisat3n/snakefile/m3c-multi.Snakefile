@@ -142,8 +142,8 @@ rule sort_fq:
 rule trim:
     input:
         # change to R1_sort and R2_sort output if the FASTQ name is disordered
-        R1=local("fastq/{cell_id}-R1.fq.gz") if local_fastq else GS.remote("gs://"+workflow.default_remote_prefix+"/fastq/{cell_id}-R1.fq.gz"),
-        R2=local("fastq/{cell_id}-R2.fq.gz") if local_fastq else GS.remote("gs://"+workflow.default_remote_prefix+"/fastq/{cell_id}-R2.fq.gz")
+        R1=local("fastq/{cell_id}-R1_sort.fq"),  #if local_fastq else GS.remote("gs://"+workflow.default_remote_prefix+"/fastq/{cell_id}-R1.fq.gz"),
+        R2=local("fastq/{cell_id}-R2_sort.fq")  #if local_fastq else GS.remote("gs://"+workflow.default_remote_prefix+"/fastq/{cell_id}-R2.fq.gz")
     output:
         R1=local(temp("fastq/{cell_id}-R1.trimmed.fq.gz")),
         R2=local(temp("fastq/{cell_id}-R2.trimmed.fq.gz")),

@@ -114,18 +114,17 @@ Randomly sampling 1000000 reads from 4 big fastq files
 ```shell
 mkdir -p novaseq_fastq
 
-seqtk sample -s 100 UWA7648_CX182024_Idg_1_P1-1-K15_22HC72LT3_S1_L001_R1_001.fastq.gz 1000000 | paste - - - - | sort -k1,1 -t " " | tr "\t" "\n" |gzip > novaseq_fastq/UWA7648_CX182024_Idg_1_P1-1-K15_22HC72LT3_S1_L001_R1_001.fastq.gz
+seqtk sample -s100 download/UWA7648_CX182024_Idg_1_P1-1-K15_22HC72LT3_S1_L001_R1_001.fastq.gz 1000000 | gzip > novaseq_fastq/UWA7648_CX182024_Idg_1_P1-1-K15_22HC72LT3_S1_L001_R1_001.fastq.gz
+# | paste - - - - | sort -k1,1 -t " " | tr "\t" "\n" |
+seqtk sample -s100 download/UWA7648_CX182024_Idg_1_P1-1-K15_22HC72LT3_S1_L001_R2_001.fastq.gz 1000000  |gzip > novaseq_fastq/UWA7648_CX182024_Idg_1_P1-1-K15_22HC72LT3_S1_L001_R2_001.fastq.gz
 
-seqtk sample -s 100 UWA7648_CX182024_Idg_1_P1-1-K15_22HC72LT3_S1_L001_R2_001.fastq.gz 1000000 | paste - - - - | sort -k1,1 -t " " | tr "\t" "\n" |gzip > novaseq_fastq/UWA7648_CX182024_Idg_1_P1-1-K15_22HC72LT3_S1_L001_R2_001.fastq.gz
+seqtk sample -s100 download/UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L002_R1_001.fastq.gz 1000000 |gzip > novaseq_fastq/UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L002_R1_001.fastq.gz
 
-seqtk sample -s 100 UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L002_R1_001.fastq.gz 1000000 | paste - - - - | sort -k1,1 -t " " | tr "\t" "\n" |gzip > novaseq_fastq/UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L002_R1_001.fastq.gz
+seqtk sample -s100 download/UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L002_R2_001.fastq.gz 1000000 |gzip > novaseq_fastq/UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L002_R2_001.fastq.gz
 
-seqtk sample -s 100 UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L002_R2_001.fastq.gz 1000000 | paste - - - - | sort -k1,1 -t " " | tr "\t" "\n" |gzip > novaseq_fastq/UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L002_R2_001.fastq.gz
+seqtk sample -s100 download/UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L008_R1_001.fastq.gz 1000000 |gzip > novaseq_fastq/UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L008_R1_001.fastq.gz
 
-
-seqtk sample -s 100 UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L008_R1_001.fastq.gz 1000000 | paste - - - - | sort -k1,1 -t " " | tr "\t" "\n" |gzip > novaseq_fastq/UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L008_R1_001.fastq.gz
-
-seqtk sample -s 100 UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L008_R2_001.fastq.gz 1000000 | paste - - - - | sort -k1,1 -t " " | tr "\t" "\n" |gzip > novaseq_fastq/UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L008_R2_001.fastq.gz
+seqtk sample -s100 download/UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L008_R2_001.fastq.gz 1000000 |gzip > novaseq_fastq/UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L008_R2_001.fastq.gz
 ```
 
 
@@ -147,7 +146,7 @@ yap default-mapping-config --mode m3c-multi --barcode_version V2 --bismark_ref "
 # vim config.ini, check hisat3n_repeat_index_type should be: repeat, mode is m3c-multi
 
 # gs://mapping_example/test_gcp_hisat3n is the outdir of prepare_demultiplex
-yap-gcp prepare_mapping --fastq_prefix gs://mapping_example/novaseq_mapping --config_path config.ini --aligner hisat-3n --chunk_size 6 --job_name='mapping' --env_name='yap' --n_jobs=16
+yap-gcp prepare_mapping --fastq_prefix gs://mapping_example/novaseq_mapping --config_path config.ini --aligner hisat-3n --chunk_size 2 --job_name='mapping' --env_name='yap' --n_jobs=16
 
 sky spot launch -y -n mapping run_mapping.yaml
 ```
