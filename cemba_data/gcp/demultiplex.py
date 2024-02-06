@@ -320,8 +320,8 @@ def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 	with open(os.path.abspath(os.path.expanduser(output)), 'w') as f:
 		f.write(template.format(job_name=job_name, workdir=outdir,
 								CMD=CMD, env_name=env_name))
-	print(f"To run this job: sky spot launch -y -n {job_name} {output} [spot] \n")
-	print(f"Or: sky launch -y -n {job_name} {output}")
+	print(f"To run this job: \nsky spot launch -y -n {job_name} {output} [spot] \n")
+	print(f"Or: \nsky launch -y -n {job_name} {output}")
 
 def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 				gcp=True,region='us-west1',keep_remote=False,
