@@ -167,8 +167,8 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 	"""
 	workdir = os.path.abspath(os.path.expanduser(workdir))
 	CMD=f"yap-gcp run_demultiplex --fq_dir {fq_dir} --remote_prefix {remote_prefix} --outdir {outdir} \
-					--barcode_version {barcode_version} \
-					--gcp {gcp} --region {region} --keep_remote {keep_remote} --n_jobs {n_jobs}"
+--barcode_version {barcode_version} \
+--gcp {gcp} --region {region} --keep_remote {keep_remote} --n_jobs {n_jobs}"
 	if not env_name is None:
 		CMD=f"conda activate {env_name} \n  "+ CMD
 	if skypilot_template is None:
@@ -234,7 +234,7 @@ def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 					tmp_dir="mapping_gcp_tmp",chunk_size=2,
 					region='us-west1',keep_remote=False,gcp=True,
 					skypilot_template=None,job_name='mapping',
-					env_name='base',n_jobs=96,output="run_mapping.yaml"):
+					env_name='base',n_jobs=64,output="run_mapping.yaml"):
 	"""
 		Prepare the skypilot yaml file to run demultiplex on GCP.
 
@@ -314,10 +314,10 @@ def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 		template = f.read()
 
 	CMD = f'yap-gcp run_mapping --fastq_prefix {fastq_prefix} \
-						--config_path "mapping_config.ini" --aligner {aligner} \
-						--gcp {gcp} --region {region} \
-						--keep_remote {keep_remote} --n_jobs {n_jobs} \
-						--node_rank "$SKYPILOT_NODE_RANK"'
+--config_path "mapping_config.ini" --aligner {aligner} \
+--gcp {gcp} --region {region} \
+--keep_remote {keep_remote} --n_jobs {n_jobs} \
+--node_rank "$SKYPILOT_NODE_RANK"'
 	if not env_name is None:
 		CMD=f"conda activate {env_name} \n  "+ CMD
 	with open(os.path.abspath(os.path.expanduser(output)), 'w') as f:

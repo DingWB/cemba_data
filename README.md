@@ -146,7 +146,7 @@ yap default-mapping-config --mode m3c-multi --barcode_version V2 --bismark_ref "
 # vim config.ini, check hisat3n_repeat_index_type should be: repeat, mode is m3c-multi
 
 # gs://mapping_example/test_gcp_hisat3n is the outdir of prepare_demultiplex
-yap-gcp prepare_mapping --fastq_prefix gs://mapping_example/novaseq_mapping --config_path config.ini --aligner hisat-3n --chunk_size 2 --job_name='mapping' --env_name='yap' --n_jobs=16
+yap-gcp prepare_mapping --fastq_prefix gs://mapping_example/novaseq_mapping --config_path config.ini --aligner hisat-3n --chunk_size 2 --job_name='mapping' --env_name='yap' #--n_jobs=64
 
 sky spot launch -y -n mapping run_mapping.yaml
 ```
