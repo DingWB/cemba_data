@@ -338,6 +338,10 @@ def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 		input_fastq_dir=f"fastq_dirs_{node_rank}"
 	else:
 		input_fastq_dir = "fastq_dirs.txt"
+	info=f"Node Rank: {node_rank}; input: {input_fastq_dir}'"
+	print(info)
+	with open("info.txt",'f') as f:
+		f.write(info+'\n')
 	with open(input_fastq_dir,'r') as f:
 		subdirs=f.read().strip().split('\n')
 
