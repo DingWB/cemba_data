@@ -24,7 +24,6 @@ setup: |
     pip install --upgrade pip
     # conda install -y -n base -c conda-forge -c bioconda mamba
     # mamba env create -f https://raw.githubusercontent.com/DingWB/cemba_data/master/env.yaml
-
     # Please copy the reference from GCP bucket to VM machine if the program need ref
     # For demultiplex, this step can be skipped
     # mkdir -p ~/Ref && gsutil -m cp -r -n gs://wubin_ref/hg38 ~/Ref
