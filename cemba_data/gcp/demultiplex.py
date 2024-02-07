@@ -231,7 +231,8 @@ def run_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 
 def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 					config_path="config.ini",aligner='hisat-3n',
-					tmp_dir="mapping_gcp_tmp",chunk_size=2,
+					tmp_dir="mapping_gcp_tmp",
+					chunk_size=None,n_node=2,
 					region='us-west1',keep_remote=False,gcp=True,
 					skypilot_template=None,job_name='mapping',
 					env_name='base',n_jobs=64,output="run_mapping.yaml"):
@@ -298,6 +299,11 @@ def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 			f.write(d+'\n')
 
 	# split fastq_dirs into multiple files, running with different skypilot nodes
+	if not n_node is None:
+		chunk_size=np.ceil(len(fastq_dirs)/n_node)
+		print(f"n_node:{n_node}; chunk_size: {chunk_size}")
+	else:
+		print(f"chunk_size: {chunk_size}")
 	j=0
 	i=0
 	while i < len(fastq_dirs):
