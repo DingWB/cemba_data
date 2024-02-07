@@ -12,7 +12,7 @@ resources:
     use_spot: False  # Do Not use spot to run demultiplex !
     disk_size: 500
     disk_tier: 'medium'
-    image_id: projects/ecker-wding/global/images/hisat3n-hg38
+    image_id: projects/ecker-wding/global/images/{image}
     # GCP: gcloud compute images list --uri
     # To find GCP images: https://cloud.google.com/compute/docs/images
     # gcloud compute images describe projects/ecker-wding/global/images/hisat3n-hg38

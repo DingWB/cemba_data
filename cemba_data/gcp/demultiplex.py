@@ -122,7 +122,7 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 						barcode_version="V2",env_name='base',
 						region='us-west1',keep_remote=False,gcp=True,
 						skypilot_template=None,n_jobs=96,job_name="demultiplex",
-						workdir="./",output=None):
+						image="bican",workdir="./",output=None):
 	"""
 		Prepare the skypilot yaml file to run demultiplex on GCP.
 
@@ -178,12 +178,12 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 	if output is None:
 		print(template.format(job_name=job_name, workdir=workdir,
 							  CMD=CMD,env_name=env_name,
-							  n_node=1))
+							  n_node=1,image=image))
 	else:
 		with open(os.path.abspath(os.path.expanduser(output)), 'w') as f:
 			f.write(template.format(job_name=job_name, workdir=workdir,
 									CMD=CMD,env_name=env_name,
-									n_node=1))
+									n_node=1,image=image))
 
 	# print(f"To run this job: sky spot launch -y -n {job_name} {output} [spot] \n")
 	print(f"To run: sky launch -y -i 10 -n {job_name} {output}")
@@ -232,7 +232,7 @@ def run_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 					config_path="config.ini",aligner='hisat-3n',
 					tmp_dir="mapping_gcp_tmp",
-					chunk_size=None,n_node=2,
+					chunk_size=None,n_node=2,image="bican",
 					region='us-west1',keep_remote=False,gcp=True,
 					skypilot_template=None,job_name='mapping',
 					env_name='base',n_jobs=64,output="run_mapping.yaml"):
@@ -329,7 +329,7 @@ def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 	with open(os.path.abspath(os.path.expanduser(output)), 'w') as f:
 		f.write(template.format(job_name=job_name, workdir=outdir,
 								CMD=CMD, env_name=env_name,
-								n_node=n_node))
+								n_node=n_node,image=image))
 	print(f"To run this job: \nsky spot launch -y -n {job_name} {output} [spot] \n")
 	print(f"Or: \nsky launch -y -n {job_name} {output}")
 

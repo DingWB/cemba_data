@@ -150,3 +150,28 @@ yap-gcp prepare_mapping --fastq_prefix gs://mapping_example/novaseq_mapping --co
 
 sky spot launch -y -n mapping run_mapping.yaml
 ```
+
+
+# Run Salk010 for test (comparing cost with Broad)
+## 1.1 Run demultiplex on GCP
+```shell
+mkdir -p demultiplex && cd demultiplex
+yap-gcp prepare_demultiplex --fq_dir gs://nemo-tmp-4mxgixf-salk010/raw \
+              --remote_prefix bican --outdir salk010 \
+              --env_name yap --image bican \
+              --output run_demultiplex.yaml #--n_jobs 8
+# vim and change config in run_demultiplex.yaml, such as instance_type (n2-standard-16) and number of nodes=1
+sky launch -y -i 10 -n demultiplex run_demultiplex.yaml # Do Not use spot mode.
+```
+
+## 2.2 Run mapping on GCP
+```shell
+mkdir -p rum_mapping && cd rum_mapping
+# mapping (bismark or hisat-3n)
+yap default-mapping-config --mode m3c-multi --barcode_version V2 --genome "~/Ref/hg38_Broad/hg38.fa" --chrom_size_path "~/Ref/hg38_Broad/hg38.chrom.sizes" --hisat3n_dna_ref  "~/Ref/hg38_Broad/hg38" > config.ini
+# vim config.ini, check hisat3n_repeat_index_type should be: repeat, mode is m3c-multi
+
+yap-gcp prepare_mapping --fastq_prefix gs://bican/salk010 --config_path config.ini --aligner hisat-3n --chunk_size 3 --job_name='mapping' --env_name='yap' --image bican #--n_jobs=64
+
+sky spot launch -y -n mapping run_mapping.yaml
+```
