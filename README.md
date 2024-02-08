@@ -168,7 +168,7 @@ sky launch -y -i 10 -n demultiplex run_demultiplex.yaml # Do Not use spot mode.
 ```shell
 mkdir -p rum_mapping && cd rum_mapping
 # mapping (bismark or hisat-3n)
-yap default-mapping-config --mode m3c-multi --barcode_version V2 --genome "~/Ref/hg38_Broad/hg38.fa" --chrom_size_path "~/Ref/hg38_Broad/hg38.chrom.sizes" --hisat3n_dna_ref  "~/Ref/hg38_Broad/hg38" > config.ini
+yap default-mapping-config --mode m3c --barcode_version V2 --genome "~/Ref/hg38_Broad/hg38.fa" --chrom_size_path "~/Ref/hg38_Broad/hg38.chrom.sizes" --hisat3n_dna_ref  "~/Ref/hg38_Broad/hg38" > config.ini
 # vim config.ini, check hisat3n_repeat_index_type should be: repeat, mode is m3c-multi
 
 yap-gcp prepare_mapping --fastq_prefix gs://bican/salk010 --config_path config.ini --aligner hisat-3n --chunk_size 3 --job_name='mapping' --env_name='yap' --image bican #--n_jobs=64

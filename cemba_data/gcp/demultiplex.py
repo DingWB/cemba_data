@@ -121,7 +121,7 @@ def get_demultiplex_skypilot_yaml():
 def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 						barcode_version="V2",env_name='base',
 						region='us-west1',keep_remote=False,gcp=True,
-						skypilot_template=None,n_jobs=96,job_name="demultiplex",
+						skypilot_template=None,n_jobs=64,job_name="demultiplex",
 						image="bican",workdir="./",output=None):
 	"""
 		Prepare the skypilot yaml file to run demultiplex on GCP.
@@ -191,7 +191,7 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 def run_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 						barcode_version="V2",
 						gcp=True,region='us-west1',keep_remote=False,
-						n_jobs=96,print_only=False):
+						n_jobs=64,print_only=False):
 	"""
 		This function need to be executed on the GCP VM machine. Please see
 		prepare_demultiplex for parameters.
