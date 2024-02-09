@@ -214,7 +214,7 @@ def run_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 	smk2 = os.path.join(PACKAGE_DIR, "gcp", 'smk', "merge_lanes.Snakefile")
 
 	# Demultiplex
-	config_str=f'--config gcp={gcp} fq_dir="{fq_dir}" outdir="{outdir}" barcode_version="{barcode_version}" '
+	config_str=f'--scheduler greedy --rerun-incomplete --config gcp={gcp} fq_dir="{fq_dir}" outdir="{outdir}" barcode_version="{barcode_version}" '
 	common_str=f"--default-remote-prefix {remote_prefix} --default-remote-provider GS --google-lifesciences-region {region} "
 	if keep_remote:
 		common_str+="--keep-remote "
@@ -358,7 +358,7 @@ def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 
 	common_str = f'--default-resources mem_mb=100 --resources mem_mb=50000 --scheduler greedy --rerun-incomplete --config gcp={gcp} local_fastq=False -j {n_jobs} --default-remote-provider GS --google-lifesciences-region {region} '
 	if keep_remote:
-		config_str+="--keep-remote "
+		common_str+="--keep-remote "
 	cmds=[]
 	for subdir in subdirs:
 		make_gcp_snakefile(output_dir,subdir,aligner=aligner) #
