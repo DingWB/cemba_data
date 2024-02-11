@@ -155,7 +155,6 @@ sky spot launch -y -n mapping run_mapping.yaml
 # Run Salk010 for test (comparing cost with Broad)
 ## 1.1 Run demultiplex on GCP
 ```shell
-
 yap-gcp gcp_yap_pipeline --fq_dir="gs://mapping_example/fastq/salk10_test" \
     --remote_prefix='bican' --outdir='salk010_test' --env_name='yap' --n_jobs=64 \
 	--image="bican" --demultiplex_template="demultiplex.yaml" \
