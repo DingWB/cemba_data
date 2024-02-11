@@ -119,9 +119,10 @@ def get_demultiplex_skypilot_yaml():
 
 def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 						barcode_version="V2",env_name='base',
+						tmp_dir="demultiplex_gcp_tmp",
 						region='us-west1',keep_remote=False,gcp=True,
 						skypilot_template=None,n_jobs=64,job_name="demultiplex",
-						image="bican",workdir="./",output=None):
+						image="bican",output='run_demultiplex.yaml'):
 	"""
 		Prepare the skypilot yaml file to run demultiplex on GCP.
 
@@ -164,7 +165,9 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 	-------
 
 	"""
-	workdir = os.path.abspath(os.path.expanduser(workdir))
+	workdir = os.path.abspath(os.path.expanduser(tmp_dir))
+	if not os.path.exists(workdir):
+		os.makedirs(workdir)
 	CMD=f"yap-gcp run_demultiplex --fq_dir {fq_dir} --remote_prefix {remote_prefix} --outdir {outdir} \
 --barcode_version {barcode_version} \
 --gcp {gcp} --region {region} --keep_remote {keep_remote} --n_jobs {n_jobs}"
@@ -375,3 +378,41 @@ def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 		with open(log_path, 'a') as f:
 			f.write(cmd + '\n')
 		os.system(cmd)
+
+def gcp_yap_pipeline(
+	fq_dir="gs://mapping_example/fastq/salk10_test",
+	remote_prefix='bican',outdir='salk010_test',
+	barcode_version="V2", env_name='base',
+	region='us-west1', keep_remote=False, gcp=True,n_jobs=64,
+	image="bican",demultiplex_template=None,
+	mapping_template=None, genome="~/Ref/hg38_Broad/hg38.fa",
+	hisat3n_dna_ref="~/Ref/hg38_Broad/hg38",
+	mode='m3c',bismark_ref='~/Ref/hg38/hg38_ucsc_with_chrL.bismark1',
+	chrom_size_path='~/Ref/hg38_Broad/hg38.chrom.sizes',
+	aligner='hisat-3n',n_node=2,submit=True):
+	prepare_demultiplex(
+		fq_dir=fq_dir, remote_prefix=remote_prefix,
+		outdir=outdir,
+		barcode_version=barcode_version, env_name=env_name,
+		region=region, keep_remote=keep_remote, gcp=gcp,
+		skypilot_template=demultiplex_template, n_jobs=n_jobs,
+		job_name="demultiplex",image=image,
+		output='run_demultiplex.yaml')
+	if submit:
+		os.system("sky launch -y -i 5 -n demultiplex run_demultiplex.yaml")
+	fastq_prefix=f"gs://{remote_prefix}/{outdir}"
+	os.system(f'yap default-mapping-config --mode {mode} \
+--barcode_version {barcode_version} \
+--bismark_ref "{bismark_ref}" --genome "{genome}" \
+--chrom_size_path "{chrom_size_path}" \
+--hisat3n_dna_ref  "{hisat3n_dna_ref}" > config.ini')
+	prepare_mapping(fastq_prefix=fastq_prefix,
+					config_path="config.ini", aligner=aligner,
+					tmp_dir="mapping_gcp_tmp",
+					n_node=n_node, image=image,
+					region=region, keep_remote=keep_remote, gcp=gcp,
+					skypilot_template=mapping_template, job_name='mapping',
+					env_name=env_name, n_jobs=n_jobs,
+					output="run_mapping.yaml")
+	if submit:
+		os.system("sky spot launch -y -n mapping run_mapping.yaml")

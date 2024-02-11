@@ -155,6 +155,16 @@ sky spot launch -y -n mapping run_mapping.yaml
 # Run Salk010 for test (comparing cost with Broad)
 ## 1.1 Run demultiplex on GCP
 ```shell
+
+yap-gcp gcp_yap_pipeline --fq_dir="gs://mapping_example/fastq/salk10_test" \
+    --remote_prefix='bican' --outdir='salk010_test' --env_name='yap' --n_jobs=64 \
+	--image="bican" --demultiplex_template="demultiplex.yaml" \
+	--mapping_template="mapping.yaml" --genome="~/Ref/hg38_Broad/hg38.fa" \
+	--hisat3n_dna_ref="~/Ref/hg38_Broad/hg38" \
+	--mode='m3c' --bismark_ref='~/Ref/hg38/hg38_ucsc_with_chrL.bismark1' \
+	--chrom_size_path='~/Ref/hg38_Broad/hg38.chrom.sizes' \
+	--aligner='hisat-3n' --n_node=2
+	
 mkdir -p demultiplex && cd demultiplex
 yap-gcp prepare_demultiplex --fq_dir gs://mapping_example/fastq/salk10_test \
               --remote_prefix bican --outdir salk010_test \
@@ -176,7 +186,7 @@ mkdir -p rum_mapping && cd rum_mapping
 yap default-mapping-config --mode m3c --barcode_version V2 --bismark_ref "~/Ref/hg38/hg38_ucsc_with_chrL.bismark1" --genome "~/Ref/hg38_Broad/hg38.fa" --chrom_size_path "~/Ref/hg38_Broad/hg38.chrom.sizes" --hisat3n_dna_ref  "~/Ref/hg38_Broad/hg38" > config.ini
 # vim config.ini, check hisat3n_repeat_index_type should be: repeat, mode is m3c-multi
 
-yap-gcp prepare_mapping --fastq_prefix gs://bican/salk010 --config_path config.ini --aligner hisat-3n --chunk_size 3 --job_name='mapping' --env_name='yap' --image bican --n_jobs=64
+yap-gcp prepare_mapping --fastq_prefix gs://bican/salk010 --config_path config.ini --aligner hisat-3n --chunk_size 3 --job_name='mapping' --env_name='yap' --image bican --n_jobs=64 --n_node 4
 
 sky spot launch -y -n mapping run_mapping.yaml
 ```

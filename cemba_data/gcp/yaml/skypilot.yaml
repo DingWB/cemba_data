@@ -26,7 +26,7 @@ setup: |
     # mamba env create -f https://raw.githubusercontent.com/DingWB/cemba_data/master/env.yaml
     # Please copy the reference from GCP bucket to VM machine if the program need ref
     # For demultiplex, this step can be skipped
-    # mkdir -p ~/Ref && gsutil -m cp -r -n gs://wubin_ref/hg38 ~/Ref
+    # mkdir -p ~/Ref/hg38_Broad && gsutil -m cp -n gs://wubin_ref/hg38_Broad/* ~/Ref/hg38_Broad/
 
     ## Install hisat-3n (For demultiplex, this step can be skipped)
     # mkdir -p ~/Software && cd ~/Software
