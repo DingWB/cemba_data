@@ -389,7 +389,8 @@ def gcp_yap_pipeline(
 	hisat3n_dna_ref="~/Ref/hg38_Broad/hg38",
 	mode='m3c',bismark_ref='~/Ref/hg38/hg38_ucsc_with_chrL.bismark1',
 	chrom_size_path='~/Ref/hg38_Broad/hg38.chrom.sizes',
-	aligner='hisat-3n',n_node=2,submit=True):
+	aligner='hisat-3n',n_node=2,submit=True,
+	sky="/anvil/projects/x-mcb130189/Wubin/Software/miniconda3/envs/sky/bin/sky"):
 	print(fq_dir,remote_prefix,outdir)
 	prepare_demultiplex(
 		fq_dir=fq_dir, remote_prefix=remote_prefix,
@@ -400,7 +401,7 @@ def gcp_yap_pipeline(
 		job_name="demultiplex",image=image,
 		output='run_demultiplex.yaml')
 	if submit:
-		os.system("sky launch -y -i 5 -n demultiplex run_demultiplex.yaml")
+		os.system(f"{sky} launch -y -i 5 -n demultiplex run_demultiplex.yaml")
 	fastq_prefix=f"gs://{remote_prefix}/{outdir}"
 	os.system(f'yap default-mapping-config --mode {mode} \
 --barcode_version {barcode_version} \
@@ -416,4 +417,4 @@ def gcp_yap_pipeline(
 					env_name=env_name, n_jobs=n_jobs,
 					output="run_mapping.yaml")
 	if submit:
-		os.system("sky spot launch -y -n mapping run_mapping.yaml")
+		os.system(f"{sky} spot launch -y -n mapping run_mapping.yaml")
