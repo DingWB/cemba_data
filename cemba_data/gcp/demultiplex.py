@@ -47,7 +47,6 @@ def get_fastq_info(fq_dir,outdir,run_on_gcp):
 	df=df.loc[df.read_type=='R1']
 	df.rename(columns={'fastq_path':'R1'},inplace=True)
 	df['R2']=df.R1.apply(lambda x:x.replace('_R1_','_R2_'))
-	df['stats_out']=df.apply(lambda row: os.path.join(outdir, f"{row.uid}/lanes/{row.uid}-{row.lane}.demultiplex.stats.txt"),axis=1) #"{dir}/{uid}/lanes/{uid}-{lane}.demultiplex.stats.txt"
 	df.to_csv("fastq_info.txt",sep='\t',index=False)
 	return df
 

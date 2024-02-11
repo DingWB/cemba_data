@@ -21,13 +21,14 @@ else:
     fq_dir=pathlib.Path(config["fq_dir"]).absolute()
     run_on_gcp=False
 outdir=config["outdir"] if 'outdir' in config else 'mapping'
+local_outdir=outdir if not run_on_gcp else workflow.default_remote_prefix+"/"+outdir
 barcode_version = config["barcode_version"] if 'barcode_version' in config else "V2"
 
-print(outdir)
+df_fq=get_fastq_info(fq_dir,outdir,run_on_gcp)
+df_fq['stats_out']=df_fq.apply(lambda row: os.path.join(local_outdir, f"{row.uid}/lanes/{row.uid}-{row.lane}.demultiplex.stats.txt"),axis=1) #"{dir}/{uid}/lanes/{uid}-{lane}.demultiplex.stats.txt"
+#for each pool, there are 16 old uid, 96 (16*6) new uid (6 multiplex groups)
 
-df=get_fastq_info(fq_dir,outdir,run_on_gcp)
-
-if barcode_version == 'V2' and df['multiplex_group'].nunique() == 1:
+if barcode_version == 'V2' and df_fq['multiplex_group'].nunique() == 1:
     print('Detect only single multiplex group in each plate, will use V2-single mode.')
     barcode_version = 'V2-single'
 
@@ -40,7 +41,7 @@ rule write_fastq_info:
         if os.path.exists("fastq_info.txt"):
             os.rename("fastq_info.txt",output.tsv)
         else:
-            df.to_csv(output.tsv,sep='\t',index=False)
+            df_fq.to_csv(output.tsv,sep='\t',index=False)
 
 rule download_from_gcp:
     output:
@@ -54,32 +55,23 @@ rule download_from_gcp:
 
 rule run_demultiplex: #{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}.fastq.gz
     input: #uid = {plate}-{multiplex_group}-{primer_name} # primer_name is pcr index?
-        R1 = lambda wildcards: df.loc[(df.uid==wildcards.uid) & (df.lane==wildcards.lane)].R1.iloc[0] if not run_on_gcp else GS.remote(df.loc[(df.uid==wildcards.uid) & (df.lane==wildcards.lane)].R1.iloc[0].lstrip('gs://')),
-        R2 = lambda wildcards: df.loc[(df.uid==wildcards.uid) & (df.lane==wildcards.lane)].R2.iloc[0] if not run_on_gcp else GS.remote(df.loc[(df.uid==wildcards.uid) & (df.lane==wildcards.lane)].R2.iloc[0].lstrip('gs://'))
+        R1 = lambda wildcards: df_fq.loc[(df_fq.uid==wildcards.uid) & (df_fq.lane==wildcards.lane)].R1.iloc[0] if not run_on_gcp else local(df_fq.loc[(df_fq.uid==wildcards.uid) & (df_fq.lane==wildcards.lane)].R1.iloc[0].lstrip('gs://')),
+        R2 = lambda wildcards: df_fq.loc[(df_fq.uid==wildcards.uid) & (df_fq.lane==wildcards.lane)].R2.iloc[0] if not run_on_gcp else local(df_fq.loc[(df_fq.uid==wildcards.uid) & (df_fq.lane==wildcards.lane)].R2.iloc[0].lstrip('gs://'))
 
     output: #uid, lane, index_name, read_type; dynamic: https://stackoverflow.com/questions/52598637/unknown-output-in-snakemake
-        stats_out ="{dir}/{uid}/lanes/{uid}-{lane}.demultiplex.stats.txt",
-#         stats_out =dynamic("{dir}/{uid}/lanes/{uid}-{lane}-{name}.demultiplex.stats.txt"),
-#         R1=dynamic("{dir}/{uid}/lanes/{uid}-{lane}-{name}-R1.fq.gz"),
-#         R2=dynamic("{dir}/{uid}/lanes/{uid}-{lane}-{name}-R2.fq.gz"),
+        stats_out =local(local_outdir+"/{uid}/lanes/{uid}-{lane}.demultiplex.stats.txt"),
 
     params:
-        random_index_fa=lambda wildcards: os.path.join(PACKAGE_DIR,'files','random_index_v1.fa') \
-                        if barcode_version=="V1" else \
-                        os.path.join(PACKAGE_DIR,'files','random_index_v2',\
-                        'random_index_v2.multiplex_group_'+wildcards.uid.split('-')[-2]+'.fa') \
-                        if  barcode_version=="V2" else \
-                        os.path.join(PACKAGE_DIR,'files','random_index_v2','random_index_v2.fa'),
-        outdir=lambda wildcards: f"{wildcards.dir}/{wildcards.uid}/lanes", # will be copy to GCP in merge_lanes.smk
-        outdir2=lambda wildcards: f"{wildcards.dir}/{wildcards.uid}/lanes" if not run_on_gcp else \
-                                                workflow.default_remote_prefix+f"/{wildcards.dir}/{wildcards.uid}/lanes",
-        R1=lambda wildcards: f"{wildcards.dir}/{wildcards.uid}/lanes/{wildcards.uid}-{wildcards.lane}-{{name}}-R1.fq.gz",
-        R2=lambda wildcards: f"{wildcards.dir}/{wildcards.uid}/lanes/{wildcards.uid}-{wildcards.lane}-{{name}}-R2.fq.gz"
+        random_index_fa=lambda wildcards: os.path.join(PACKAGE_DIR, 'files', 'random_index_v1.fa') if barcode_version == "V1" \
+		                            else os.path.join(PACKAGE_DIR, 'files', 'random_index_v2', 'random_index_v2.multiplex_group_' + uid.split('-')[-2] + '.fa') if barcode_version == "V2" \
+		                            else os.path.join(PACKAGE_DIR, 'files', 'random_index_v2', 'random_index_v2.fa'),
+        outdir=lambda wildcards: local_outdir+f"/{wildcards.uid}/lanes",
+        R1=lambda wildcards: local_outdir+f"/{wildcards.uid}/lanes/{wildcards.uid}-{wildcards.lane}-{{name}}-R1.fq.gz",
+        R2=lambda wildcards: local_outdir+f"/{wildcards.uid}/lanes/{wildcards.uid}-{wildcards.lane}-{{name}}-R2.fq.gz"
 
     shell:
         """
         mkdir -p {params.outdir}
-        mkdir -p {params.outdir2}
         cutadapt -Z -e 0.01 --no-indels -g file:{params.random_index_fa} -o  {params.R1} -p {params.R2} {input.R1} {input.R2} > {output.stats_out}
         """
          # for the reads startswith random index present in random_index_fa, will be taken and write into 1 fastq (1 cell),
@@ -90,7 +82,7 @@ rule run_demultiplex: #{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pn
 
 rule summary_demultiplex:
     input:
-        df['stats_out'].tolist() #{dir}/{uid}/lanes/{uid}-{lane}.demultiplex.stats.txt", one uid contains multiple lanes and index_names
+        [local(p) for p in df_fq['stats_out'].unique().tolist()] #{dir}/{uid}/lanes/{uid}-{lane}.demultiplex.stats.txt", one uid contains multiple lanes and index_names
     output:
         csv="{dir}/stats/demultiplex.stats.csv"
     params:
