@@ -299,7 +299,7 @@ def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 
 	# split fastq_dirs into multiple files, running with different skypilot nodes
 	if not n_node is None:
-		chunk_size=np.ceil(len(fastq_dirs)/n_node)
+		chunk_size=int(np.ceil(len(fastq_dirs)/n_node))
 		print(f"n_node:{n_node}; chunk_size: {chunk_size}")
 	else:
 		print(f"chunk_size: {chunk_size}")
