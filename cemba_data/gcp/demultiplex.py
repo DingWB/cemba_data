@@ -293,7 +293,7 @@ def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 	os.system(f"cp {config_path} {outdir}/mapping_config.ini")
 	fastq_dirs=get_fastq_dirs(fastq_prefix)
 	if len(fastq_dirs)==0:
-		raise ValueError(f"Please check gs://{remote_prefix}/{outdir} and make sure this is correct, cause no fastq dirs were detected")
+		raise ValueError(f"Please check {fastq_prefix} and make sure this is correct, cause no fastq dirs were detected")
 	with open(os.path.join(outdir,"fastq_dirs.txt"),'w') as f:
 		for d in fastq_dirs:
 			f.write(d+'\n')
