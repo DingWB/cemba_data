@@ -22,10 +22,12 @@ if 'gcp' in config and config["gcp"]:
 else:
     run_on_gcp=False
 outdir=config["outdir"] if 'outdir' in config else 'mapping'
+local_outdir=outdir if not run_on_gcp else workflow.default_remote_prefix+"/"+outdir
 barcode_version = config["barcode_version"] if 'barcode_version' in config else "V2"
 
-df1=get_lanes_info(outdir,barcode_version)
-if df1 is None:
+df_lane=get_lanes_info(local_outdir,barcode_version)
+df_lane['fastq_out'] = df_lane.apply(lambda row:os.path.join(outdir, row.uid, "fastq", '-'.join(row.loc[['uid', 'index_name', 'read_type']].map(str).tolist()) + ".fq.gz"), axis=1)
+if df_lane is None:
     print("Merging is already done.")
     os._exit(1) #sys.exit()
 
@@ -38,13 +40,13 @@ rule write_lane_info:
         if os.path.exists("lane_info.txt"):
             os.rename("lane_info.txt",output.tsv)
         else:
-            df1.to_csv(output.tsv,sep='\t',index=False)
+            df_lane.to_csv(output.tsv,sep='\t',index=False)
 
 rule merge_lanes: #merge the lanes from the same cell_id and read_type, generating cell fastq
     input: # cell_id = uid-index_name
-        fqs=lambda wildcards: [local(p) for p in df1.loc[(df1.uid==wildcards.uid) & \
-        (df1.index_name==wildcards.index_name) & \
-        (df1.read_type==wildcards.read_type)].fastq_path.iloc[0]] #local disk
+        fqs=lambda wildcards: [local(p) for p in df_lane.loc[(df_lane.uid==wildcards.uid) & \
+        (df_lane.index_name==wildcards.index_name) & \
+        (df_lane.read_type==wildcards.read_type)].fastq_path.iloc[0]] #local disk
 
     output: # plate-multiplex_group-primer_name-index_name-read_type; AMB_220510_8wk_12D_13B_2_P4-1-I15-A12-R1.fq.gz; index_name is random index?
         fq="{dir}/{uid}/fastq/{uid}-{index_name}-{read_type}.fq.gz" # uid = plate - multiplex_group - pcr_index(primer_name); 64 cells (128 fastq) under each uid.
@@ -60,7 +62,7 @@ rule merge_lanes: #merge the lanes from the same cell_id and read_type, generati
 
 rule cell_qc:
     input:
-        fqs=df1['fastq_out'].tolist(), #output of merge_lanes
+        fqs=df_lane['fastq_out'].tolist(), #output of merge_lanes
         csv=os.path.join(outdir,"stats/demultiplex.stats.csv")
     output:
         csv=os.path.join(outdir , 'stats/UIDTotalCellInputReadPairs.csv')
