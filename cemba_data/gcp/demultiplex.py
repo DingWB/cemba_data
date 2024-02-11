@@ -390,6 +390,7 @@ def gcp_yap_pipeline(
 	mode='m3c',bismark_ref='~/Ref/hg38/hg38_ucsc_with_chrL.bismark1',
 	chrom_size_path='~/Ref/hg38_Broad/hg38.chrom.sizes',
 	aligner='hisat-3n',n_node=2,submit=True):
+	print(fq_dir,remote_prefix,outdir)
 	prepare_demultiplex(
 		fq_dir=fq_dir, remote_prefix=remote_prefix,
 		outdir=outdir,
