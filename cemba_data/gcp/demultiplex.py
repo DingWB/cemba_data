@@ -2,6 +2,7 @@ import os,sys
 import pandas as pd
 import cemba_data
 import glob
+import numpy as np
 from cemba_data.mapping.pipelines import make_gcp_snakefile
 from snakemake.io import glob_wildcards
 PACKAGE_DIR=cemba_data.__path__[0]
