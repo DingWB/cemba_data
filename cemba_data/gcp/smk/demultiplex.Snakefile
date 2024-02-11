@@ -42,10 +42,20 @@ rule write_fastq_info:
         else:
             df.to_csv(output.tsv,sep='\t',index=False)
 
+rule download_from_gcp:
+    output:
+        fq=local(temp("{path}.gz"))
+    run:
+        dirname=os.path.dirname(output.fq)
+        if not os.path.exists(dirname):
+            os.makedirs(dirname,exist_ok=True)
+        if not os.path.exists(output.fq):
+            shell(f"gsutil -m cp -n gs://{output.fq} {dirname}")
+
 rule run_demultiplex: #{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}.fastq.gz
     input: #uid = {plate}-{multiplex_group}-{primer_name} # primer_name is pcr index?
-        R1 = lambda wildcards: df.loc[(df.uid==wildcards.uid) & (df.lane==wildcards.lane)].R1.iloc[0] if not run_on_gcp else GS.remote(df.loc[(df.uid==wildcards.uid) & (df.lane==wildcards.lane)].R1.iloc[0]),
-        R2 = lambda wildcards: df.loc[(df.uid==wildcards.uid) & (df.lane==wildcards.lane)].R2.iloc[0] if not run_on_gcp else GS.remote(df.loc[(df.uid==wildcards.uid) & (df.lane==wildcards.lane)].R2.iloc[0])
+        R1 = lambda wildcards: df.loc[(df.uid==wildcards.uid) & (df.lane==wildcards.lane)].R1.iloc[0] if not run_on_gcp else GS.remote(df.loc[(df.uid==wildcards.uid) & (df.lane==wildcards.lane)].R1.iloc[0].lstrip('gs://')),
+        R2 = lambda wildcards: df.loc[(df.uid==wildcards.uid) & (df.lane==wildcards.lane)].R2.iloc[0] if not run_on_gcp else GS.remote(df.loc[(df.uid==wildcards.uid) & (df.lane==wildcards.lane)].R2.iloc[0].lstrip('gs://'))
 
     output: #uid, lane, index_name, read_type; dynamic: https://stackoverflow.com/questions/52598637/unknown-output-in-snakemake
         stats_out ="{dir}/{uid}/lanes/{uid}-{lane}.demultiplex.stats.txt",
