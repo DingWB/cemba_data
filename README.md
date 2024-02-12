@@ -132,9 +132,9 @@ seqtk sample -s100 download/UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L008_R
 ```shell
 yap-gcp get_demultiplex_skypilot_yaml > demultiplex.yaml # vim
 # demultiplex: n1-highcpu-64
-yap-gcp gcp_yap_pipeline --fq_dir="gs://mapping_example/fastq/novaseq_fastq" \
-    --remote_prefix='bican' --outdir='salk010_test' --env_name='yap' --n_jobs=64 \
-	--image="bican" \
+yap-gcp yap_pipeline --fq_dir="gs://mapping_example/fastq/novaseq_fastq" \
+    --remote_prefix='mapping_example' --outdir='novaseq_mapping2' --env_name='yap' --n_jobs=16 \
+	--image="bican" --n_node 2 --disk_size1 200 --disk_size2 250 \
     --demultiplex_template="demultiplex.yaml" \
 	--mapping_template="mapping.yaml" \
 	--genome="~/Ref/hg38_Broad/hg38.fa" \
@@ -142,6 +142,7 @@ yap-gcp gcp_yap_pipeline --fq_dir="gs://mapping_example/fastq/novaseq_fastq" \
 	--mode='m3c' --bismark_ref='~/Ref/hg38/hg38_ucsc_with_chrL.bismark1' \
 	--chrom_size_path='~/Ref/hg38_Broad/hg38.chrom.sizes' \
 	--aligner='hisat-3n' --n_node=2 > run.sh
+source run.sh
 ```
 
 
@@ -150,7 +151,7 @@ yap-gcp gcp_yap_pipeline --fq_dir="gs://mapping_example/fastq/novaseq_fastq" \
 ## 1.1 Run demultiplex on GCP
 yap-gcp get_demultiplex_skypilot_yaml > demultiplex.yaml # vim
 # demultiplex: n1-highcpu-64
-yap-gcp gcp_yap_pipeline --fq_dir="gs://mapping_example/fastq/salk10_test" \
+yap-gcp yap_pipeline --fq_dir="gs://mapping_example/fastq/salk10_test" \
     --remote_prefix='bican' --outdir='salk010_test' --env_name='yap' --n_jobs=64 \
 	--image="bican" \
     --demultiplex_template="demultiplex.yaml" \

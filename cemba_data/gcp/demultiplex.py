@@ -379,7 +379,7 @@ def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 			f.write(cmd + '\n')
 		os.system(cmd)
 
-def gcp_yap_pipeline(
+def yap_pipeline(
 	fq_dir="gs://mapping_example/fastq/salk10_test",
 	remote_prefix='bican',outdir='salk010_test',
 	barcode_version="V2", env_name='base',

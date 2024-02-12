@@ -15,7 +15,7 @@ def main():
 		'run_demultiplex':run_demultiplex,
 		'prepare_mapping':prepare_mapping,
 		'run_mapping':run_mapping,
-		'gcp_yap_pipeline':gcp_yap_pipeline,
+		'yap_pipeline':yap_pipeline,
 	})
 
 if __name__=="_main__":
