@@ -8,7 +8,7 @@ num_nodes: {n_node}
 resources:
     cloud: gcp
     region: us-west1
-    instance_type: n2-standard-64
+    instance_type: n1-highcpu-64
     use_spot: False  # Do Not use spot to run demultiplex !
     disk_size: {disk_size}
     disk_tier: 'medium'

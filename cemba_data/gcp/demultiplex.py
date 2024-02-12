@@ -119,7 +119,7 @@ def get_demultiplex_skypilot_yaml():
 
 def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 						barcode_version="V2",env_name='base',
-						tmp_dir="demultiplex_gcp_tmp",disk_size=1600,
+						tmp_dir="demultiplex_gcp_tmp",disk_size=2048,
 						region='us-west1',keep_remote=False,gcp=True,
 						skypilot_template=None,n_jobs=64,job_name="demultiplex",
 						image="bican",output='run_demultiplex.yaml'):
@@ -389,7 +389,7 @@ def gcp_yap_pipeline(
 	hisat3n_dna_ref="~/Ref/hg38_Broad/hg38",
 	mode='m3c',bismark_ref='~/Ref/hg38/hg38_ucsc_with_chrL.bismark1',
 	chrom_size_path='~/Ref/hg38_Broad/hg38.chrom.sizes',
-	aligner='hisat-3n',n_node=2,sky_env='sky',disk_size1=1600,disk_size2=500):
+	aligner='hisat-3n',n_node=2,sky_env='sky',disk_size1=2048,disk_size2=500):
 	cmd=f'conda activate {env_name} && yap-gcp prepare_demultiplex --fq_dir {fq_dir} --remote_prefix {remote_prefix} \
 --outdir {outdir} --barcode_version {barcode_version} --env_name {env_name} \
 --region {region} --keep_remote {keep_remote} --gcp {gcp} \

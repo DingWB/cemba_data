@@ -153,19 +153,24 @@ sky spot launch -y -n mapping run_mapping.yaml
 
 
 # Run Salk010 for test (comparing cost with Broad)
-## 1.1 Run demultiplex on GCP
 ```shell
+## 1.1 Run demultiplex on GCP
+yap-gcp get_demultiplex_skypilot_yaml > demultiplex.yaml # vim
+# demultiplex: n1-highcpu-64
 yap-gcp gcp_yap_pipeline --fq_dir="gs://mapping_example/fastq/salk10_test" \
     --remote_prefix='bican' --outdir='salk010_test' --env_name='yap' --n_jobs=64 \
-	--image="bican" --demultiplex_template="demultiplex.yaml" \
-	--mapping_template="mapping.yaml" --genome="~/Ref/hg38_Broad/hg38.fa" \
+	--image="bican" \
+    --demultiplex_template="demultiplex.yaml" \
+	--mapping_template="mapping.yaml" \
+	--genome="~/Ref/hg38_Broad/hg38.fa" \
 	--hisat3n_dna_ref="~/Ref/hg38_Broad/hg38" \
 	--mode='m3c' --bismark_ref='~/Ref/hg38/hg38_ucsc_with_chrL.bismark1' \
 	--chrom_size_path='~/Ref/hg38_Broad/hg38.chrom.sizes' \
 	--aligner='hisat-3n' --n_node=2 > run.sh
 	
 source run.sh
-	
+
+# or step by step:
 mkdir -p demultiplex && cd demultiplex
 yap-gcp prepare_demultiplex --fq_dir gs://mapping_example/fastq/salk10_test \
               --remote_prefix bican --outdir salk010_test \
@@ -178,10 +183,8 @@ yap-gcp prepare_demultiplex --fq_dir gs://nemo-tmp-4mxgixf-salk010/raw \
               --output run_demultiplex.yaml
 # vim and change config in run_demultiplex.yaml, such as instance_type (n2-standard-16) and number of nodes=1
 sky launch -y -i 10 -n demultiplex run_demultiplex.yaml # Do Not use spot mode.
-```
 
-## 2.2 Run mapping on GCP
-```shell
+# 2.2 Run mapping on GCP
 mkdir -p rum_mapping && cd rum_mapping
 # mapping (bismark or hisat-3n)
 yap default-mapping-config --mode m3c --barcode_version V2 --bismark_ref "~/Ref/hg38/hg38_ucsc_with_chrL.bismark1" --genome "~/Ref/hg38_Broad/hg38.fa" --chrom_size_path "~/Ref/hg38_Broad/hg38.chrom.sizes" --hisat3n_dna_ref  "~/Ref/hg38_Broad/hg38" > config.ini
