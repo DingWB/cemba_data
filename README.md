@@ -134,7 +134,7 @@ yap-gcp get_demultiplex_skypilot_yaml > demultiplex.yaml # vim
 # demultiplex: n1-highcpu-64
 yap-gcp yap_pipeline --fq_dir="gs://mapping_example/fastq/novaseq_fastq" \
     --remote_prefix='mapping_example' --outdir='novaseq_mapping2' --env_name='yap' --n_jobs=16 \
-	--image="bican" --n_node 2 --disk_size1 200 --disk_size2 250 \
+	--image="bican" --n_node 2 --disk_size1 300 --disk_size2 300 \
     --demultiplex_template="demultiplex.yaml" \
 	--mapping_template="mapping.yaml" \
 	--genome="~/Ref/hg38_Broad/hg38.fa" \
