@@ -51,6 +51,12 @@ def get_fastq_info(fq_dir,outdir,run_on_gcp):
 	df.to_csv("fastq_info.txt",sep='\t',index=False)
 	return df
 
+def index_name2multiplex_group(x):
+	if 'unknow' not in x.lower():
+		return ((int(x[1:]) - 1) % 12) // 2 + 1
+	else:
+		return 'NA'
+
 def get_lanes_info(outdir,barcode_version):
 	#  uid={plate}-{multiplex_group}-{primer_name}
 	if os.path.exists("lane_info.txt"):
@@ -398,7 +404,7 @@ def yap_pipeline(
 --job_name demultiplex --image {image} --disk_size {disk_size1} \
 --output run_demultiplex.yaml'
 	print(cmd)
-	print(f"conda activate {sky_env} && sky launch -y -i 10 -n demultiplex run_demultiplex.yaml")
+	print(f"conda activate {sky_env} && sky launch -y -i 5 -n demultiplex run_demultiplex.yaml")
 	fastq_prefix=f"gs://{remote_prefix}/{outdir}"
 	os.system(f'yap default-mapping-config --mode {mode} \
 --barcode_version {barcode_version} \
