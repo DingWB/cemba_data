@@ -55,8 +55,8 @@ rule merge_lanes: #merge the lanes from the same cell_id and read_type, generati
         outdir=pathlib.Path(os.path.dirname(output.fq)).absolute()
         outdir.mkdir(exist_ok=True, parents=True)
         if len(input.fqs) > 1:
-            print("More than 1 input were detected, running merge..")
-            #shell("gzip -cd {input.fqs} | gzip -5 > {output.fq} && rm -f {input.fqs}")
+            # print("More than 1 input were detected, running merge..")
+            # shell("gzip -cd {input.fqs} | gzip -5 > {output.fq} && rm -f {input.fqs}")
             shell("cat {input.fqs} > {output.fq} && rm -f {input.fqs}")
         else:
             os.rename(input.fqs[0],output.fq)
