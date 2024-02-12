@@ -10,7 +10,7 @@ resources:
     region: us-west1
     instance_type: n2-standard-64
     use_spot: False  # Do Not use spot to run demultiplex !
-    disk_size: 1600
+    disk_size: {disk_size}
     disk_tier: 'medium'
     image_id: projects/ecker-wding/global/images/{image}
     # GCP: gcloud compute images list --uri

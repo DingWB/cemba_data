@@ -119,7 +119,7 @@ def get_demultiplex_skypilot_yaml():
 
 def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 						barcode_version="V2",env_name='base',
-						tmp_dir="demultiplex_gcp_tmp",
+						tmp_dir="demultiplex_gcp_tmp",disk_size=1600,
 						region='us-west1',keep_remote=False,gcp=True,
 						skypilot_template=None,n_jobs=64,job_name="demultiplex",
 						image="bican",output='run_demultiplex.yaml'):
@@ -180,12 +180,12 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 	if output is None:
 		print(template.format(job_name=job_name, workdir=workdir,
 							  CMD=CMD,env_name=env_name,
-							  n_node=1,image=image))
+							  n_node=1,image=image,disk_size=disk_size))
 	else:
 		with open(os.path.abspath(os.path.expanduser(output)), 'w') as f:
 			f.write(template.format(job_name=job_name, workdir=workdir,
 									CMD=CMD,env_name=env_name,
-									n_node=1,image=image))
+									n_node=1,image=image,disk_size=disk_size))
 
 	# print(f"To run this job: sky spot launch -y -n {job_name} {output} [spot] \n")
 	print(f"To run: sky launch -y -i 10 -n {job_name} {output}")
@@ -233,7 +233,7 @@ def run_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 
 def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 					config_path="config.ini",aligner='hisat-3n',
-					tmp_dir="mapping_gcp_tmp",
+					tmp_dir="mapping_gcp_tmp",disk_size=500,
 					chunk_size=None,n_node=2,image="bican",
 					region='us-west1',keep_remote=False,gcp=True,
 					skypilot_template=None,job_name='mapping',
@@ -331,7 +331,7 @@ def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 	with open(os.path.abspath(os.path.expanduser(output)), 'w') as f:
 		f.write(template.format(job_name=job_name, workdir=outdir,
 								CMD=CMD, env_name=env_name,
-								n_node=n_node,image=image))
+								n_node=n_node,image=image,disk_size=disk_size))
 	print(f"To run this job: \nsky spot launch -y -n {job_name} {output} [spot] \n")
 	print(f"Or: \nsky launch -y -n {job_name} {output}")
 
@@ -389,12 +389,12 @@ def gcp_yap_pipeline(
 	hisat3n_dna_ref="~/Ref/hg38_Broad/hg38",
 	mode='m3c',bismark_ref='~/Ref/hg38/hg38_ucsc_with_chrL.bismark1',
 	chrom_size_path='~/Ref/hg38_Broad/hg38.chrom.sizes',
-	aligner='hisat-3n',n_node=2,sky_env='sky'):
+	aligner='hisat-3n',n_node=2,sky_env='sky',disk_size1=1600,disk_size2=500):
 	cmd=f'conda activate {env_name} && yap-gcp prepare_demultiplex --fq_dir {fq_dir} --remote_prefix {remote_prefix} \
 --outdir {outdir} --barcode_version {barcode_version} --env_name {env_name} \
 --region {region} --keep_remote {keep_remote} --gcp {gcp} \
 --skypilot_template {demultiplex_template} --n_jobs {n_jobs} \
---job_name demultiplex --image {image} \
+--job_name demultiplex --image {image} --disk_size {disk_size1} \
 --output run_demultiplex.yaml'
 	print(cmd)
 	print(f"conda activate {sky_env} && sky launch -y -i 10 -n demultiplex run_demultiplex.yaml")
@@ -409,7 +409,7 @@ def gcp_yap_pipeline(
 --tmp_dir mapping_gcp_tmp --n_node {n_node} --image {image} \
 --region {region} --keep_remote {keep_remote} --gcp {gcp} \
 --skypilot_template {mapping_template} --job_name mapping \
---env_name {env_name} --n_jobs {n_jobs} \
+--env_name {env_name} --n_jobs {n_jobs} --disk_size {disk_size2} \
 --output run_mapping.yaml'
 	print(cmd)
 	print(f"conda activate {sky_env} && sky spot launch -y -n mapping run_mapping.yaml")
