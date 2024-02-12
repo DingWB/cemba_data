@@ -188,7 +188,7 @@ rule merge_{rule_uid}:
     output: 
         "{output_path}"
     shell:
-        "gzip -cd {{input}} | gzip -5 > {{output}} && rm -f {{input}}"
+        "cat {{input}} > {{output}} && rm -f {{input}}"
 
 """
             rule_uid += 1

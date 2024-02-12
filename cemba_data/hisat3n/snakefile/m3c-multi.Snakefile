@@ -319,7 +319,9 @@ rule call_chromatin_contacts:
     input:
         bam=rules.sort_all_reads_by_name.output.bam #"bam/{cell_id}.hisat3n_dna.all_reads.name_sort.bam"
     output:
-        stats=local(temp(hic_dir+"/{cell_id}.hisat3n_dna.all_reads.contact_stats.csv"))
+        stats=local(temp(hic_dir+"/{cell_id}.hisat3n_dna.all_reads.contact_stats.csv")),
+        contact_tsv="hic/{cell_id}.hisat3n_dna.all_reads.3C.contact.tsv.gz",
+        ded_contact="hic/{cell_id}.hisat3n_dna.all_reads.dedup_contacts.tsv.gz"
     params:
         contact_prefix=lambda wildcards: hic_dir+f"/{wildcards.cell_id}.hisat3n_dna.all_reads",
     threads:
