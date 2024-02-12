@@ -94,7 +94,7 @@ for dir in [bam_dir,allc_dir,hic_dir,allc_mcg_dir,allc_multi_dir]:
 rule summary:
     input:
         # fastq trim
-        local(expand("fastq/{cell_id}.trimmed.stats.tsv",
+        local(expand("fastq/{cell_id}.trimmed.stats.txt",
                         cell_id=CELL_IDS)),
         # dna mapping
         local(expand(bam_dir+"/{cell_id}.hisat3n_dna_summary.txt", cell_id=CELL_IDS)),
@@ -147,7 +147,7 @@ rule trim:
     output:
         R1=local(temp("fastq/{cell_id}-R1.trimmed.fq.gz")),
         R2=local(temp("fastq/{cell_id}-R2.trimmed.fq.gz")),
-        stats=local(temp("fastq/{cell_id}.trimmed.stats.tsv"))
+        stats=local(temp("fastq/{cell_id}.trimmed.stats.txt"))
     threads:
         1
     shell:

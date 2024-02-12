@@ -131,7 +131,7 @@ def snm3c_summary(outname="MappingSummary.csv.gz"):
     all_stats.append(df)
 
     # hisat-3n mapping split-reads SE
-    df = parse_single_stats_set(f'bam/*.hisat3n_dna_split_reads_summary.txt',
+    df = parse_single_stats_set(f'bam/*.hisat3n_dna_split_reads_summary.*.txt',
                                 cell_parser_hisat_summary, prefix='SplitReads')
     all_stats.append(df)
 

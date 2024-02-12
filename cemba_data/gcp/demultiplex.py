@@ -390,7 +390,7 @@ def gcp_yap_pipeline(
 	mode='m3c',bismark_ref='~/Ref/hg38/hg38_ucsc_with_chrL.bismark1',
 	chrom_size_path='~/Ref/hg38_Broad/hg38.chrom.sizes',
 	aligner='hisat-3n',n_node=2,sky_env='sky'):
-	cmd=f'yap-gcp prepare_demultiplex --fq_dir="{fq_dir} --remote_prefix {remote_prefix} \
+	cmd=f'conda activate {env_name} && yap-gcp prepare_demultiplex --fq_dir {fq_dir} --remote_prefix {remote_prefix} \
 --outdir {outdir} --barcode_version {barcode_version} --env_name {env_name} \
 --region {region} --keep_remote {keep_remote} --gcp {gcp} \
 --skypilot_template {demultiplex_template} --n_jobs {n_jobs} \
@@ -404,7 +404,7 @@ def gcp_yap_pipeline(
 --bismark_ref "{bismark_ref}" --genome "{genome}" \
 --chrom_size_path "{chrom_size_path}" \
 --hisat3n_dna_ref  "{hisat3n_dna_ref}" > config.ini')
-	cmd=f'yap-gcp prepare_mapping --fastq_prefix {fastq_prefix} \
+	cmd=f'conda activate {env_name} && yap-gcp prepare_mapping --fastq_prefix {fastq_prefix} \
 --config_path config.ini --aligner {aligner} \
 --tmp_dir mapping_gcp_tmp --n_node {n_node} --image {image} \
 --region {region} --keep_remote {keep_remote} --gcp {gcp} \

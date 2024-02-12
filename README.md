@@ -162,7 +162,9 @@ yap-gcp gcp_yap_pipeline --fq_dir="gs://mapping_example/fastq/salk10_test" \
 	--hisat3n_dna_ref="~/Ref/hg38_Broad/hg38" \
 	--mode='m3c' --bismark_ref='~/Ref/hg38/hg38_ucsc_with_chrL.bismark1' \
 	--chrom_size_path='~/Ref/hg38_Broad/hg38.chrom.sizes' \
-	--aligner='hisat-3n' --n_node=2
+	--aligner='hisat-3n' --n_node=2 > run.sh
+	
+source run.sh
 	
 mkdir -p demultiplex && cd demultiplex
 yap-gcp prepare_demultiplex --fq_dir gs://mapping_example/fastq/salk10_test \
