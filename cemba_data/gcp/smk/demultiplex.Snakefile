@@ -25,71 +25,32 @@ local_outdir=outdir if not run_on_gcp else workflow.default_remote_prefix+"/"+ou
 barcode_version = config["barcode_version"] if 'barcode_version' in config else "V2"
 
 df_fq=get_fastq_info(fq_dir,run_on_gcp)
-df_fq['stats_out']=df_fq.apply(lambda row: os.path.join(local_outdir, f"{row.uid}/lanes/{row.uid}-{row.lane}.demultiplex.stats.txt"),axis=1) #"{dir}/{uid}/lanes/{uid}-{lane}.demultiplex.stats.txt"
+# df_fq['stats_out']=df_fq.apply(lambda row: os.path.join(local_outdir, f"{row.uid}/demultiplex.stats.txt"),axis=1) #"{dir}/{uid}/lanes/{uid}-{lane}.demultiplex.stats.txt"
 #for each pool, there are 16 old uid, 96 (16*6) new uid (6 multiplex groups)
+uid_fastqs_dict=df_fq.loc[:,['uid','R1','R2']].groupby('uid').agg(lambda x:x.tolist()).to_dict(orient='index') #uid_fastqs_dict[uid]['R1'] and R2 are list
 
 if barcode_version == 'V2' and df_fq['multiplex_group'].nunique() == 1:
     print('Detect only single multiplex group in each plate, will use V2-single mode.')
     barcode_version = 'V2-single'
 
-rule write_fastq_info:
-    input:
-        os.path.join(outdir,"stats/demultiplex.stats.csv")
-    output:
-        tsv=os.path.join(outdir,"stats/fastq_info.tsv")
-    run:
-        if os.path.exists("fastq_info.txt"):
-            os.rename("fastq_info.txt",output.tsv)
-        else:
-            df_fq.to_csv(output.tsv,sep='\t',index=False)
-
-rule download_from_gcp:
-    output:
-        fq=local(temp("{path}.gz"))
-    run:
-        dirname=os.path.dirname(output.fq)
-        if not os.path.exists(dirname):
-            os.makedirs(dirname,exist_ok=True)
-        if not os.path.exists(output.fq):
-            shell(f"gsutil -m cp -n gs://{output.fq} {dirname}")
-
-rule run_demultiplex: #{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}.fastq.gz
-    input: #uid = {plate}-{multiplex_group}-{primer_name} # primer_name is pcr index?
-        R1 = lambda wildcards: df_fq.loc[(df_fq.uid==wildcards.uid) & (df_fq.lane==wildcards.lane)].R1.iloc[0] if not run_on_gcp else local(df_fq.loc[(df_fq.uid==wildcards.uid) & (df_fq.lane==wildcards.lane)].R1.iloc[0].lstrip('gs://')),
-        R2 = lambda wildcards: df_fq.loc[(df_fq.uid==wildcards.uid) & (df_fq.lane==wildcards.lane)].R2.iloc[0] if not run_on_gcp else local(df_fq.loc[(df_fq.uid==wildcards.uid) & (df_fq.lane==wildcards.lane)].R2.iloc[0].lstrip('gs://'))
-
-    output: #uid, lane, index_name, read_type; dynamic: https://stackoverflow.com/questions/52598637/unknown-output-in-snakemake
-        stats_out =local(local_outdir+"/{uid}/lanes/{uid}-{lane}.demultiplex.stats.txt"),
-
-    params:
-        random_index_fa=lambda wildcards: os.path.join(PACKAGE_DIR, 'files', 'random_index_v1.fa') if barcode_version == "V1" \
-		                            else os.path.join(PACKAGE_DIR, 'files', 'random_index_v2', 'random_index_v2.multiplex_group_' + uid.split('-')[-2] + '.fa') if barcode_version == "V2" \
-		                            else os.path.join(PACKAGE_DIR, 'files', 'random_index_v2', 'random_index_v2.fa'),
-        outdir=lambda wildcards: local_outdir+f"/{wildcards.uid}/lanes",
-        R1=lambda wildcards: local_outdir+f"/{wildcards.uid}/lanes/{wildcards.uid}-{wildcards.lane}-{{name}}-R1.fq.gz",
-        R2=lambda wildcards: local_outdir+f"/{wildcards.uid}/lanes/{wildcards.uid}-{wildcards.lane}-{{name}}-R2.fq.gz"
-
-    shell:
-        """
-        mkdir -p {params.outdir}
-        cutadapt -Z -e 0.01 --no-indels -g file:{params.random_index_fa} -o  {params.R1} -p {params.R2} {input.R1} {input.R2} > {output.stats_out}
-        """
-         # for the reads startswith random index present in random_index_fa, will be taken and write into 1 fastq (1 cell),
-         # cut the left 8 bp sequence and add the random index name (A2, P24) into the cell fastq name.
-         # one uid will be broken down into 384 cells (if the number of multiplex group = 1: V2-single).
-         # If run on GCP, the output R1 and R2 in the params are not really generated on GCP, cause it contains {name}, and
-         # not included in output, so it will not be uploaded to GCP automatically, will be uploaded in merge_lanes.smk
+UIDs=df_fq.uid.unique().tolist()
+df_index=get_random_index(UIDs,barcode_version)
+new_uid2old_uid=df_index.set_index('uid').old_uid.to_dict()
+new_uid2index_names=df_index.groupby('uid').index_name.agg(lambda x:x.unique().tolist()).to_dict() #64 index names for each new_uid
 
 rule summary_demultiplex:
     input:
-        [local(p) for p in df_fq['stats_out'].unique().tolist()] #{dir}/{uid}/lanes/{uid}-{lane}.demultiplex.stats.txt", one uid contains multiple lanes and index_names
+        local(expand(local_outdir+"/{uid}/finished",uid=UIDs))
     output:
-        csv="{dir}/stats/demultiplex.stats.csv"
+        csv=outdir+"/stats/demultiplex.stats.csv",
+        fq_info=outdir+"/stats/fastq_info.tsv",
+        index_info=outdir+"/stats/index_info.tsv"
     params:
-        stat_dir=lambda wildcards:os.path.join(wildcards.dir,"stats") if not run_on_gcp else os.path.join(workflow.default_remote_prefix,wildcards.dir,"stats")
+        stat_dir=os.path.join(local_outdir,"stats")
     run:
-#         print(params.stat_dir)
         shell(f"mkdir -p {params.stat_dir}")
+        df_fq.to_csv(output.fq_info,sep='\t',index=False)
+        df_index.to_csv(output.index_info,sep='\t',index=False)
         # pathlib.Path(params.stat_dir).mkdir(exist_ok=True)
         random_index_fasta_path=os.path.join(PACKAGE_DIR,'files','random_index_v1.fa') if barcode_version=='V1' else os.path.join(PACKAGE_DIR,'files','random_index_v2','random_index_v2.fa')
         index_seq_dict = _parse_index_fasta(random_index_fasta_path)
@@ -131,3 +92,71 @@ rule summary_demultiplex:
         df_cell['BarcodeVersion'] = barcode_version
         # print(type(output),output)
         df_cell.to_csv(output.csv)
+
+rule download_from_gcp:
+    output:
+        fq=local("{path}.gz")
+    run:
+        dirname=os.path.dirname(output.fq)
+        if not os.path.exists(dirname):
+            os.makedirs(dirname,exist_ok=True)
+        if not os.path.exists(output.fq):
+            shell(f"gsutil -m cp -n gs://{output.fq} {dirname}")
+
+def merge_lanes:
+    input:
+        fqs=lambda wildcards: [local(fq.lstrip('gs://')) for fq in uid_fastqs_dict[wildcards.uid][wildcards.read_type]],
+    output:
+        fq=local(temp(local_outdir+"/{uid}/{read_type}.fq.gz"))
+    params:
+        outdir=lambda wildcards: local_outdir+f"/{wildcards.uid}"
+    run:
+        shell(f"mkdir -p {params.outdir}"")
+        shell(f"cat {input.fqs} > {output.fq}")
+        if run_on_gcp:
+            shell(f"rm -f {input.fqs}")
+
+rule run_demultiplex: #{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pns}_{lanes}_{read_types}_{suffixes}.fastq.gz
+    input: #uid = {plate}-{multiplex_group}-{primer_name} # primer_name is pcr index?
+        R1 = lambda wildcards: local(local_outdir+f"/{wildcards.uid}/{wildcards.read_type}.fq.gz"),
+        R2 = lambda wildcards: local(local_outdir+f"/{wildcards.uid}/{wildcards.read_type}.fq.gz")
+
+    output: #uid, lane, index_name, read_type; dynamic: https://stackoverflow.com/questions/52598637/unknown-output-in-snakemake
+        stats_out =local(local_outdir+"/{uid}/demultiplex.stats.txt"), # old_uid
+
+    params:
+        random_index_fa=lambda wildcards: os.path.join(PACKAGE_DIR, 'files', 'random_index_v1.fa') if barcode_version == "V1" \
+		                            else os.path.join(PACKAGE_DIR, 'files', 'random_index_v2', 'random_index_v2.multiplex_group_' + wildcards.uid.split('-')[-2] + '.fa') if barcode_version == "V2" \
+		                            else os.path.join(PACKAGE_DIR, 'files', 'random_index_v2', 'random_index_v2.fa'),
+        outdir=lambda wildcards: local_outdir+f"/{wildcards.uid}/demultiplex",
+        R1=lambda wildcards: local_outdir+f"/{wildcards.uid}/demultiplex/{{name}}-R1.fq.gz",
+        R2=lambda wildcards: local_outdir+f"/{wildcards.uid}/demultiplex/{{name}}-R2.fq.gz"
+
+    shell:
+        """
+        mkdir -p {params.outdir}
+        cutadapt -Z -e 0.01 --no-indels -g file:{params.random_index_fa} -o  {params.R1} -p {params.R2} {input.R1} {input.R2} > {output.stats_out}
+        """
+         # for the reads startswith random index present in random_index_fa, will be taken and write into 1 fastq (1 cell),
+         # cut the left 8 bp sequence and add the random index name (A2, P24) into the cell fastq name.
+         # one uid will be broken down into 384 cells (if the number of multiplex group = 1: V2-single).
+
+rule rename_cell:
+    output: #new_uid
+         fq=outdir+"/{uid}/fastq/{uid}-{index_name}-{read_type}.fq.gz"
+    params:
+        output_dir=lambda wildcards: local_outdir+f"/{wildcards.uid}/fastq",
+    run:
+        input_fq=local_outdir+f"/{new_uid2old_uid[wildcards.uid]}/demultiplex/{wildcards.index_name}-{wildcards.read_type}.fq.gz"
+        shell(f"mkdir -p {params.output_dir}")
+        shell(f"mv {input_fq} {output.fq}")
+
+rule batch_rename:
+    input: #fqs for each new_uid, 64 cells.
+        stat =local(local_outdir+"/{uid}/demultiplex.stats.txt"), # old_uid
+        fqs=lambda wildcards: expand(outdir+"/{uid}/fastq/{uid}-{index_name}-{read_type}.fq.gz",
+                            uid=wildcards.uid,index_name=new_uid2index_names[wildcards.uid],
+                            read_type=['R1','R2'])
+    output:
+        flag=local(local_outdir+"/{uid}/finished"),
+    run:

@@ -7,6 +7,7 @@ from cemba_data.mapping.pipelines import make_gcp_snakefile
 from snakemake.io import glob_wildcards
 PACKAGE_DIR=cemba_data.__path__[0]
 from cemba_data.demultiplex.fastq_dataframe import _parse_v2_fastq_path
+from cemba_data.demultiplex import _parse_index_fasta
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.expanduser(
 		'~/.config/gcloud/application_default_credentials.json')
 from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
@@ -95,6 +96,31 @@ def get_lanes_info(outdir,barcode_version):
 		['uid', 'index_name', 'read_type'],as_index=False).agg(lambda x: x.tolist())
 	df1.to_csv("lane_info.txt",sep='\t',index=False)
 	return df1
+
+def get_random_index(UIDs, barcode_version):
+	if os.path.exists("random_index.txt"):
+		df_index=pd.read_csv("random_index.txt",sep='\t')
+		return df_index
+	R=[]
+	for uid in UIDs:
+		random_index_fa = os.path.join(PACKAGE_DIR, 'files',
+														 'random_index_v1.fa') if barcode_version == "V1" \
+			else os.path.join(PACKAGE_DIR, 'files', 'random_index_v2',
+							  'random_index_v2.multiplex_group_' + uid.split('-')[
+								  -2] + '.fa') if barcode_version == "V2" \
+			else os.path.join(PACKAGE_DIR, 'files', 'random_index_v2', 'random_index_v2.fa')
+		index_seq_dict = _parse_index_fasta(random_index_fa)
+		index_names=list(index_seq_dict.keys()) #384 random index names (A-P, 1-24)
+		for index_name in index_names:
+			for read_type in ['R1','R2']:
+				R.append([uid,read_type,index_name])
+	df_index=pd.DataFrame(R,columns=['uid','read_type','index_name'])
+	df_index.rename(columns={'uid':'old_uid'},inplace=True)
+	df_index['real_multiplex_group']=df_index.index_name.apply(index_name2multiplex_group)
+	df_index['uid']=df_index.loc[:,['old_uid','real_multiplex_group']].apply(
+		lambda x:'-'.join([x.old_uid.split('-')[0],str(x.real_multiplex_group),x.old_uid.split('-')[-1]]),axis=1
+	)
+	return df_index
 
 def get_fastq_dirs(remote_prefix=None):
 	GS = GSRemoteProvider(project=gcp_project)
