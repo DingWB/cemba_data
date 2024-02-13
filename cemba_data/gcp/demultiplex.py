@@ -35,7 +35,7 @@ def make_v2_fastq_df(fq_dir,run_on_gcp):
 	df.fastq_path=df.fastq_path.apply(lambda x:str(x))
 	return df
 
-def get_fastq_info(fq_dir,outdir,run_on_gcp):
+def get_fastq_info(fq_dir,run_on_gcp):
 	if os.path.exists("fastq_info.txt"):
 		df=pd.read_csv("fastq_info.txt",sep='\t')
 		# need to write to file, otherwise, snakemake will call this function multiple times.

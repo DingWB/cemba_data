@@ -24,7 +24,7 @@ outdir=config["outdir"] if 'outdir' in config else 'mapping'
 local_outdir=outdir if not run_on_gcp else workflow.default_remote_prefix+"/"+outdir
 barcode_version = config["barcode_version"] if 'barcode_version' in config else "V2"
 
-df_fq=get_fastq_info(fq_dir,outdir,run_on_gcp)
+df_fq=get_fastq_info(fq_dir,run_on_gcp)
 df_fq['stats_out']=df_fq.apply(lambda row: os.path.join(local_outdir, f"{row.uid}/lanes/{row.uid}-{row.lane}.demultiplex.stats.txt"),axis=1) #"{dir}/{uid}/lanes/{uid}-{lane}.demultiplex.stats.txt"
 #for each pool, there are 16 old uid, 96 (16*6) new uid (6 multiplex groups)
 

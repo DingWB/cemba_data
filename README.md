@@ -153,22 +153,22 @@ source run.sh
 yap-gcp get_demultiplex_skypilot_yaml > demultiplex.yaml # vim
 # demultiplex: n1-highcpu-64
 yap-gcp yap_pipeline --fq_dir="gs://mapping_example/fastq/salk10_test" \
-    --remote_prefix='bican' --outdir='salk010_test' --env_name='yap' --n_jobs=64 \
-	--image="bican" \
-    --demultiplex_template="demultiplex.yaml" \
-	--mapping_template="mapping.yaml" \
-	--genome="~/Ref/hg38_Broad/hg38.fa" \
-	--hisat3n_dna_ref="~/Ref/hg38_Broad/hg38" \
-	--mode='m3c' --bismark_ref='~/Ref/hg38/hg38_ucsc_with_chrL.bismark1' \
-	--chrom_size_path='~/Ref/hg38_Broad/hg38.chrom.sizes' \
-	--aligner='hisat-3n' --n_node=2 > run.sh
+--remote_prefix='bican' --outdir='salk010_test' --env_name='yap' --n_jobs=64 \
+--image="bican" --disk_size1 250 --disk_size2 500 \
+--demultiplex_template="demultiplex.yaml" \
+--mapping_template="mapping.yaml" \
+--genome="~/Ref/hg38_Broad/hg38.fa" \
+--hisat3n_dna_ref="~/Ref/hg38_Broad/hg38" \
+--mode='m3c' --bismark_ref='~/Ref/hg38/hg38_ucsc_with_chrL.bismark1' \
+--chrom_size_path='~/Ref/hg38_Broad/hg38.chrom.sizes' \
+--aligner='hisat-3n' --n_node=1 > run.sh
 	
 source run.sh
 
 # salk10
 yap-gcp yap_pipeline --fq_dir="gs://nemo-tmp-4mxgixf-salk010/raw" \
     --remote_prefix='bican' --outdir='salk010' --env_name='yap' --n_jobs=64 \
-	--image="bican" --disk_size1 2500 --disk_size2 500 \
+	--image="bican" --disk_size1 4096 --disk_size2 500 \
     --demultiplex_template="~/Projects/BICAN/yaml/demultiplex.yaml" \
 	--mapping_template="~/Projects/BICAN/yaml/mapping.yaml" \
 	--genome="~/Ref/hg38_Broad/hg38.fa" \
