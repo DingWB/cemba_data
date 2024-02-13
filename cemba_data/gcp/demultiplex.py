@@ -181,6 +181,8 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 		CMD=f"conda activate {env_name} \n  "+ CMD
 	if skypilot_template is None:
 		skypilot_template=os.path.join(PACKAGE_DIR,"gcp",'yaml',"skypilot.yaml")
+	else:
+		skypilot_template=os.path.expanduser(skypilot_template)
 	with open(skypilot_template) as f:
 		template = f.read()
 	if output is None:
@@ -324,6 +326,8 @@ def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 
 	if skypilot_template is None:
 		skypilot_template=os.path.join(PACKAGE_DIR,"gcp",'yaml',"skypilot.yaml")
+	else:
+		skypilot_template=os.path.expanduser(skypilot_template)
 	with open(skypilot_template) as f:
 		template = f.read()
 
@@ -397,6 +401,11 @@ def yap_pipeline(
 	chrom_size_path='~/Ref/hg38_Broad/hg38.chrom.sizes',
 	aligner='hisat-3n',n_node=12,sky_env='sky',disk_size1=2048,
 	disk_size2=500):
+	if not demultiplex_template is None:
+		demultiplex_template=os.path.expanduser(demultiplex_template)
+	if not mapping_template is None:
+		mapping_template=os.path.expanduser(mapping_template)
+
 	cmd=f'conda activate {env_name} && yap-gcp prepare_demultiplex --fq_dir {fq_dir} --remote_prefix {remote_prefix} \
 --outdir {outdir} --barcode_version {barcode_version} --env_name {env_name} \
 --region {region} --keep_remote {keep_remote} --gcp {gcp} \
