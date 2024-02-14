@@ -91,13 +91,13 @@ rule download_from_gcp:
         dirname=os.path.dirname(output.fq)
         if not os.path.exists(dirname):
             os.makedirs(dirname,exist_ok=True)
-        url=output.fq.lstrip('download/')
+        url='gs://'+wildcards.path+'.gz'
         if not os.path.exists(output.fq):
-            shell(f"gsutil -m cp -n gs://{url} {dirname}")
+            shell(f"gsutil -m cp -n {url} {dirname}")
 
 rule merge_lanes:
     input:
-        fqs=lambda wildcards: [local("download/"+fq.lstrip('gs://')) for fq in uid_fastqs_dict[wildcards.uid][wildcards.read_type]] if run_on_gcp \
+        fqs=lambda wildcards: [local("download/"+fq.replace('gs://','')) for fq in uid_fastqs_dict[wildcards.uid][wildcards.read_type]] if run_on_gcp \
                                         else uid_fastqs_dict[wildcards.uid][wildcards.read_type]
 
     output:
