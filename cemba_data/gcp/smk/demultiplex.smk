@@ -93,7 +93,7 @@ rule download_from_gcp:
             os.makedirs(dirname,exist_ok=True)
         url='gs://'+wildcards.path+'.gz'
         if not os.path.exists(output.fq):
-            shell(f"gsutil -m cp -n {url} {dirname}")
+            os.system(f"gsutil -m cp -n {url} {dirname}")
 
 rule merge_lanes:
     input:
