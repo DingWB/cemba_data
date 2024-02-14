@@ -143,10 +143,10 @@ def make_snakefile_hisat3n(output_dir):
 	stats_dir.mkdir(exist_ok=True)
 
 	package_dir = cemba_data.__path__[0]
-	snakefile_path = f'{package_dir}/hisat3n/snakefile/{mode.lower()}.Snakefile'
+	snakefile_path = f'{package_dir}/hisat3n/snakefile/{mode.lower()}.smk'
 	if not pathlib.Path(snakefile_path).exists():
 		print('Possible snakefile templates:')
-		for p in pathlib.Path(f'{package_dir}/hisat3n/snakefile/').glob('*.Snakefile'):
+		for p in pathlib.Path(f'{package_dir}/hisat3n/snakefile/').glob('*.smk'):
 			print(p)
 		raise ValueError(f'Mode {mode} not supported, '
 						 f'because Snakefile {snakefile_path} not found.')

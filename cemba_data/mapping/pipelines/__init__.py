@@ -81,7 +81,7 @@ def make_snakefile(output_dir,sky_template=None):
 	print('Making Snakefile based on mapping config INI file. The parameters are:')
 	print(config_str)
 
-	with open(PACKAGE_DIR / f'mapping/Snakefile_template/{mode}.Snakefile') as f:
+	with open(PACKAGE_DIR / f'mapping/Snakefile_template/{mode}.smk') as f:
 		snake_template = f.read()
 
 	for sub_dir in output_dir.iterdir():
@@ -129,9 +129,9 @@ def make_gcp_snakefile(output_dir,subdir,aligner="hisat-3n"):
 	print(config_str)
 
 	if aligner.lower()=="bismark":
-		snakefile_path=os.path.join(PACKAGE_DIR, f'mapping/Snakefile_template/{mode}.Snakefile')
+		snakefile_path=os.path.join(PACKAGE_DIR, f'mapping/Snakefile_template/{mode}.smk')
 	elif aligner.lower() in ['hisat3n', 'hisat-3n', 'hisat_3n', 'hisat']:
-		snakefile_path = os.path.join(PACKAGE_DIR, f'hisat3n/snakefile/{mode.lower()}.Snakefile')
+		snakefile_path = os.path.join(PACKAGE_DIR, f'hisat3n/snakefile/{mode.lower()}.smk')
 	else:
 		raise ValueError(f"Unknown aligner: {aligner}")
 
@@ -156,7 +156,7 @@ def make_gcp_snakefile(output_dir,subdir,aligner="hisat-3n"):
 			os.makedirs(os.path.join(output_dir,'snakemake'),exist_ok=True)
 		subprocess.run(['touch', os.path.join(output_dir,'snakemake/hisat3n')], check=True)
 	with open(os.path.join(sub_folder,'Snakefile'), 'w') as f:
-	# with open(f'{subdir}.Snakefile', 'w') as f:
+	# with open(f'{subdir}.smk', 'w') as f:
 		f.write(total_snakefile)
 	return
 

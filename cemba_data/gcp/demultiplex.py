@@ -120,6 +120,7 @@ def get_random_index(UIDs, barcode_version):
 	df_index['uid']=df_index.loc[:,['old_uid','real_multiplex_group']].apply(
 		lambda x:'-'.join([x.old_uid.split('-')[0],str(x.real_multiplex_group),x.old_uid.split('-')[-1]]),axis=1
 	)
+	df_index.to_csv("random_index.txt", sep='\t', index=False)
 	return df_index
 
 def get_fastq_dirs(remote_prefix=None):
@@ -153,7 +154,7 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 						barcode_version="V2",env_name='base',
 						tmp_dir="demultiplex_gcp_tmp",disk_size=3072,
 						region='us-west1',keep_remote=False,gcp=True,
-						skypilot_template=None,n_jobs=64,job_name="demultiplex",
+						skypilot_template=None,n_jobs=16,job_name="demultiplex",
 						image="bican",output='run_demultiplex.yaml'):
 	"""
 		Prepare the skypilot yaml file to run demultiplex on GCP.
@@ -227,7 +228,7 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 def run_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 						barcode_version="V2",
 						gcp=True,region='us-west1',keep_remote=False,
-						n_jobs=64,print_only=False):
+						n_jobs=16,print_only=False):
 	"""
 		This function need to be executed on the GCP VM machine. Please see
 		prepare_demultiplex for parameters.
@@ -246,23 +247,17 @@ def run_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 	-------
 
 	"""
-	smk1=os.path.join(PACKAGE_DIR,"gcp",'smk',"demultiplex.Snakefile")
-	smk2 = os.path.join(PACKAGE_DIR, "gcp", 'smk', "merge_lanes.Snakefile")
+	smk1=os.path.join(PACKAGE_DIR,"gcp",'smk',"demultiplex.smk")
 
 	# Demultiplex
-	config_str=f'--scheduler greedy --rerun-incomplete --config gcp={gcp} fq_dir="{fq_dir}" outdir="{outdir}" barcode_version="{barcode_version}" '
+	config_str=f'--scheduler greedy --printshellcmds --rerun-incomplete --config gcp={gcp} fq_dir="{fq_dir}" outdir="{outdir}" barcode_version="{barcode_version}" '
 	common_str=f"--default-remote-prefix {remote_prefix} --default-remote-provider GS --google-lifesciences-region {region} "
 	if keep_remote:
 		common_str+="--keep-remote "
-	CMD1 = f"snakemake -s {smk1} {config_str} {common_str} -j {n_jobs} \n  "
+	cmd = f"snakemake -s {smk1} {config_str} {common_str} -j {n_jobs} \n  "
 
-	# Merge lanes
-	CMD2 = f"snakemake -s {smk2} {config_str} {common_str} -j {n_jobs} \n  "
-
-	for cmd in [CMD1, CMD2]:
-		print(f"CMD: {cmd}")
-		if print_only:
-			continue
+	print(f"CMD: {cmd}")
+	if not print_only:
 		os.system(cmd)
 
 def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
@@ -394,7 +389,7 @@ def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 	with open(input_fastq_dir,'r') as f:
 		subdirs=f.read().strip().split('\n')
 
-	common_str = f'--default-resources mem_mb=100 --resources mem_mb=50000 --scheduler greedy --rerun-incomplete --config gcp={gcp} local_fastq=False -j {n_jobs} --default-remote-provider GS --google-lifesciences-region {region} '
+	common_str = f'--default-resources mem_mb=100 --resources mem_mb=50000 --printshellcmds --scheduler greedy --rerun-incomplete --config gcp={gcp} local_fastq=False -j {n_jobs} --default-remote-provider GS --google-lifesciences-region {region} '
 	if keep_remote:
 		common_str+="--keep-remote "
 	cmds=[]
@@ -419,7 +414,8 @@ def yap_pipeline(
 	fq_dir="gs://mapping_example/fastq/salk10_test",
 	remote_prefix='bican',outdir='salk010_test',
 	barcode_version="V2", env_name='base',
-	region='us-west1', keep_remote=False, gcp=True,n_jobs=64,
+	region='us-west1', keep_remote=False, gcp=True,
+	n_jobs1=16,n_jobs2=64,
 	image="bican",demultiplex_template=None,
 	mapping_template=None, genome="~/Ref/hg38_Broad/hg38.fa",
 	hisat3n_dna_ref="~/Ref/hg38_Broad/hg38",
@@ -435,7 +431,7 @@ def yap_pipeline(
 	cmd=f'conda activate {env_name} && yap-gcp prepare_demultiplex --fq_dir {fq_dir} --remote_prefix {remote_prefix} \
 --outdir {outdir} --barcode_version {barcode_version} --env_name {env_name} \
 --region {region} --keep_remote {keep_remote} --gcp {gcp} \
---skypilot_template {demultiplex_template} --n_jobs {n_jobs} \
+--skypilot_template {demultiplex_template} --n_jobs {n_jobs1} \
 --job_name demultiplex --image {image} --disk_size {disk_size1} \
 --output run_demultiplex.yaml'
 	print(cmd)
@@ -451,7 +447,7 @@ def yap_pipeline(
 --tmp_dir mapping_gcp_tmp --n_node {n_node} --image {image} \
 --region {region} --keep_remote {keep_remote} --gcp {gcp} \
 --skypilot_template {mapping_template} --job_name mapping \
---env_name {env_name} --n_jobs {n_jobs} --disk_size {disk_size2} \
+--env_name {env_name} --n_jobs {n_jobs2} --disk_size {disk_size2} \
 --output run_mapping.yaml'
 	print(cmd)
 	print(f"conda activate {sky_env} && sky spot launch -y -n mapping run_mapping.yaml")
