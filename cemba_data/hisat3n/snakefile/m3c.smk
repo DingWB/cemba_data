@@ -88,21 +88,28 @@ for dir in [bam_dir,allc_dir,hic_dir,allc_mcg_dir]:
 rule summary:
     input:
         # fastq trim
-        local(expand("fastq/{cell_id}.trimmed.stats.txt",cell_id=CELL_IDS)),
-        # dna mapping
-        local(expand(bam_dir+"/{cell_id}.hisat3n_dna_summary.txt", cell_id=CELL_IDS)),
+        expand("fastq/{cell_id}.trimmed.stats.txt",cell_id=CELL_IDS),
 
         # bam dir
-        local(expand(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.matrix.txt",cell_id=CELL_IDS)),
-        local(expand(bam_dir+"/{cell_id}.hisat3n_dna_split_reads_summary.{read_type}.txt",
-                        cell_id=CELL_IDS,read_type=['R1','R2'])),
+        expand("bam/{cell_id}.hisat3n_dna_summary.txt", cell_id=CELL_IDS),
+        expand("bam/{cell_id}.hisat3n_dna.all_reads.deduped.matrix.txt",cell_id=CELL_IDS),
+        expand("bam/{cell_id}.hisat3n_dna_split_reads_summary.{read_type}.txt",
+                        cell_id=CELL_IDS,read_type=['R1','R2']),
+        expand("bam/{cell_id}.hisat3n_dna.all_reads.name_sort.bam", cell_id=CELL_IDS),
 
         # 3C contacts
-        local(expand(hic_dir+"/{cell_id}.hisat3n_dna.all_reads.contact_stats.csv", cell_id=CELL_IDS)),
-        # allc: expand("allc/{cell_id}.allc.tsv.gz", cell_id=CELL_IDS),
-        local(expand(allc_dir+"/{cell_id}.allc.tsv.gz.count.csv", cell_id=CELL_IDS)),
-        expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz.tbi",cell_id=CELL_IDS, mcg_context=mcg_context),
-        # expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz",cell_id=CELL_IDS, mcg_context=mcg_context),
+        expand("hic/{cell_id}.hisat3n_dna.all_reads.contact_stats.csv", cell_id=CELL_IDS),
+        expand("hic/{cell_id}.hisat3n_dna.all_reads.3C.contact.tsv.gz",cell_id=CELL_IDS),
+        expand("hic/{cell_id}.hisat3n_dna.all_reads.dedup_contacts.tsv.gz",cell_id=CELL_IDS),
+
+        # allc
+        expand("allc/{cell_id}.allc.tsv.gz.count.csv", cell_id=CELL_IDS),
+        expand("allc/{cell_id}.allc.tsv.gz",cell_id=CELL_IDS),
+        expand("allc/{cell_id}.allc.tsv.gz.tbi",cell_id=CELL_IDS),
+
+        # allc-CGN
+        expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz.tbi", cell_id=CELL_IDS, mcg_context=mcg_context),
+        expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz",cell_id=CELL_IDS,mcg_context=mcg_context)
     output:
         csv="MappingSummary.csv.gz"
     run:
@@ -143,7 +150,7 @@ rule trim:
     output:
         R1=local(temp("fastq/{cell_id}-R1.trimmed.fq.gz")),
         R2=local(temp("fastq/{cell_id}-R2.trimmed.fq.gz")),
-        stats=local(temp("fastq/{cell_id}.trimmed.stats.txt"))
+        stats="fastq/{cell_id}.trimmed.stats.txt"
     threads:
         1
     shell:
@@ -178,7 +185,7 @@ rule hisat_3n_pair_end_mapping_dna_mode:
         R2=local("fastq/{cell_id}-R2.trimmed.fq.gz")
     output:
         bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.unsort.bam")),
-        stats=local(temp(bam_dir+"/{cell_id}.hisat3n_dna_summary.txt")),
+        stats="bam/{cell_id}.hisat3n_dna_summary.txt",
     threads:
         config['hisat3n_threads']
     resources:
@@ -241,7 +248,7 @@ rule hisat_3n_single_end_mapping_dna_mode:
         fastq=local(bam_dir+"/{cell_id}.hisat3n_dna.split_reads.{read_type}.fastq"), #"bam/{cell_id}.hisat3n_dna.split_reads.R1.fastq"
     output:
         bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.split_reads.{read_type}.bam")),
-        stats=local(temp(bam_dir+"/{cell_id}.hisat3n_dna_split_reads_summary.{read_type}.txt"))
+        stats="bam/{cell_id}.hisat3n_dna_split_reads_summary.{read_type}.txt"
     params:
         direction=lambda wildcards: "--directional-mapping-reverse " if wildcards.read_type=="R1" else "--directional-mapping "
     threads:
@@ -318,7 +325,7 @@ rule call_chromatin_contacts:
     input:
         bam=rules.sort_all_reads_by_name.output.bam #"bam/{cell_id}.hisat3n_dna.all_reads.name_sort.bam"
     output:
-        stats=local(temp(hic_dir+"/{cell_id}.hisat3n_dna.all_reads.contact_stats.csv")),
+        stats="hic/{cell_id}.hisat3n_dna.all_reads.contact_stats.csv",
         contact_tsv="hic/{cell_id}.hisat3n_dna.all_reads.3C.contact.tsv.gz",
         ded_contact="hic/{cell_id}.hisat3n_dna.all_reads.dedup_contacts.tsv.gz"
     params:
@@ -352,7 +359,7 @@ rule dedup_unique_bam:
         bam=local(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.pos_sort.bam")
     output:
         bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam")),
-        stats=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.matrix.txt"))
+        stats="bam/{cell_id}.hisat3n_dna.all_reads.deduped.matrix.txt"
     resources:
         mem_mb=1000
     threads:
@@ -382,7 +389,7 @@ rule unique_reads_allc:
     output:
         allc="allc/{cell_id}.allc.tsv.gz",
         tbi="allc/{cell_id}.allc.tsv.gz.tbi",
-        stats=local(temp(allc_dir+"/{cell_id}.allc.tsv.gz.count.csv"))
+        stats="allc/{cell_id}.allc.tsv.gz.count.csv"
     threads:
         1.5
     resources:
