@@ -137,7 +137,7 @@ def get_fastq_dirs(remote_prefix=None):
 	for file in files:
 		if 'fastq/' not in file.name:
 			continue
-		path=file.name.split('/')[1]
+		path=file.name.split('/')[1] #uid
 		if bucket.blob(f"{prefix}/{path}/MappingSummary.csv.gz").exists():
 			continue # existed, skip
 		if path not in fastq_dirs:
@@ -262,7 +262,7 @@ def run_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 
 def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 					config_path="config.ini",aligner='hisat-3n',
-					tmp_dir="mapping_gcp_tmp",disk_size=500,
+					tmp_dir="mapping_gcp_tmp",disk_size=300,
 					chunk_size=None,n_node=12,image="bican",
 					region='us-west1',keep_remote=False,gcp=True,
 					skypilot_template=None,job_name='mapping',
@@ -363,7 +363,7 @@ def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 		f.write(template.format(job_name=job_name, workdir=outdir,
 								CMD=CMD, env_name=env_name,
 								n_node=n_node,image=image,disk_size=disk_size))
-	print(f"To run this job: \nsky spot launch -y -n {job_name} {output} [spot] \n")
+	print(f"To run this job: \nsky spot launch -y {output} [spot] \n")
 	print(f"Or: \nsky launch -y -n {job_name} {output}")
 
 def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
@@ -422,7 +422,7 @@ def yap_pipeline(
 	mode='m3c',bismark_ref='~/Ref/hg38/hg38_ucsc_with_chrL.bismark1',
 	chrom_size_path='~/Ref/hg38_Broad/hg38.chrom.sizes',
 	aligner='hisat-3n',n_node=12,sky_env='sky',disk_size1=3072,
-	disk_size2=500):
+	disk_size2=300):
 	if not demultiplex_template is None:
 		demultiplex_template=os.path.expanduser(demultiplex_template)
 	if not mapping_template is None:
@@ -450,7 +450,7 @@ def yap_pipeline(
 --env_name {env_name} --n_jobs {n_jobs2} --disk_size {disk_size2} \
 --output run_mapping.yaml'
 	print(cmd)
-	print(f"conda activate {sky_env} && sky spot launch -y -n mapping run_mapping.yaml")
+	print(f"conda activate {sky_env} && sky spot launch -y run_mapping.yaml")
 
 def check_demultiplex(fastq_prefix="gs://mapping_example/novaseq_mapping"):
 	GS = GSRemoteProvider(project=gcp_project)

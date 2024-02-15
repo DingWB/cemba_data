@@ -170,7 +170,7 @@ source run.sh
 # salk10
 yap-gcp yap_pipeline --fq_dir="gs://nemo-tmp-4mxgixf-salk010/raw" \
 --remote_prefix='bican' --outdir='salk010' --env_name='yap' \
---image="bican" --disk_size1 4096 --disk_size2 500 \
+--image="bican" --disk_size1 4096 --disk_size2 300 \
 --n_jobs1 16 --n_jobs2 64 \
 --demultiplex_template="~/Projects/BICAN/yaml/demultiplex.yaml" \
 --mapping_template="~/Projects/BICAN/yaml/mapping.yaml" \
