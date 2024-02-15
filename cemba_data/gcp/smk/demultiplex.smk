@@ -10,7 +10,7 @@ from cemba_data.demultiplex import _parse_index_fasta,_read_cutadapt_result
 
 default_config={
     'total_read_pairs_min':1,
-    'total_read_pairs_max':6000000
+    'total_read_pairs_max':10000000
 }
 
 # demultiplex can not be ran using spot mode, because in cutadapt step,
