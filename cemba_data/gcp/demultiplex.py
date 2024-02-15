@@ -451,3 +451,52 @@ def yap_pipeline(
 --output run_mapping.yaml'
 	print(cmd)
 	print(f"conda activate {sky_env} && sky spot launch -y -n mapping run_mapping.yaml")
+
+def check_demultiplex(fastq_prefix="gs://mapping_example/novaseq_mapping"):
+	GS = GSRemoteProvider(project=gcp_project)
+	os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.expanduser(
+		'~/.config/gcloud/application_default_credentials.json')
+	bucket_name = fastq_prefix.replace('gs://', '').split('/')[0]
+	indir = '/'.join(fastq_prefix.replace('gs://', '').split('/')[1:])
+	files = GS.client.list_blobs(bucket_name, prefix=indir, match_glob='**{.fq.gz,.fastq.gz}')
+	R=[]
+	for file in files:
+		values=file.name.split('/')
+		R.append([values[-3],values[-1]])
+	df=pd.DataFrame(R,columns=['uid','fq'])
+	print(f"uids: {df.uid.nunique()}")
+	print(df.groupby('uid').fq.count())
+	a=df.groupby('uid').fq.count()
+	print(a.min())
+	return df.groupby('uid').fq.count().min()
+
+def cell_qc(fastq_prefix="gs://bican/salk010",
+			total_read_pairs_max=6000000,total_read_pairs_min=1,
+			sky_env='sky'):
+	gsutil = os.path.join(os.path.abspath(os.path.join(os.path.dirname(sys.executable),'../../')),
+						  f"{sky_env}/bin/gsutil")
+	GS = GSRemoteProvider(project=gcp_project)
+	os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.expanduser(
+		'~/.config/gcloud/application_default_credentials.json')
+	if not os.path.exists("demultiplex.stats.csv"):
+		os.system(f"{gsutil} cp -n {fastq_prefix}/stats/demultiplex.stats.csv ./")
+	df_cell=pd.read_csv("demultiplex.stats.csv",index_col=0)
+	df_cell['col384'] = df_cell.IndexName.apply(lambda x:int(x[1:]) - 1)
+	df_cell['row384'] = df_cell.IndexName.apply(lambda x: ord(x[0]) - 65)
+	too_large = df_cell['CellInputReadPairs'] > total_read_pairs_max
+	too_small = df_cell['CellInputReadPairs'] < total_read_pairs_min
+	judge = too_small | too_large
+	unmapped_cells = df_cell[judge]
+	unmapped_cells['Position']=unmapped_cells.loc[:,['row384','col384']].apply(
+		lambda x:'row: '+str(x[0])+'; col: '+str(x[1]),axis=1
+	)
+	print("Total No. of cells to be removed: ",unmapped_cells.shape[0])
+	print(unmapped_cells.Position.value_counts())
+	f=open("cell_qc.sh",'w')
+	for cell_id,uid in unmapped_cells.UID.items():
+		for read_type in ['R1','R2']:
+			cmd=f"{gsutil} rm -f {fastq_prefix}/{uid}/fastq/{cell_id}-{read_type}.fq.gz"
+			os.system(f"{gsutil} ls -lh {fastq_prefix}/{uid}/fastq/{cell_id}-{read_type}.fq.gz")
+			f.write(cmd+'\n')
+	f.close()
+

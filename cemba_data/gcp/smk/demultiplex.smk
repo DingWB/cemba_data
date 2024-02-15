@@ -8,6 +8,11 @@ PACKAGE_DIR=cemba_data.__path__[0]
 from cemba_data.gcp import *
 from cemba_data.demultiplex import _parse_index_fasta,_read_cutadapt_result
 
+default_config={
+    'total_read_pairs_min':1,
+    'total_read_pairs_max':6000000
+}
+
 # demultiplex can not be ran using spot mode, because in cutadapt step,
 # {dir}/{uid}/lanes/{uid}-{lane}-{name}-R1.fq.gz the name is unknown, so
 # it can not be upload onto cloud, if ran with spot, those files would lost.
@@ -21,6 +26,11 @@ if 'gcp' in config and config['gcp']:
 else:
     fq_dir=pathlib.Path(config["fq_dir"]).absolute()
     run_on_gcp=False
+
+for key in default_config:
+    if key not in config:
+        config[key]=default_config[key]
+
 outdir=config["outdir"] if 'outdir' in config else 'mapping'
 local_outdir=outdir if not run_on_gcp else workflow.default_remote_prefix+"/"+outdir
 barcode_version = config["barcode_version"] if 'barcode_version' in config else "V2"
@@ -141,11 +151,23 @@ rule run_demultiplex: #{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pn
         # remote temporary fastq files
         os.remove(input.R1)
         os.remove(input.R2)
+
+        #parse demultiplex.stats.txt for cell_qc
+        random_index_fasta_path = os.path.join(PACKAGE_DIR,'files','random_index_v1.fa') if barcode_version == 'V1' else os.path.join(PACKAGE_DIR,'files','random_index_v2','random_index_v2.fa')
+        index_seq_dict = _parse_index_fasta(random_index_fasta_path)
+        index_name_dict = {v: k for k, v in index_seq_dict.items()}
+        single_df = _read_cutadapt_result(output.stats_out) #path="bican/salk010/UWA7648_CX182024_Idg_1_P1-1-K15/demultiplex.stats.txt"
+        single_df['index_name'] = single_df['Sequence'].map(index_name_dict)
+        removed_index_names=single_df.loc[(single_df['Trimmed'] < int(config['total_read_pairs_min'])) | (single_df['Trimmed'] > int(config['total_read_pairs_max']))].index_name.unique().tolist()
+
          # rename & upload to GCP
         uids=wildcards.uid.split('-')
         input_fqs=glob.glob(local_outdir+f"/{wildcards.uid}/demultiplex/*-R*.fq.gz")
         for input_fq in input_fqs:
             index_name=os.path.basename(input_fq).split('-')[0]
+            if index_name in removed_index_names: #cell qc
+                print(f"{input_fq} was removed because Trimmed reads too large or too small")
+                continue
             real_multiplex_group=index_name2multiplex_group(index_name)
             if real_multiplex_group=='NA':
                 continue

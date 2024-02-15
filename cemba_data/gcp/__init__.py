@@ -16,6 +16,8 @@ def main():
 		'prepare_mapping':prepare_mapping,
 		'run_mapping':run_mapping,
 		'yap_pipeline':yap_pipeline,
+		'check_demultiplex':check_demultiplex,
+		'cell_qc':cell_qc,
 	})
 
 if __name__=="_main__":
