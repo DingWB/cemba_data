@@ -12,5 +12,5 @@ __version__: str
 __version_tuple__: VERSION_TUPLE
 version_tuple: VERSION_TUPLE
 
-__version__ = version = '1.8.0.dev2+gfc6ca5f.d20240216'
-__version_tuple__ = version_tuple = (1, 8, 0, 'dev2', 'gfc6ca5f.d20240216')
+__version__ = version = '1.9.0.dev0+g51df2e9.d20240216'
+__version_tuple__ = version_tuple = (1, 9, 0, 'dev0', 'g51df2e9.d20240216')

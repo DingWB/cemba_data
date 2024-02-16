@@ -2,15 +2,15 @@ from setuptools import setup, find_packages
 
 setup(
     name='yap-gcp',
-	use_scm_version=True,
-	# version="1.7.8",
+	# use_scm_version={'version_scheme': 'python-simplified-semver',"local_scheme": "no-local-version"},
+	version = "1.8.0"
     setup_requires=['setuptools_scm'],
-    author='Hanqing Liu',
-    author_email='hanliu@salk.edu',
+    author='Hanqing Liu, Wubin Ding',
+    author_email='hanliu@salk.edu, wding@salk.edu',
     description='Pipelines for single nucleus methylome and multi-omic dataset.',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
-    url='https://github.com/lhqing/cemba_data',
+    url='https://github.com/DingWB/cemba_data; https://github.com/lhqing/cemba_data',
     license='MIT',
     classifiers=[
         "License :: OSI Approved :: MIT License",
