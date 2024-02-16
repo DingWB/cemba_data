@@ -16,6 +16,8 @@
 To install this latest version:
 ```shell
 pip install git+https://github.com/DingWB/cemba_data
+# or
+pip install yap-gcp
 ```
 
 # Documentation
@@ -112,19 +114,8 @@ sky spot launch -y -n mapping run_mapping.yaml
 Randomly sampling 1000000 reads from 4 big fastq files
 
 ```shell
-mkdir -p novaseq_fastq
-
 seqtk sample -s100 download/UWA7648_CX182024_Idg_1_P1-1-K15_22HC72LT3_S1_L001_R1_001.fastq.gz 1000000 | gzip > novaseq_fastq/UWA7648_CX182024_Idg_1_P1-1-K15_22HC72LT3_S1_L001_R1_001.fastq.gz
 # | paste - - - - | sort -k1,1 -t " " | tr "\t" "\n" |
-seqtk sample -s100 download/UWA7648_CX182024_Idg_1_P1-1-K15_22HC72LT3_S1_L001_R2_001.fastq.gz 1000000  |gzip > novaseq_fastq/UWA7648_CX182024_Idg_1_P1-1-K15_22HC72LT3_S1_L001_R2_001.fastq.gz
-
-seqtk sample -s100 download/UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L002_R1_001.fastq.gz 1000000 |gzip > novaseq_fastq/UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L002_R1_001.fastq.gz
-
-seqtk sample -s100 download/UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L002_R2_001.fastq.gz 1000000 |gzip > novaseq_fastq/UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L002_R2_001.fastq.gz
-
-seqtk sample -s100 download/UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L008_R1_001.fastq.gz 1000000 |gzip > novaseq_fastq/UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L008_R1_001.fastq.gz
-
-seqtk sample -s100 download/UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L008_R2_001.fastq.gz 1000000 |gzip > novaseq_fastq/UWA7648_CX182024_Idg_2_P15-1-H6_22HC72LT3_S15_L008_R2_001.fastq.gz
 ```
 
 
