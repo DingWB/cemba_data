@@ -120,7 +120,8 @@ rule summary:
         shell(config['post_mapping_script'])
 
         # generate the final summary
-        snm3c_summary(outname=output.csv)
+        indir = './' if not gcp else workflow.default_remote_prefix
+        snm3c_summary(outname=output.csv,indir=indir)
 
         # cleanup
         shell(f"rm -rf {bam_dir}/temp")

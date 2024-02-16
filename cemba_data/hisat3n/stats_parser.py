@@ -310,6 +310,7 @@ def parse_single_stats_set(path_pattern, parser, prefix=''):
 	-------
 	pd.DataFrame
 	"""
+	print(path_pattern)
 	detail_stats_dir = pathlib.Path('detail_stats/')
 	detail_stats_dir.mkdir(exist_ok=True)
 
