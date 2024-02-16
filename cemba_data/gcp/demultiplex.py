@@ -388,7 +388,7 @@ def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 		with open(output,'w') as f:
 			for rank in range(n_node):
 				output_rank = os.path.join(outdir, f"run_mapping_{rank}.yaml")
-				f.write(f"sky spot launch -d {output_rank}\n")
+				f.write(f"sky spot launch -y -d {output_rank}\n")
 		print(f"To run this job: \nsh {output} \n")
 
 def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
