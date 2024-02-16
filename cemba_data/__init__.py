@@ -1,2 +1,2 @@
-# from ._version import version as __version__
-__version__ = "1.8.1"
+from ._version import version as __version__
+# __version__ = "1.8.1"

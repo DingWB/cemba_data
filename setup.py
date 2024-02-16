@@ -2,9 +2,9 @@ from setuptools import setup, find_packages
 
 setup(
     name='cemba_data',
-	# use_scm_version={'version_scheme': 'python-simplified-semver',"local_scheme": "no-local-version"},
-	version = "1.8.1",
-    # setup_requires=['setuptools_scm'],
+	use_scm_version=True, #{'version_scheme': 'python-simplified-semver',"local_scheme": "no-local-version"},
+	# version = "1.8.1",
+    setup_requires=['setuptools_scm'],
     author='Hanqing Liu, Wubin Ding',
     author_email='hanliu@salk.edu, wding@salk.edu',
     description='Pipelines for single nucleus methylome and multi-omic dataset.',
