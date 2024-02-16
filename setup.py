@@ -20,7 +20,7 @@ setup(
     packages=find_packages(exclude=('doc',)),
     include_package_data=True,
     package_data={
-        '': ['*.txt', '*.tsv', '*.csv', '*.fa', '*Snakefile', '*ipynb']
+        '': ['*.txt', '*.tsv', '*.csv', '*.fa', '*Snakefile', '*ipynb','*.smk']
     },
     install_requires=['pandas>=1.0',
                       'numpy',
