@@ -4,11 +4,3 @@ requires = ["setuptools>=42", "wheel", "setuptools_scm[toml]>=3.4"]
 [tool.setuptools_scm]
 version_scheme = "release-branch-semver"
 write_to = 'cemba_data/_version.py'
-
-[project]
-name = "yap-gcp"
-dynamic = ["version"]
-authors = [
-    { name="Hanqing Liu", email="hanliu@salk.edu" },
-    { name="Wubin Ding", email="wding@salk.edu" },
-]
