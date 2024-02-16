@@ -151,24 +151,15 @@ rule trim:
     threads:
         1
     shell:
-        "cutadapt "
-        "-a R1Adapter={config[r1_adapter]} "
-        "-A R2Adapter={config[r2_adapter]} "
-        "--report=minimal "
-        "-O 6 "
-        "-q 20 "
-        "-u {config[r1_left_cut]} "
-        "-u -{config[r1_right_cut]} "
-        "-U {config[r2_left_cut]} "
-        "-U -{config[r2_right_cut]} "
-        "-Z "
-        "-m {config[min_read_length]}:{config[min_read_length]} "
-        "--pair-filter 'both' "
-        "-o {output.R1} "
-        "-p {output.R2} "
-        "{input.R1} {input.R2} "
-        "> {output.stats}"
-
+        """
+        cutadapt -a R1Adapter={config[r1_adapter]} \
+            -A R2Adapter={config[r2_adapter]} --report=minimal \
+            -O 6 -q 20 -u {config[r1_left_cut]} -u -{config[r1_right_cut]} \
+            -U {config[r2_left_cut]} -U -{config[r2_right_cut]} -Z \
+            -m {config[min_read_length]}:{config[min_read_length]} \
+            --pair-filter 'both' -o {output.R1} -p {output.R2} \
+            {input.R1} {input.R2} > {output.stats}
+        """
 
 # ==================================================
 # HISAT-3N DNA Mapping
@@ -251,22 +242,13 @@ rule hisat_3n_single_end_mapping_dna_mode:
     threads:
         config['hisat3n_threads']
     shell:
-        "hisat-3n "
-        "{config[hisat3n_dna_reference]} "
-        "-q "
-        "-U {input.fastq} "
-        "--directional-mapping-reverse "  # map R1 in pbat mode
-        "--base-change C,T "
-        "{repeat_index_flag} "
-        "--no-spliced-alignment "  # this is important for DNA mapping
-        "--no-temp-splicesite "
-        "-t "
-        "--new-summary "
-        "--summary-file {output.stats} "
-        "--threads {threads} "
-        "| "
-        "samtools view "
-        "-b -q 10 -o {output.bam}"  # only take the unique aligned reads
+        """
+        hisat-3n {config[hisat3n_dna_reference]} -q -U {input.fastq} \
+            {params.direction} --base-change C,T {repeat_index_flag} \
+            --no-spliced-alignment --no-temp-splicesite -t \ 
+            --new-summary --summary-file {output.stats} \
+            --threads {threads} | samtools view -b -q 10 -o {output.bam}
+        """
 
 # sort split reads bam file by read name
 rule merge_and_sort_split_reads_by_name:
