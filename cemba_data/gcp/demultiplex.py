@@ -263,10 +263,10 @@ def run_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 					config_path="config.ini",aligner='hisat-3n',
 					tmp_dir="mapping_gcp_tmp",disk_size=500,
-					chunk_size=None,n_node=12,image="bican",
+					chunk_size=None,separated=True,  n_node=12,image="bican",
 					region='us-west1',keep_remote=False,gcp=True,
 					skypilot_template=None,job_name='mapping',
-					env_name='base',n_jobs=64,output="run_mapping.yaml"):
+					env_name='base',n_jobs=64):
 	"""
 		Prepare the skypilot yaml file to run demultiplex on GCP.
 
@@ -321,6 +321,10 @@ def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 	outdir=os.path.abspath(os.path.expanduser(tmp_dir))
 	if not os.path.exists(outdir):
 		os.mkdir(outdir)
+	if not separated:
+		output=os.path.join(outdir,"run_mapping.yaml")
+	else:
+		output = os.path.join(outdir, "run_mapping.sh")
 	os.system(f"cp {config_path} {outdir}/mapping_config.ini")
 	fastq_dirs=get_fastq_dirs(fastq_prefix)
 	if len(fastq_dirs)==0:
@@ -343,28 +347,47 @@ def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 				f.write(d + '\n')
 		i+=chunk_size
 		j+=1
-	n_node=j
-
+	n_node = j
 	if skypilot_template is None:
 		skypilot_template=os.path.join(PACKAGE_DIR,"gcp",'yaml',"skypilot.yaml")
 	else:
 		skypilot_template=os.path.expanduser(skypilot_template)
 	with open(skypilot_template) as f:
 		template = f.read()
-
-	CMD = f'yap-gcp run_mapping --fastq_prefix {fastq_prefix} \
+	if not separated:
+		CMD = f'yap-gcp run_mapping --fastq_prefix {fastq_prefix} \
 --config_path "mapping_config.ini" --aligner {aligner} \
 --gcp {gcp} --region {region} \
 --keep_remote {keep_remote} --n_jobs {n_jobs} \
 --node_rank "$SKYPILOT_NODE_RANK"'
-	if not env_name is None:
-		CMD=f"conda activate {env_name} \n  "+ CMD
-	with open(os.path.abspath(os.path.expanduser(output)), 'w') as f:
-		f.write(template.format(job_name=job_name, workdir=outdir,
-								CMD=CMD, env_name=env_name,
-								n_node=n_node,image=image,disk_size=disk_size))
-	print(f"To run this job: \nsky spot launch -y {output} [spot] \n")
-	print(f"Or: \nsky launch -y -n {job_name} {output}")
+		if not env_name is None:
+			CMD=f"conda activate {env_name} \n  "+ CMD
+		with open(os.path.abspath(os.path.expanduser(output)), 'w') as f:
+			f.write(template.format(job_name=job_name, workdir=outdir,
+									CMD=CMD, env_name=env_name,
+									n_node=n_node,image=image,disk_size=disk_size))
+		print(f"To run this job: \nsky spot launch -y {output} [spot] \n")
+		print(f"Or: \nsky launch -y -n {job_name} {output}")
+	else:
+		for rank in range(n_node):
+			CMD = f'yap-gcp run_mapping --fastq_prefix {fastq_prefix} \
+--config_path "mapping_config.ini" --aligner {aligner} \
+--gcp {gcp} --region {region} \
+--keep_remote {keep_remote} --n_jobs {n_jobs} \
+--node_rank {rank}'
+			if not env_name is None:
+				CMD = f"conda activate {env_name} \n  " + CMD
+			output_rank=os.path.join(outdir,f"run_mapping_{rank}.yaml")
+			job_name1=f"{job_name}_{rank}"
+			with open(output_rank, 'w') as f:
+				f.write(template.format(job_name=job_name1, workdir=outdir,
+										CMD=CMD, env_name=env_name,
+										n_node=1, image=image, disk_size=disk_size))
+		with open(output,'w') as f:
+			for rank in range(n_node):
+				output_rank = os.path.join(outdir, f"run_mapping_{rank}.yaml")
+				f.write(f"sky spot launch -d {output_rank}\n")
+		print(f"To run this job: \nsh {output} \n")
 
 def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 				gcp=True,region='us-west1',keep_remote=False,
@@ -415,7 +438,7 @@ def yap_pipeline(
 	remote_prefix='bican',outdir='salk010_test',
 	barcode_version="V2", env_name='base',
 	region='us-west1', keep_remote=False, gcp=True,
-	n_jobs1=16,n_jobs2=64,
+	n_jobs1=16,n_jobs2=64,separated=True,
 	image="bican",demultiplex_template=None,
 	mapping_template=None, genome="~/Ref/hg38_Broad/hg38.fa",
 	hisat3n_dna_ref="~/Ref/hg38_Broad/hg38",
@@ -443,14 +466,18 @@ def yap_pipeline(
 --chrom_size_path "{chrom_size_path}" \
 --hisat3n_dna_ref  "{hisat3n_dna_ref}" > config.ini')
 	cmd=f'conda activate {env_name} && yap-gcp prepare_mapping --fastq_prefix {fastq_prefix} \
---config_path config.ini --aligner {aligner} \
+--config_path config.ini --aligner {aligner} --separated {separated} \
 --tmp_dir mapping_gcp_tmp --n_node {n_node} --image {image} \
 --region {region} --keep_remote {keep_remote} --gcp {gcp} \
 --skypilot_template {mapping_template} --job_name mapping \
---env_name {env_name} --n_jobs {n_jobs2} --disk_size {disk_size2} \
---output run_mapping.yaml'
+--env_name {env_name} --n_jobs {n_jobs2} --disk_size {disk_size2}'
 	print(cmd)
-	print(f"conda activate {sky_env} && sky spot launch -y run_mapping.yaml")
+	if not separated:
+		output = os.path.join('mapping_gcp_tmp', "run_mapping.yaml")
+		print(f"conda activate {sky_env} && sky spot launch -y {output}")
+	else:
+		output = os.path.join('mapping_gcp_tmp', "run_mapping.sh")
+		print(f"conda activate {sky_env} && sh {output}")
 
 def check_demultiplex(fastq_prefix="gs://mapping_example/novaseq_mapping"):
 	GS = GSRemoteProvider(project=gcp_project)
