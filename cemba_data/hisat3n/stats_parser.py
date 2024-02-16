@@ -292,7 +292,7 @@ def cell_parser_call_chromatin_contacts(path):
 	return contact_stats
 
 
-def parse_single_stats_set(path_pattern, parser, prefix=''):
+def parse_single_stats_set(path_pattern, parser, prefix='',indir='.'):
 	"""
 	Parse all the stats files in the path_pattern and return a dataframe
 	with each cell id as index and the stats as columns.
@@ -311,7 +311,7 @@ def parse_single_stats_set(path_pattern, parser, prefix=''):
 	pd.DataFrame
 	"""
 	print(path_pattern)
-	detail_stats_dir = pathlib.Path('detail_stats/')
+	detail_stats_dir = pathlib.Path(indir+'/detail_stats/')
 	detail_stats_dir.mkdir(exist_ok=True)
 
 	stats_paths = list(pathlib.Path().glob(path_pattern))

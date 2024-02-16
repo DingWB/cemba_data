@@ -125,37 +125,41 @@ def snm3c_summary(outname="MappingSummary.csv.gz",indir="."):
 	all_stats = []
 
 	# fastq trimming stats
-	df = parse_single_stats_set(indir+'/fastq/*.trimmed.stats.txt',
-								cell_parser_cutadapt_trim_stats)
+	df = parse_single_stats_set(path_pattern=indir+'/fastq/*.trimmed.stats.txt',
+								parser=cell_parser_cutadapt_trim_stats,indir=indir)
 	all_stats.append(df)
 
 	# hisat-3n mapping PE
-	df = parse_single_stats_set(indir+'/bam/*.hisat3n_dna_summary.txt',
-								cell_parser_hisat_summary)
+	df = parse_single_stats_set(path_pattern=indir+'/bam/*.hisat3n_dna_summary.txt',
+								parser=cell_parser_hisat_summary,indir=indir)
 	all_stats.append(df)
 
 	# hisat-3n mapping split-reads SE
-	df = parse_single_stats_set(indir+'/bam/*.hisat3n_dna_split_reads_summary.R1.txt',
-								cell_parser_hisat_summary, prefix='R1SplitReads')
+	df = parse_single_stats_set(path_pattern=indir+'/bam/*.hisat3n_dna_split_reads_summary.R1.txt',
+								parser=cell_parser_hisat_summary, prefix='R1SplitReads',
+								indir=indir)
 	all_stats.append(df)
 
-	df = parse_single_stats_set(indir+'/bam/*.hisat3n_dna_split_reads_summary.R2.txt',
-								cell_parser_hisat_summary, prefix='R2SplitReads')
+	df = parse_single_stats_set(path_pattern=indir+'/bam/*.hisat3n_dna_split_reads_summary.R2.txt',
+								parser=cell_parser_hisat_summary, prefix='R2SplitReads',
+								indir=indir)
 	all_stats.append(df)
 
 	# uniquely mapped reads dedup
-	df = parse_single_stats_set(indir+'/bam/*.all_reads.deduped.matrix.txt',
-								cell_parser_picard_dedup_stat, prefix='UniqueAlign')
+	df = parse_single_stats_set(path_pattern=indir+'/bam/*.all_reads.deduped.matrix.txt',
+								parser=cell_parser_picard_dedup_stat, prefix='UniqueAlign',
+								indir=indir)
 	all_stats.append(df)
 
 	# call chromatin contacts
-	df = parse_single_stats_set(indir+'/hic/*.all_reads.contact_stats.csv',
-								cell_parser_call_chromatin_contacts)
+	df = parse_single_stats_set(path_pattern=indir+'/hic/*.all_reads.contact_stats.csv',
+								parser=cell_parser_call_chromatin_contacts,
+								indir=indir)
 	all_stats.append(df)
 
 	# allc count
-	df = parse_single_stats_set(indir+'/allc/*.allc.tsv.gz.count.csv',
-								cell_parser_allc_count)
+	df = parse_single_stats_set(path_pattern=indir+'/allc/*.allc.tsv.gz.count.csv',
+								parser=cell_parser_allc_count,indir=indir)
 	all_stats.append(df)
 	# concatenate all stats
 	all_stats = pd.concat(all_stats, axis=1)
