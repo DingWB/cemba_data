@@ -2,8 +2,8 @@ from setuptools import setup, find_packages
 
 setup(
     name='yap-gcp',
-	#use_scm_version=myversion,
-	version="1.7.8",
+	use_scm_version=True,
+	# version="1.7.8",
     setup_requires=['setuptools_scm'],
     author='Hanqing Liu',
     author_email='hanliu@salk.edu',
