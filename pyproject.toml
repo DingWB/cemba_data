@@ -6,7 +6,7 @@ requires = ["setuptools>=61.0", "wheel", "setuptools_scm[toml]>=6.2"]
 #write_to = 'cemba_data/_version.py'
 
 [project]
-name = "cemba_data"
+name = "yap-gcp"
 version = "1.8.0"
 authors = [
     { name="Hanqing Liu", email="hanliu@salk.edu" },

@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='cemba_data',
+    name='yap-gcp',
 	# use_scm_version={'version_scheme': 'python-simplified-semver',"local_scheme": "no-local-version"},
 	version = "1.8.0",
     setup_requires=['setuptools_scm'],
