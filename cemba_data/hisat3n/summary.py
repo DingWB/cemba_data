@@ -1,3 +1,5 @@
+import os
+
 from .stats_parser import *
 
 
@@ -118,6 +120,7 @@ def snm3c_summary(outname="MappingSummary.csv.gz"):
 	-------
 	pd.DataFrame
 	"""
+	print(f"CWD: {os.getcwd()}")
 	all_stats = []
 
 	# fastq trimming stats
