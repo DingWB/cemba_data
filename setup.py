@@ -1,10 +1,10 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='yap-gcp',
+    name='cemba_data',
 	# use_scm_version={'version_scheme': 'python-simplified-semver',"local_scheme": "no-local-version"},
 	version = "1.8.0",
-    setup_requires=['setuptools_scm'],
+    # setup_requires=['setuptools_scm'],
     author='Hanqing Liu, Wubin Ding',
     author_email='hanliu@salk.edu, wding@salk.edu',
     description='Pipelines for single nucleus methylome and multi-omic dataset.',
