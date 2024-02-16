@@ -16,8 +16,6 @@
 To install this latest version:
 ```shell
 pip install git+https://github.com/DingWB/cemba_data
-# or
-pip install yap-gcp
 ```
 
 # Documentation

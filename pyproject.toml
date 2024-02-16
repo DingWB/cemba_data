@@ -6,7 +6,7 @@ version_scheme = "guess-next-dev"
 write_to = 'cemba_data/_version.py'
 
 [project]
-name = "yap-gcp"
+name = "cemba_data"
 dynamic = ["version"]
 authors = [
     { name="Hanqing Liu", email="hanliu@salk.edu" },
