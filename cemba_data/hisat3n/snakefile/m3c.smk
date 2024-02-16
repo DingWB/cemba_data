@@ -117,8 +117,8 @@ rule summary:
         shell(config['post_mapping_script'])
 
         # generate the final summary
-        gcp_indir=None if not gcp else "gs://"+workflow.default_remote_prefix
-        snm3c_summary(outname=output.csv,gcp_indir=gcp_indir)
+        # gcp_indir=None if not gcp else "gs://"+workflow.default_remote_prefix
+        snm3c_summary(outname=output.csv)
 
         # cleanup
         shell(f"rm -rf {bam_dir}/temp")

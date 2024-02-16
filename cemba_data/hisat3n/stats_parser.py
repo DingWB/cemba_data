@@ -292,8 +292,7 @@ def cell_parser_call_chromatin_contacts(path):
 	return contact_stats
 
 
-def parse_single_stats_set(path_pattern, parser, prefix='',
-						   gcp_indir=None):
+def parse_single_stats_set(path_pattern, parser, prefix=''):
 	"""
 	Parse all the stats files in the path_pattern and return a dataframe
 	with each cell id as index and the stats as columns.
@@ -315,10 +314,6 @@ def parse_single_stats_set(path_pattern, parser, prefix='',
 	detail_stats_dir.mkdir(exist_ok=True)
 
 	stats_paths = list(pathlib.Path().glob(path_pattern))
-	if len(stats_paths)==0 and not gcp_indir is None and gcp_indir.startswith('gs://'):
-		print("path pattern not found, downloading from GCP..")
-		os.system(f"gsutil -m cp -n {gcp_indir}/{path_pattern} ./")
-		stats_paths = list(pathlib.Path().glob(path_pattern))
 
 	records = []
 	empty_index = []
