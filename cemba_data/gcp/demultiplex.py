@@ -262,7 +262,7 @@ def run_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 
 def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 					config_path="config.ini",aligner='hisat-3n',
-					tmp_dir="mapping_gcp_tmp",disk_size=300,
+					tmp_dir="mapping_gcp_tmp",disk_size=500,
 					chunk_size=None,n_node=12,image="bican",
 					region='us-west1',keep_remote=False,gcp=True,
 					skypilot_template=None,job_name='mapping',
@@ -422,7 +422,7 @@ def yap_pipeline(
 	mode='m3c',bismark_ref='~/Ref/hg38/hg38_ucsc_with_chrL.bismark1',
 	chrom_size_path='~/Ref/hg38_Broad/hg38.chrom.sizes',
 	aligner='hisat-3n',n_node=12,sky_env='sky',disk_size1=3072,
-	disk_size2=300):
+	disk_size2=500):
 	if not demultiplex_template is None:
 		demultiplex_template=os.path.expanduser(demultiplex_template)
 	if not mapping_template is None:
