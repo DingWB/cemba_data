@@ -142,6 +142,8 @@ def get_fastq_dirs(remote_prefix=None):
 			continue # existed, skip
 		if path not in fastq_dirs:
 			fastq_dirs.append(path)
+			print(path)
+	print(len(fastq_dirs))
 	return fastq_dirs
 
 def get_demultiplex_skypilot_yaml():
