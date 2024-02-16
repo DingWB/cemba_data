@@ -3,7 +3,7 @@ import os
 from .stats_parser import *
 
 
-def snmc_summary(outname="MappingSummary.csv.gz",indir="./"):
+def snmc_summary(outname="MappingSummary.csv.gz",indir="."):
 	"""
 	Generate snmC pipeline MappingSummary.csv.gz and save into cwd
 
@@ -45,7 +45,7 @@ def snmc_summary(outname="MappingSummary.csv.gz",indir="./"):
 	return all_stats
 
 
-def snmct_summary(outname="MappingSummary.csv.gz",indir="./"):
+def snmct_summary(outname="MappingSummary.csv.gz",indir="."):
 	"""
 	Generate snmCT pipeline MappingSummary.csv.gz and save into cwd
 
@@ -112,7 +112,7 @@ def snmct_summary(outname="MappingSummary.csv.gz",indir="./"):
 	return all_stats
 
 
-def snm3c_summary(outname="MappingSummary.csv.gz",indir="./"):
+def snm3c_summary(outname="MappingSummary.csv.gz",indir="."):
 	"""
 	Generate snm3C pipeline MappingSummary.csv.gz and save into cwd
 
@@ -159,7 +159,8 @@ def snm3c_summary(outname="MappingSummary.csv.gz",indir="./"):
 	# concatenate all stats
 	all_stats = pd.concat(all_stats, axis=1)
 	all_stats.index.name = 'cell'
-	if all_stats.shape[0] == 0:
+	if all_stats.shape[0] > 0:
+		all_stats.to_csv(outname)
+	else:
 		print(f'Nothing in {outname}')
-	all_stats.to_csv(outname)
 	return all_stats
