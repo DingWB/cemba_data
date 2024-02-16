@@ -121,6 +121,7 @@ def snm3c_summary(outname="MappingSummary.csv.gz",indir="."):
 	pd.DataFrame
 	"""
 	print(f"CWD: {os.getcwd()}")
+	print(f"indir: {indir}, outname: {outname}")
 	all_stats = []
 
 	# fastq trimming stats
