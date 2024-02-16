@@ -5,25 +5,25 @@ requires = ["setuptools>=61.0", "wheel","setuptools_scm[toml]>=6.2"]
 version_scheme = "guess-next-dev"
 write_to = 'cemba_data/_version.py'
 
-[project]
-name = "cemba_data"
-dynamic = ["version"]
-authors = [
-    { name="Hanqing Liu", email="hanliu@salk.edu" },
-    { name="Wubin Ding", email="wding@salk.edu" },
-]
-description = "Pipelines for single nucleus methylome and multi-omic dataset."
-keywords = ["yap", "yap-gcp","cemba_data"]
-readme = "README.md"
-requires-python = ">=3.0"
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-]
-license = {file = "LICENSE"}
-
-[project.urls]
-"Homepage" = "https://github.com/DingWB/cemba_data"
-repository = "https://github.com/lhqing/cemba_data"
-documentation = "https://hq-1.gitbook.io/mc/"
+#[project]
+#name = "cemba_data"
+#dynamic = ["version"]
+#authors = [
+#    { name="Hanqing Liu", email="hanliu@salk.edu" },
+#    { name="Wubin Ding", email="wding@salk.edu" },
+#]
+#description = "Pipelines for single nucleus methylome and multi-omic dataset."
+#keywords = ["yap", "yap-gcp","cemba_data"]
+#readme = "README.md"
+#requires-python = ">=3.0"
+#classifiers = [
+#    "Programming Language :: Python :: 3",
+#    "License :: OSI Approved :: MIT License",
+#    "Operating System :: OS Independent",
+#]
+#license = {file = "LICENSE"}
+#
+#[project.urls]
+#"Homepage" = "https://github.com/DingWB/cemba_data"
+#repository = "https://github.com/lhqing/cemba_data"
+#documentation = "https://hq-1.gitbook.io/mc/"
