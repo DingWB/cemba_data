@@ -123,8 +123,9 @@ def get_random_index(UIDs, barcode_version):
 	df_index.to_csv("random_index.txt", sep='\t', index=False)
 	return df_index
 
-def get_fastq_dirs(remote_prefix=None):
+def get_fastq_uids(remote_prefix=None):
 	GS = GSRemoteProvider(project=gcp_project)
+	uids,cell_ids=GS.glob_wildcards(remote_prefix + "/{uid}/fastq/{cell_id}-R1.fq.gz")
 	bucket_name = remote_prefix.replace('gs://', '').split('/')[0]
 	indir = '/'.join(remote_prefix.replace('gs://', '').split('/')[1:])
 	if indir == '':
@@ -132,19 +133,17 @@ def get_fastq_dirs(remote_prefix=None):
 	else:
 		prefix=indir
 	bucket = GS.client.bucket(bucket_name)
-	files = bucket.list_blobs(prefix=prefix, match_glob='**{-R1.fq.gz,-R1.fastq.gz}')
-	fastq_dirs=[]
-	for file in files:
-		if 'fastq/' not in file.name:
-			continue
-		path=file.name.split('/')[1] #uid
-		if bucket.blob(f"{prefix}/{path}/MappingSummary.csv.gz").exists():
+	# files = bucket.list_blobs(prefix=prefix, match_glob='**{-R1.fq.gz,-R1.fastq.gz}')
+	unique_uids=[]
+	for uid in set(uids):
+		mapping_summary=bucket.blob(f"{prefix}/{uid}/MappingSummary.csv.gz")
+		if mapping_summary.exists():
+			# b = bucket.get_blob(f"{prefix}/{uid}/MappingSummary.csv.gz")
+			# if b.size > 50: #bytes
 			continue # existed, skip
-		if path not in fastq_dirs:
-			fastq_dirs.append(path)
-			print(path)
-	print(len(fastq_dirs))
-	return fastq_dirs
+		unique_uids.append(uid)
+	print(len(unique_uids))
+	return unique_uids
 
 def get_demultiplex_skypilot_yaml():
 	skypilot_template = os.path.join(PACKAGE_DIR, "gcp", 'yaml', "skypilot.yaml")
@@ -328,24 +327,24 @@ def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 	else:
 		output = os.path.join(outdir, "run_mapping.sh")
 	os.system(f"cp {config_path} {outdir}/mapping_config.ini")
-	fastq_dirs=get_fastq_dirs(fastq_prefix)
-	if len(fastq_dirs)==0:
+	uids=get_fastq_uids(fastq_prefix)
+	if len(uids)==0:
 		raise ValueError(f"Please check {fastq_prefix} and make sure this is correct, cause no fastq dirs were detected")
-	with open(os.path.join(outdir,"fastq_dirs.txt"),'w') as f:
-		for d in fastq_dirs:
+	with open(os.path.join(outdir,"uids.txt"),'w') as f:
+		for d in uids:
 			f.write(d+'\n')
 
-	# split fastq_dirs into multiple files, running with different skypilot nodes
+	# split uids into multiple files, running with different skypilot nodes
 	if not n_node is None:
-		chunk_size=int(np.ceil(len(fastq_dirs)/n_node))
+		chunk_size=int(np.ceil(len(uids)/n_node))
 		print(f"n_node:{n_node}; chunk_size: {chunk_size}")
 	else:
 		print(f"chunk_size: {chunk_size}")
 	j=0
 	i=0
-	while i < len(fastq_dirs):
-		with open(os.path.join(outdir, f"fastq_dirs_{j}"), 'w') as f:
-			for d in fastq_dirs[i:i+chunk_size]:
+	while i < len(uids):
+		with open(os.path.join(outdir, f"uids_{j}"), 'w') as f:
+			for d in uids[i:i+chunk_size]:
 				f.write(d + '\n')
 		i+=chunk_size
 		j+=1
@@ -401,30 +400,30 @@ def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 	os.system(f"cp {config_path} {output_dir}/mapping_config.ini")
 
 	if node_rank < 0:
-		input_fastq_dir="fastq_dirs.txt"
-	elif os.path.exists(f"fastq_dirs_{node_rank}"):
-		input_fastq_dir=f"fastq_dirs_{node_rank}"
+		input_uid="uids.txt"
+	elif os.path.exists(f"uids_{node_rank}"):
+		input_uid=f"uids_{node_rank}"
 	else:
-		input_fastq_dir = "fastq_dirs.txt"
-	info=f"Node Rank: {node_rank}; input: {input_fastq_dir}'"
+		input_uid = "uids.txt"
+	info=f"Node Rank: {node_rank}; input: {input_uid}'"
 	print(info)
 	log_path=os.path.join(output_dir,f"logs_{node_rank}.txt")
 	with open(log_path,'w') as f:
 		f.write(info+'\n')
-	with open(input_fastq_dir,'r') as f:
-		subdirs=f.read().strip().split('\n')
+	with open(input_uid,'r') as f:
+		uids=f.read().strip().split('\n')
 
 	common_str = f'--default-resources mem_mb=100 --resources mem_mb=50000 --printshellcmds --scheduler greedy --rerun-incomplete --config gcp={gcp} local_fastq=False -j {n_jobs} --default-remote-provider GS --google-lifesciences-region {region} '
 	if keep_remote:
 		common_str+="--keep-remote "
 	cmds=[]
-	for subdir in subdirs:
-		make_gcp_snakefile(output_dir,subdir,aligner=aligner) #
+	for uid in uids:
+		make_gcp_snakefile(output_dir,uid,aligner=aligner) #
 		# mapping_config.ini need to be under local_output_dir
-		cmd_str=f"--default-remote-prefix {output_dir}/{subdir}"
+		cmd_str=f"--default-remote-prefix {output_dir}/{uid}"
 		# there should be fastq dir under default-remote-prefix
-		cmd=f"snakemake -s {output_dir}/{subdir}/Snakefile {common_str} {cmd_str}"
-		# workdir should be current, not {output_dir}/{subdir}
+		cmd=f"snakemake -s {output_dir}/{uid}/Snakefile {common_str} {cmd_str}"
+		# workdir should be current, not {output_dir}/{uid}
 		cmds.append(cmd)
 
 	for cmd in cmds:
