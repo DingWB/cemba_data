@@ -167,5 +167,5 @@ yap-gcp yap_pipeline --fq_dir="gs://nemo-tmp-4mxgixf-salk010/raw" \
 --hisat3n_dna_ref="~/Ref/hg38_Broad/hg38" \
 --mode='m3c' --bismark_ref='~/Ref/hg38/hg38_ucsc_with_chrL.bismark1' \
 --chrom_size_path='~/Ref/hg38_Broad/hg38.chrom.sizes' \
---aligner='hisat-3n' --n_node 12 > run.sh
+--aligner='hisat-3n' --n_node 32 > run.sh
 ```
