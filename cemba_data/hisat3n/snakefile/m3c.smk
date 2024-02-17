@@ -157,12 +157,12 @@ rule trim:
     shell:
         """
         cutadapt -a R1Adapter={config[r1_adapter]} \
-            -A R2Adapter={config[r2_adapter]} --report=minimal \
-            -O 6 -q 20 -u {config[r1_left_cut]} -u -{config[r1_right_cut]} \
-            -U {config[r2_left_cut]} -U -{config[r2_right_cut]} -Z \
-            -m {config[min_read_length]}:{config[min_read_length]} \
-            --pair-filter 'both' -o {output.R1} -p {output.R2} \
-            {input.R1} {input.R2} > {output.stats}
+-A R2Adapter={config[r2_adapter]} --report=minimal \
+-O 6 -q 20 -u {config[r1_left_cut]} -u -{config[r1_right_cut]} \
+-U {config[r2_left_cut]} -U -{config[r2_right_cut]} -Z \
+-m {config[min_read_length]}:{config[min_read_length]} \
+--pair-filter 'both' -o {output.R1} -p {output.R2} \
+{input.R1} {input.R2} > {output.stats}
         """
 
 
@@ -186,12 +186,9 @@ rule hisat_3n_pair_end_mapping_dna_mode:
     shell:
         """
         hisat-3n {config[hisat3n_dna_reference]} -q  -1 {input.R1} -2 {input.R2} \
-            --directional-mapping-reverse \
-            --base-change C,T {repeat_index_flag} \
-            --no-spliced-alignment \
-            --no-temp-splicesite -t  --new-summary \
-            --summary-file {output.stats} \
-            --threads {threads} | samtools view -b -q 0 -o {output.bam}
+--directional-mapping-reverse --base-change C,T {repeat_index_flag} \
+--no-spliced-alignment --no-temp-splicesite -t  --new-summary \
+--summary-file {output.stats} --threads {threads} | samtools view -b -q 0 -o {output.bam}
         """
 
 
@@ -249,10 +246,9 @@ rule hisat_3n_single_end_mapping_dna_mode:
     shell:
         """
         hisat-3n {config[hisat3n_dna_reference]} -q -U {input.fastq} \
-            {params.direction} --base-change C,T {repeat_index_flag} \
-            --no-spliced-alignment --no-temp-splicesite -t \ 
-            --new-summary --summary-file {output.stats} \
-            --threads {threads} | samtools view -b -q 10 -o {output.bam}
+{params.direction} --base-change C,T {repeat_index_flag} \
+--no-spliced-alignment --no-temp-splicesite -t --new-summary --summary-file {output.stats} \
+--threads {threads} | samtools view -b -q 10 -o {output.bam}
         """
         # # only take the unique aligned reads
 
@@ -266,7 +262,9 @@ rule merge_and_sort_split_reads_by_name:
     threads:
         1
     shell:
-        "samtools merge -o - {input.r1_bam} {input.r2_bam} | samtools sort -n -o {output.bam} -"
+        """
+        samtools merge -o - {input.r1_bam} {input.r2_bam} | samtools sort -n -o {output.bam} -
+        """
 
 
 # remove overlap read parts from the split alignment bam file

@@ -122,16 +122,16 @@ seqtk sample -s100 download/UWA7648_CX182024_Idg_1_P1-1-K15_22HC72LT3_S1_L001_R1
 yap-gcp get_demultiplex_skypilot_yaml > demultiplex.yaml # vim
 # demultiplex: n1-highcpu-16
 yap-gcp yap_pipeline --fq_dir="gs://mapping_example/fastq/novaseq_fastq" \
-    --remote_prefix='mapping_example' --outdir='novaseq_mapping' --env_name='yap' \
-    --n_jobs1=16 --n_jobs2=16 \
-	--image="bican" --n_node 2 --disk_size1 300 --disk_size2 300 \
-    --demultiplex_template="demultiplex.yaml" \
-	--mapping_template="mapping.yaml" \
-	--genome="~/Ref/hg38_Broad/hg38.fa" \
-	--hisat3n_dna_ref="~/Ref/hg38_Broad/hg38" \
-	--mode='m3c' --bismark_ref='~/Ref/hg38/hg38_ucsc_with_chrL.bismark1' \
-	--chrom_size_path='~/Ref/hg38_Broad/hg38.chrom.sizes' \
-	--aligner='hisat-3n' > run.sh
+--remote_prefix='mapping_example' --outdir='novaseq_mapping' --env_name='yap' \
+--n_jobs1=16 --n_jobs2=16 \
+--image="bican" --n_node 1 --disk_size1 300 --disk_size2 300 \
+--demultiplex_template="~/Projects/BICAN/yaml/demultiplex.yaml" \
+--mapping_template="~/Projects/BICAN/yaml/mapping.yaml" \
+--genome="~/Ref/hg38_Broad/hg38.fa" \
+--hisat3n_dna_ref="~/Ref/hg38_Broad/hg38" \
+--mode='m3c' --bismark_ref='~/Ref/hg38/hg38_ucsc_with_chrL.bismark1' \
+--chrom_size_path='~/Ref/hg38_Broad/hg38.chrom.sizes' \
+--aligner='hisat-3n' > run.sh
 source run.sh
 ```
 
