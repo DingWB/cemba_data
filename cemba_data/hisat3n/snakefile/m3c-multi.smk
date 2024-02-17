@@ -138,7 +138,9 @@ rule sort_fq:
     resources:
         high_io_job=1
     shell:
-        'zcat {input.fq} | paste - - - - | sort -k1,1 -t " " | tr "\t" "\n" > {output.fq} '
+        """
+        zcat {input.fq} | paste - - - - | sort -k1,1 -t " " | tr "\t" "\n" > {output.fq} 
+        """
 
 rule trim:
     input:
@@ -154,12 +156,12 @@ rule trim:
     shell:
         """
         cutadapt -a R1Adapter={config[r1_adapter]} \
-            -A R2Adapter={config[r2_adapter]} --report=minimal \
-            -O 6 -q 20 -u {config[r1_left_cut]} -u -{config[r1_right_cut]} \
-            -U {config[r2_left_cut]} -U -{config[r2_right_cut]} -Z \
-            -m {config[min_read_length]}:{config[min_read_length]} \
-            --pair-filter 'both' -o {output.R1} -p {output.R2} \
-            {input.R1} {input.R2} > {output.stats}
+-A R2Adapter={config[r2_adapter]} --report=minimal \
+-O 6 -q 20 -u {config[r1_left_cut]} -u -{config[r1_right_cut]} \
+-U {config[r2_left_cut]} -U -{config[r2_right_cut]} -Z \
+-m {config[min_read_length]}:{config[min_read_length]} \
+--pair-filter 'both' -o {output.R1} -p {output.R2} \
+{input.R1} {input.R2} > {output.stats}
         """
 
 # ==================================================
@@ -182,12 +184,10 @@ rule hisat_3n_pair_end_mapping_dna_mode:
     shell:
         """
         hisat-3n {config[hisat3n_dna_reference]} -q -1 {input.R1} -2 {input.R2} \
-            --directional-mapping-reverse \
-            --base-change C,T {repeat_index_flag} \
-            --no-spliced-alignment \
-            --no-temp-splicesite -t --new-summary \
-            --summary-file {output.stats} \
-            --threads {threads} | samtools view -b -q 0 -o {output.bam}
+--directional-mapping-reverse \
+--base-change C,T {repeat_index_flag} --no-spliced-alignment \
+--no-temp-splicesite -t --new-summary --summary-file {output.stats} \
+--threads {threads} | samtools view -b -q 0 -o {output.bam}
         """
 
 
@@ -245,10 +245,9 @@ rule hisat_3n_single_end_mapping_dna_mode:
     shell:
         """
         hisat-3n {config[hisat3n_dna_reference]} -q -U {input.fastq} \
-            {params.direction} --base-change C,T {repeat_index_flag} \
-            --no-spliced-alignment --no-temp-splicesite -t \ 
-            --new-summary --summary-file {output.stats} \
-            --threads {threads} | samtools view -b -q 10 -o {output.bam}
+{params.direction} --base-change C,T {repeat_index_flag} \
+--no-spliced-alignment --no-temp-splicesite -t --new-summary --summary-file {output.stats} \
+--threads {threads} | samtools view -b -q 10 -o {output.bam}
         """
 
 # sort split reads bam file by read name
@@ -261,7 +260,9 @@ rule merge_and_sort_split_reads_by_name:
     threads:
         1
     shell:
-        "samtools merge -o - {input.r1_bam} {input.r2_bam} | samtools sort -n -o {output.bam} -"
+        """
+        samtools merge -o - {input.r1_bam} {input.r2_bam} | samtools sort -n -o {output.bam} -
+        """
 
 
 # remove overlap read parts from the split alignment bam file
@@ -286,7 +287,9 @@ rule merge_original_and_split_bam:
     threads:
         1
     shell:
-        "samtools merge -f {output.bam} {input.bam} {input.split_bam}"
+        """
+        samtools merge -f {output.bam} {input.bam} {input.split_bam}
+        """
 
 
 # sort split reads bam file by read name
@@ -298,7 +301,9 @@ rule sort_all_reads_by_name:
     threads:
         1
     shell:
-        "samtools sort -n -o {output.bam} {input.bam}"
+        """
+        samtools sort -n -o {output.bam} {input.bam}
+        """
 
 # remove overlap parts and call contacts
 rule call_chromatin_contacts:
@@ -331,7 +336,9 @@ rule sort_bam:
     threads:
         1
     shell:
-        "samtools sort -O BAM -o {output.bam} {input.bam}"
+        """
+        samtools sort -O BAM -o {output.bam} {input.bam}
+        """
 
 # remove PCR duplicates
 rule dedup_unique_bam:
@@ -345,8 +352,9 @@ rule dedup_unique_bam:
     threads:
         2
     shell:
-        "picard MarkDuplicates I={input.bam} O={output.bam} M={output.stats} "
-        "REMOVE_DUPLICATES=true TMP_DIR=bam/temp/"
+        """
+        picard MarkDuplicates I={input.bam} O={output.bam} M={output.stats} REMOVE_DUPLICATES=true TMP_DIR=bam/temp/
+        """
 
 
 # index the bam file
@@ -356,7 +364,9 @@ rule index_unique_bam_dna_reads:
     output:
         bai=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam.bai"))
     shell:
-        "samtools index {input.bam}"
+        """
+        samtools index {input.bam}
+        """
 
 # ==================================================
 # Generate ALLC
@@ -378,13 +388,11 @@ rule unique_reads_allc:
         """
         mkdir -p {allc_dir}
         allcools bam-to-allc --bam_path {input.bam} \
-            --reference_fasta {config[reference_fasta]} \
-            --output_path {output.allc} \
-            --num_upstr_bases {config[num_upstr_bases]} \
-            --num_downstr_bases {config[num_downstr_bases]} \
-            --compress_level {config[compress_level]} \
-            --save_count_df \
-            --convert_bam_strandness
+--reference_fasta {config[reference_fasta]} --output_path {output.allc} \
+--num_upstr_bases {config[num_upstr_bases]} \
+--num_downstr_bases {config[num_downstr_bases]} \
+--compress_level {config[compress_level]} --save_count_df \
+--convert_bam_strandness
         """
 
 
@@ -406,10 +414,8 @@ rule unique_reads_cgn_extraction:
         """
         mkdir -p {allc_mcg_dir}
         allcools extract-allc --strandness merge \
-            --allc_path  {input.allc} \
-            --output_prefix {params.prefix} \
-            --mc_contexts {mcg_context} \
-            --chrom_size_path {config[chrom_size_path]}
+--allc_path  {input.allc} --output_prefix {params.prefix} \
+--mc_contexts {mcg_context} --chrom_size_path {config[chrom_size_path]}
         """
 
 # END of including m3c.Snakefile
@@ -427,7 +433,9 @@ rule sort_multi_bam:
     threads:
         1
     shell:
-        "samtools sort -O BAM -o {output.bam} {input.bam}"
+        """
+        samtools sort -O BAM -o {output.bam} {input.bam}
+        """
 
 
 rule dedup_multi_bam:
@@ -441,8 +449,9 @@ rule dedup_multi_bam:
     threads:
         2
     shell:
-        "picard MarkDuplicates I={input} O={output.bam} M={output.stats} "
-        "REMOVE_DUPLICATES=true TMP_DIR=bam/temp/"
+        """
+        picard MarkDuplicates I={input} O={output.bam} M={output.stats} REMOVE_DUPLICATES=true TMP_DIR=bam/temp/
+        """
 
 rule index_multi_bam_dna_reads:
     input:
@@ -450,8 +459,9 @@ rule index_multi_bam_dna_reads:
     output:
         bai="bam/{cell_id}.hisat3n_dna.multi_align.deduped.bam.bai"
     shell:
-        "samtools index {input.bam}"
-
+        """
+        samtools index {input.bam}
+        """
 
 # generate ALLC
 rule multi_reads_allc:
@@ -470,13 +480,10 @@ rule multi_reads_allc:
         """
         mkdir -p {allc_multi_dir}
         allcools bam-to-allc --bam_path {input.bam} \
-            --reference_fasta {config[reference_fasta]} \
-            --output_path {output.allc} \
-            --num_upstr_bases {config[num_upstr_bases]} \
-            --num_downstr_bases {config[num_downstr_bases]} \
-            --compress_level {config[compress_level]} \
-            --save_count_df \
-            --min_mapq 0 # for multi-mapped reads, skip mapq filter \
-            --convert_bam_strandness
+--reference_fasta {config[reference_fasta]} --output_path {output.allc} \
+--num_upstr_bases {config[num_upstr_bases]} \
+--num_downstr_bases {config[num_downstr_bases]} \
+--compress_level {config[compress_level]} --save_count_df \
+--min_mapq 0 --convert_bam_strandness
         """
 

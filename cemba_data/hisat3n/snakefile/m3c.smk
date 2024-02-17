@@ -289,7 +289,9 @@ rule merge_original_and_split_bam:
     threads:
         1
     shell:
-        "samtools merge -f {output.bam} {input.bam} {input.split_bam}"
+        """
+        samtools merge -f {output.bam} {input.bam} {input.split_bam}
+        """
 
 
 # sort split reads bam file by read name
@@ -301,7 +303,9 @@ rule sort_all_reads_by_name:
     threads:
         1
     shell:
-        "samtools sort -n -o {output.bam} {input.bam}"
+        """
+        samtools sort -n -o {output.bam} {input.bam}
+        """
 
 # remove overlap parts and call contacts
 rule call_chromatin_contacts:
@@ -334,7 +338,9 @@ rule sort_bam:
     threads:
         1
     shell:
-        "samtools sort -O BAM -o {output.bam} {input.bam}"
+        """
+        samtools sort -O BAM -o {output.bam} {input.bam}
+        """
 
 # remove PCR duplicates
 rule dedup_unique_bam:
@@ -348,8 +354,9 @@ rule dedup_unique_bam:
     threads:
         2
     shell:
-        "picard MarkDuplicates I={input.bam} O={output.bam} M={output.stats} "
-        "REMOVE_DUPLICATES=true TMP_DIR=bam/temp/"
+        """
+        picard MarkDuplicates I={input.bam} O={output.bam} M={output.stats} REMOVE_DUPLICATES=true TMP_DIR=bam/temp/
+        """
 
 
 # index the bam file
@@ -359,7 +366,9 @@ rule index_unique_bam_dna_reads:
     output:
         bai=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam.bai"))
     shell:
-        "samtools index {input.bam}"
+        """
+        samtools index {input.bam}
+        """
 
 # ==================================================
 # Generate ALLC
@@ -381,13 +390,11 @@ rule unique_reads_allc:
         """
         mkdir -p {allc_dir}
         allcools bam-to-allc --bam_path {input.bam} \
-            --reference_fasta {config[reference_fasta]} \
-            --output_path {output.allc} \
-            --num_upstr_bases {config[num_upstr_bases]} \
-            --num_downstr_bases {config[num_downstr_bases]} \
-            --compress_level {config[compress_level]} \
-            --save_count_df \
-            --convert_bam_strandness
+--reference_fasta {config[reference_fasta]} --output_path {output.allc} \
+--num_upstr_bases {config[num_upstr_bases]} \
+--num_downstr_bases {config[num_downstr_bases]} \
+--compress_level {config[compress_level]} --save_count_df \
+--convert_bam_strandness
         """
 
 
@@ -409,8 +416,6 @@ rule unique_reads_cgn_extraction:
         """
         mkdir -p {allc_mcg_dir}
         allcools extract-allc --strandness merge \
-            --allc_path  {input.allc} \
-            --output_prefix {params.prefix} \
-            --mc_contexts {mcg_context} \
-            --chrom_size_path {config[chrom_size_path]}
+--allc_path  {input.allc} --output_prefix {params.prefix} \
+--mc_contexts {mcg_context} --chrom_size_path {config[chrom_size_path]}
         """
