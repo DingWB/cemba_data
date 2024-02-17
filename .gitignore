@@ -103,4 +103,4 @@ venv.bak/
 
 # mypy
 .mypy_cache/
-#cemba_data/_version.py
+cemba_data/_version.py
