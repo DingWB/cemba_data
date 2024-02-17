@@ -335,6 +335,7 @@ def parse_single_stats_set(path_pattern, parser, prefix='',indir='.'):
 		stats_df = stats_df.reindex(use_index)  # still record empty entries, but values will be nan
 
 	# before rename, save raw stats into detail_stats/
+	print(f"Saving stats to {detail_stats_dir}/{prefix}.{parser.__name__}.csv")
 	stats_df.to_csv(os.path.join(detail_stats_dir,f'{prefix}.{parser.__name__}.csv'))
 
 	# rename columns
