@@ -311,8 +311,9 @@ def parse_single_stats_set(path_pattern, parser, prefix='',indir='.'):
 	pd.DataFrame
 	"""
 	print(path_pattern)
-	detail_stats_dir = pathlib.Path(indir+'/detail_stats/')
-	detail_stats_dir.mkdir(exist_ok=True)
+	detail_stats_dir = os.path.join(indir,'detail_stats')
+	if not os.path.exists(detail_stats_dir):
+		os.makedirs(detail_stats_dir,exist_ok=True)
 
 	stats_paths = list(pathlib.Path().glob(path_pattern))
 
@@ -334,7 +335,7 @@ def parse_single_stats_set(path_pattern, parser, prefix='',indir='.'):
 		stats_df = stats_df.reindex(use_index)  # still record empty entries, but values will be nan
 
 	# before rename, save raw stats into detail_stats/
-	stats_df.to_csv(f'detail_stats/{prefix}.{parser.__name__}.csv')
+	stats_df.to_csv(os.path.join(detail_stats_dir,f'{prefix}.{parser.__name__}.csv'))
 
 	# rename columns
 	rename_dict = {}
