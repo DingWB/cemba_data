@@ -14,7 +14,7 @@ from cemba_data.hisat3n import *
 # ==================================================
 # read mapping config and put all variables into the locals()
 DEFAULT_CONFIG = {
-    'hisat3n_repeat_index_type': '',
+    'hisat3n_repeat_index_type': 'repeat',
     'r1_adapter': 'AGATCGGAAGAGCACACGTCTGAAC',
     'r2_adapter': 'AGATCGGAAGAGCGTCGTGTAGGGA',
     'r1_right_cut': 10,
