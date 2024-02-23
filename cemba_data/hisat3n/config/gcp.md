@@ -82,7 +82,10 @@ hisat-3n-build --base-change C,T --repeat-index --ss genome.ss --exon genome.exo
 
 ### hg38
 ```shell
+# no repeat
 hisat-3n-build --base-change C,T -p 16 hg38_ucsc_with_chrL.fa hg38_ucsc_with_chrL
-hisat-3n-build --base-change T,C -p 16 --repeat-index hg38_ucsc_with_chrL.fa hg38_ucsc_with_chrL
-hisat-3n-build --base-change C,T -p 16 --repeat-index --ss genome.ss --exon hg38_ucsc_with_chrL.exon hg38_ucsc_with_chrL.fa 
+# repeat
+hisat-3n-build --base-change C,T -p 16 --repeat-index hg38_ucsc_with_chrL.fa hg38_ucsc_with_chrL
+
+# hisat-3n-build --base-change C,T -p 16 --repeat-index --ss hg38_ucsc_with_chrL.ss --exon hg38_ucsc_with_chrL.exon hg38_ucsc_with_chrL.fa 
 ```
