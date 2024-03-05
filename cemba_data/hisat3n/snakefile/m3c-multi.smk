@@ -14,7 +14,7 @@ from cemba_data.hisat3n import *
 # ==================================================
 # read mapping config and put all variables into the locals()
 DEFAULT_CONFIG = {
-    'hisat3n_repeat_index_type': 'repeat',
+    'hisat3n_repeat_index_type': 'no-repeat',
     'r1_adapter': 'AGATCGGAAGAGCACACGTCTGAAC',
     'r2_adapter': 'AGATCGGAAGAGCGTCGTGTAGGGA',
     'r1_right_cut': 10,
@@ -72,7 +72,8 @@ if not gcp:
     CELL_IDS = fastq_table.index.tolist()
 
 mcg_context = 'CGN' if int(config['num_upstr_bases']) == 0 else 'HCGN'
-repeat_index_flag = "--repeat" if config['hisat3n_repeat_index_type'] == 'repeat' else "--no-repeat-index"
+#repeat_index_flag = "--repeat" if config['hisat3n_repeat_index_type'] == 'repeat' else "--no-repeat-index"
+repeat_index_flag="--no-repeat-index"
 allc_mcg_dir=os.path.abspath(workflow.default_remote_prefix+f"/allc-{mcg_context}") if gcp else f"allc-{mcg_context}"
 allc_multi_dir=os.path.abspath(workflow.default_remote_prefix+"/allc-multi") if gcp else "allc-multi"
 
