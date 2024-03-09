@@ -34,17 +34,17 @@ pip install pysam==0.20.0
 conda activate yap
 ```
 
-### (2). Demultiplex
+### (2). Generate config.ini
 ```shell
-yap demultiplex --fastq_pattern "test_fastq/*.gz" -o mapping -j 4 --aligner bismark --config_path config.ini
+yap default-mapping-config --mode m3c --barcode_version V2 --bismark_ref "~/Ref/mm10/mm10_ucsc_with_chrL.bismark1" --genome "~/Ref/mm10/mm10_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/mm10/mm10_ucsc.nochrM.sizes"  > config.ini
+# pay attention to the path of reference, should be the same as on the GCP if you are going to run the pipeline on GCP.      
 ```
 
-### (3). Generate config.ini
+### (3). Demultiplex
 ```shell
-yap default-mapping-config --mode m3c --barcode_version V2 --bismark_ref "~/Ref/hg38/hg38_ucsc_with_chrL.bismark1" \
-      --genome "~/Ref/hg38/hg38_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/hg38/hg38_ucsc.main.chrom.sizes"  \
-      > config.ini
-# pay attention to the path of reference, should be the same as on the GCP if you are going to run the pipeline on GCP.      
+yap demultiplex --fastq_pattern "/gale/netapp/seq12/illumina_runs/240228_LH00296_0010_B22CHYYLT3_240304090839967598165/Pool_Remind1_m3c/*.fastq.gz" -o mapping/Pool_Remind1_m3c -j 2 --aligner hisat3n --config_path config.ini
+# or
+#yap-gcp run_demultiplex --fq_dir="/gale/netapp/seq12/illumina_runs/240228_LH00296_0010_B22CHYYLT3_240304090839967598165/Pool_Remind1_m3c/*.fastq.gz" outdir="mapping" --barcode_version="V2" --gcp=False --n_jobs=16 --print_only=True
 ```
 
 ### (4). Run mapping

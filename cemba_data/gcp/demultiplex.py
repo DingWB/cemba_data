@@ -27,8 +27,9 @@ def make_v2_fastq_df(fq_dir,run_on_gcp):
 		indir = '/'.join(fq_dir.replace('gs://', '').split('/')[1:])
 		files = GS.client.list_blobs(bucket_name, prefix=indir, match_glob='**{.fq.gz,.fastq.gz}')
 		input_files = ["gs://"+bucket_name+"/"+file.name for file in files]
-	else:
-		input_files=glob.glob(fq_dir) # * should be included in fq_dir, is fastq_pattern
+	else: #local
+		print(fq_dir)
+		input_files=glob.glob(os.path.join(os.path.expanduser(fq_dir),"*.fastq.gz"))+glob.glob(os.path.join(os.path.expanduser(fq_dir),"*.fq.gz")) # * should be included in fq_dir, is fastq_pattern
 	R=[]
 	for file in input_files:
 		R.append(_parse_v2_fastq_path(file))
@@ -257,7 +258,7 @@ def run_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 			common_str+="--keep-remote "
 		cmd = f"snakemake -s {smk1} {config_str} {common_str} -j {n_jobs} \n  "
 	else:
-		cmd = f'snakemake -s {smk1} --scheduler greedy --printshellcmds --rerun-incomplete fq_dir="{fq_dir}" outdir="{outdir}" barcode_version="{barcode_version}" '
+		cmd = f'snakemake -s {smk1} --scheduler greedy --printshellcmds --rerun-incomplete --config fq_dir="{fq_dir}" outdir="{outdir}" barcode_version="{barcode_version}" -j {n_jobs}'
 
 	print(f"CMD: {cmd}")
 	if not print_only:
