@@ -249,13 +249,15 @@ def run_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 
 	"""
 	smk1=os.path.join(PACKAGE_DIR,"gcp",'smk',"demultiplex.smk")
-
-	# Demultiplex
-	config_str=f'--scheduler greedy --printshellcmds --rerun-incomplete --config gcp={gcp} fq_dir="{fq_dir}" outdir="{outdir}" barcode_version="{barcode_version}" '
-	common_str=f"--default-remote-prefix {remote_prefix} --default-remote-provider GS --google-lifesciences-region {region} "
-	if keep_remote:
-		common_str+="--keep-remote "
-	cmd = f"snakemake -s {smk1} {config_str} {common_str} -j {n_jobs} \n  "
+	if gcp:
+		# Demultiplex
+		config_str=f'--scheduler greedy --printshellcmds --rerun-incomplete --config gcp={gcp} fq_dir="{fq_dir}" outdir="{outdir}" barcode_version="{barcode_version}" '
+		common_str=f"--default-remote-prefix {remote_prefix} --default-remote-provider GS --google-lifesciences-region {region} "
+		if keep_remote:
+			common_str+="--keep-remote "
+		cmd = f"snakemake -s {smk1} {config_str} {common_str} -j {n_jobs} \n  "
+	else:
+		cmd = f'snakemake -s {smk1} --scheduler greedy --printshellcmds --rerun-incomplete fq_dir="{fq_dir}" outdir="{outdir}" barcode_version="{barcode_version}" '
 
 	print(f"CMD: {cmd}")
 	if not print_only:
