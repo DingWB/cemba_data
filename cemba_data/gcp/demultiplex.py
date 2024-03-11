@@ -3,7 +3,7 @@ import pandas as pd
 import cemba_data
 import glob
 import numpy as np
-from cemba_data.mapping.pipelines import make_gcp_snakefile
+from cemba_data.mapping.pipelines import make_gcp_snakefile,make_snakefile
 from snakemake.io import glob_wildcards
 PACKAGE_DIR=cemba_data.__path__[0]
 from cemba_data.demultiplex.fastq_dataframe import _parse_v2_fastq_path
@@ -429,7 +429,10 @@ def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 
 	cmds=[]
 	for uid in uids:
-		make_gcp_snakefile(output_dir,uid,aligner=aligner) #
+		if gcp:
+			make_gcp_snakefile(output_dir,uid,aligner=aligner) #
+		else:
+			make_snakefile(output_dir=output_dir,aligner=aligner)
 		# mapping_config.ini need to be under local_output_dir
 		cmd_str=f"--default-remote-prefix {output_dir}/{uid}" if gcp else f"-d {output_dir}/{uid}"
 		# there should be fastq dir under default-remote-prefix

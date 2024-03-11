@@ -60,7 +60,7 @@ def validate_mapping_config(output_dir):
 	print(f'Mapping config file looks good. Here is what will be used in generating Snakefile:\n{config_str}')
 	return
 
-def make_snakefile(output_dir,sky_template=None):
+def make_snakefile(output_dir,sky_template=None,aligner="bismark"):
 	output_dir = pathlib.Path(output_dir).absolute()
 	config = get_configuration(output_dir / 'mapping_config.ini')
 	try:
@@ -81,7 +81,13 @@ def make_snakefile(output_dir,sky_template=None):
 	print('Making Snakefile based on mapping config INI file. The parameters are:')
 	print(config_str)
 
-	with open(PACKAGE_DIR / f'mapping/Snakefile_template/{mode}.smk') as f:
+	if aligner.lower()=="bismark":
+		snakefile_path=os.path.join(PACKAGE_DIR, f'mapping/Snakefile_template/{mode}.smk')
+	elif aligner.lower() in ['hisat3n', 'hisat-3n', 'hisat_3n', 'hisat']:
+		snakefile_path = os.path.join(PACKAGE_DIR, f'hisat3n/snakefile/{mode.lower()}.smk')
+	else:
+		raise ValueError(f"Unknown aligner: {aligner}")
+	with open(snakefile_path) as f:
 		snake_template = f.read()
 
 	for sub_dir in output_dir.iterdir():

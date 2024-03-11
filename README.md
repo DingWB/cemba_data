@@ -51,6 +51,8 @@ yap demultiplex --fastq_pattern "/gale/netapp/seq12/illumina_runs/240228_LH00296
 ### Run on local computer or HPC
 ```shell
 sh mapping/snakemake/qsub/snakemake_cmd.txt
+# or
+yap-gcp run_mapping --fastq_prefix="mapping/Pool_Remind1_m3c" --gcp=False --config_path="config.ini" --aligner='hisat-3n' --n_jobs=2 --print_only=True
 ```
 
 ## 2 Run on GCP
