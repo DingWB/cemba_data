@@ -22,7 +22,6 @@ def make_v2_fastq_df(fq_dir,run_on_gcp):
 	if run_on_gcp:
 		GS = GSRemoteProvider(project=gcp_project)
 		os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
-
 		bucket_name = fq_dir.replace('gs://', '').split('/')[0]
 		indir = '/'.join(fq_dir.replace('gs://', '').split('/')[1:])
 		files = GS.client.list_blobs(bucket_name, prefix=indir, match_glob='**{.fq.gz,.fastq.gz}')
@@ -397,33 +396,42 @@ def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 				gcp=True,region='us-west1',keep_remote=False,
 				config_path="mapping_config.ini",aligner='hisat-3n',
 				n_jobs=64,node_rank=0,print_only=False):
-	output_dir=fastq_prefix.replace("gs://","")
+	if gcp:
+		output_dir=fastq_prefix.replace("gs://","")
+	else: #local
+		output_dir=os.path.expanduser(fastq_prefix)
 	if not os.path.exists(output_dir):
 		os.makedirs(output_dir,exist_ok=True) #on loal GCP VM machine
 	os.system(f"cp {config_path} {output_dir}/mapping_config.ini")
 
-	if node_rank < 0:
-		input_uid="uids.txt"
-	elif os.path.exists(f"uids_{node_rank}"):
-		input_uid=f"uids_{node_rank}"
+	if gcp:
+		if node_rank < 0:
+			input_uid="uids.txt"
+		elif os.path.exists(f"uids_{node_rank}"):
+			input_uid=f"uids_{node_rank}"
+		else:
+			input_uid = "uids.txt"
+		info=f"Node Rank: {node_rank}; input: {input_uid}'"
+		print(info)
+		log_path=os.path.join(output_dir,f"logs_{node_rank}.txt")
+		with open(log_path,'w') as f:
+			f.write(info+'\n')
+		with open(input_uid,'r') as f:
+			uids=f.read().strip().split('\n')
+		common_str = f'--default-resources mem_mb=100 --resources mem_mb=50000 --printshellcmds --scheduler greedy --rerun-incomplete --config gcp=True local_fastq=False -j {n_jobs} --default-remote-provider GS --google-lifesciences-region {region} '
+		if keep_remote:
+			common_str += "--keep-remote "
 	else:
-		input_uid = "uids.txt"
-	info=f"Node Rank: {node_rank}; input: {input_uid}'"
-	print(info)
-	log_path=os.path.join(output_dir,f"logs_{node_rank}.txt")
-	with open(log_path,'w') as f:
-		f.write(info+'\n')
-	with open(input_uid,'r') as f:
-		uids=f.read().strip().split('\n')
+		all_uids,all_cell_ids=glob_wildcards(os.path.join(output_dir,"{uid}/fastq/{cell_id}-R1.fq.gz"))
+		uids=list(set(all_uids))
+		common_str = f'--default-resources mem_mb=100 --resources mem_mb=50000 --printshellcmds --scheduler greedy --rerun-incomplete --config gcp=False local_fastq=True -j {n_jobs}  '
+		log_path = os.path.join(output_dir, f"logs.txt")
 
-	common_str = f'--default-resources mem_mb=100 --resources mem_mb=50000 --printshellcmds --scheduler greedy --rerun-incomplete --config gcp={gcp} local_fastq=False -j {n_jobs} --default-remote-provider GS --google-lifesciences-region {region} '
-	if keep_remote:
-		common_str+="--keep-remote "
 	cmds=[]
 	for uid in uids:
 		make_gcp_snakefile(output_dir,uid,aligner=aligner) #
 		# mapping_config.ini need to be under local_output_dir
-		cmd_str=f"--default-remote-prefix {output_dir}/{uid}"
+		cmd_str=f"--default-remote-prefix {output_dir}/{uid}" if gcp else f"-d {output_dir}/{uid}"
 		# there should be fastq dir under default-remote-prefix
 		cmd=f"snakemake -s {output_dir}/{uid}/Snakefile {common_str} {cmd_str}"
 		# workdir should be current, not {output_dir}/{uid}

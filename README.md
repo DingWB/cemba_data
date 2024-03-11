@@ -44,7 +44,7 @@ yap default-mapping-config --mode m3c --barcode_version V2 --bismark_ref "~/Ref/
 ```shell
 yap demultiplex --fastq_pattern "/gale/netapp/seq12/illumina_runs/240228_LH00296_0010_B22CHYYLT3_240304090839967598165/Pool_Remind1_m3c/*.fastq.gz" -o mapping/Pool_Remind1_m3c -j 2 --aligner hisat3n --config_path config.ini
 # or
-#yap-gcp run_demultiplex --fq_dir="/gale/netapp/seq12/illumina_runs/240228_LH00296_0010_B22CHYYLT3_240304090839967598165/Pool_Remind1_m3c/*.fastq.gz" outdir="mapping" --barcode_version="V2" --gcp=False --n_jobs=16 --print_only=True
+# yap-gcp run_demultiplex --fq_dir="/gale/netapp/seq12/illumina_runs/240228_LH00296_0010_B22CHYYLT3_240304090839967598165/Pool_Remind1_m3c" --outdir="mapping/Pool_Remind1_m3c" --barcode_version="V2" --gcp=False --n_jobs=16 --print_only=True --n_jobs=2
 ```
 
 ### (4). Run mapping
