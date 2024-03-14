@@ -4,8 +4,13 @@ PACKAGE_DIR=cemba_data.__path__[0]
 include:
     os.path.join(PACKAGE_DIR,"files","smk",'base.smk')
 
-include:
-    os.path.join(PACKAGE_DIR,"files","smk",'hisat3n.smk')
+module hisat3n:
+    snakefile:
+        # here, plain paths, URLs and the special markers for code hosting providers (see below) are possible.
+        os.path.join(PACKAGE_DIR,"files","smk",'hisat3n.smk')
+
+# use rule * from hisat3n exclude trim as hisat3n_*
+use rule * from hisat3n exclude unique_reads_allc as hisat3n_*
 
 # the summary rule is the final target
 rule summary:
@@ -70,7 +75,7 @@ rule mc_dedup_unique_bam:
 # ==================================================
 # Generate ALLC
 # ==================================================
-rule mc_unique_reads_allc:
+rule unique_reads_allc:
     input:
         bam=local(bam_dir+"/{cell_id}.hisat3n_dna.unique_align.deduped.bam"),
         bai=local(bam_dir+"/{cell_id}.hisat3n_dna.unique_align.deduped.bam.bai")

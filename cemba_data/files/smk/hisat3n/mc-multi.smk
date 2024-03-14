@@ -4,8 +4,12 @@ PACKAGE_DIR=cemba_data.__path__[0]
 include:
     os.path.join(PACKAGE_DIR,"files","smk",'base.smk')
 
-include:
-    os.path.join(PACKAGE_DIR,"files","smk",'hisat3n.smk')
+module hisat3n:
+    snakefile:
+        # here, plain paths, URLs and the special markers for code hosting providers (see below) are possible.
+        os.path.join(PACKAGE_DIR,"files","smk",'hisat3n.smk')
+
+use rule * from hisat3n exclude unique_reads_allc as hisat3n_*
 
 module mc:
     snakefile:
