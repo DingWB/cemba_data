@@ -86,6 +86,16 @@ rule dedup_multi_bam:
         picard MarkDuplicates -I {input} -O {output.bam} -M {output.stats} -REMOVE_DUPLICATES true -TMP_DIR bam/temp/
         """
 
+rule index_bam:
+    input:
+        bam="{input_name}.bam"
+    output:
+        bai="{input_name}.bam.bai"
+    shell:
+        """
+        samtools index {input.bam}
+        """
+
 # generate ALLC
 rule multi_reads_allc:
     input:

@@ -245,11 +245,11 @@ rule dedup:
         """
 
 # index the bam file
-rule index_bam:
+rule index_local_bam:
     input:
-        bam="{input_name}.bam"
+        bam=local("{input_name}.bam")
     output:
-        bai="{input_name}.bam.bai"
+        bai=local(temp("{input_name}.bam.bai"))
     shell:
         """
         samtools index {input.bam}

@@ -158,6 +158,15 @@ rule dedup_multi_bam: #dedup_unique_bam is included in mc.smk
 # ==================================================
 # Generate ALLC
 # ==================================================
+rule index_bam:
+    input:
+        bam="{input_name}.bam"
+    output:
+        bai="{input_name}.bam.bai"
+    shell:
+        """
+        samtools index {input.bam}
+        """
 
 rule multi_reads_allc: #unique reads allc is included in rule: mc_unique_reads_allc from mc.smk
     input:

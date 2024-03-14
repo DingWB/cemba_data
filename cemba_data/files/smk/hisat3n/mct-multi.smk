@@ -57,7 +57,7 @@ module hisat3n:
     config: config
 
 # use rule * from hisat3n exclude trim as hisat3n_*
-use rule sort_fq,unique_reads_cgn_extraction,index_bam from hisat3n
+use rule sort_fq,unique_reads_cgn_extraction from hisat3n
 
 module mct:
     snakefile:
@@ -138,6 +138,15 @@ rule select_multi_bam_dna_reads:
 # ==================================================
 # Generate ALLC
 # ==================================================
+rule index_bam:
+    input:
+        bam="{input_name}.bam"
+    output:
+        bai="{input_name}.bam.bai"
+    shell:
+        """
+        samtools index {input.bam}
+        """
 
 rule multi_reads_allc:
     input:
