@@ -40,7 +40,7 @@ rule summary:
 
 rule mc_sort_bam:
     input:
-        bam="bam/{cell_id}.hisat3n_dna.unsort.bam"
+        bam=local(bam_dir+"/{cell_id}.hisat3n_dna.unsort.bam")
     output:
         bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.unique_align.bam"))
     resources:

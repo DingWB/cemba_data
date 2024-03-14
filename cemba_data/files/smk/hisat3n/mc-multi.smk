@@ -54,7 +54,7 @@ rule summary:
 
 rule mc_multi_sort_bam:
     input:
-        bam="bam/{cell_id}.hisat3n_dna.unsort.bam" #output of rule hisat_3n_pair_end_mapping_dna_mode from hisat3n.smk
+        bam=local(bam_dir+"/{cell_id}.hisat3n_dna.unsort.bam") #output of rule hisat_3n_pair_end_mapping_dna_mode from hisat3n.smk
     output:
         bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.bam"))
     resources:
