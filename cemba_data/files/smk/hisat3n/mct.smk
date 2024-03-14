@@ -58,8 +58,7 @@ module hisat3n:
     # skip_validation: True
 
 # use rule * from hisat3n exclude trim as hisat3n_*
-use rule sort_fq,unique_reads_cgn_extraction from hisat3n
-
+use rule sort_fq,hisat_3n_pair_end_mapping_dna_mode,unique_reads_cgn_extraction from hisat3n
 
 rule trim:
     input:
@@ -92,25 +91,6 @@ rule trim:
 -O 6 -q 20 -u {config[r1_left_cut]} -u -{config[r1_right_cut]} -U {config[r2_left_cut]} \
 -U -{config[r2_right_cut]} -Z -m {config[min_read_length]}:{config[min_read_length]} \
 --pair-filter 'both' -o {output.R1} -p {output.R2} {input.R1} {input.R2} > {output.stats}
-        """
-
-rule hisat_3n_pair_end_mapping_dna_mode:
-    input:
-        R1=local("fastq/{cell_id}-R1.trimmed.fq.gz"),
-        R2=local("fastq/{cell_id}-R2.trimmed.fq.gz")
-    output:
-        bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.unsort.bam")),
-        stats="bam/{cell_id}.hisat3n_dna_summary.txt",
-    threads:
-        config['hisat3n_threads']
-    resources:
-        mem_mb=14000
-    shell: # -q 10 will filter out multi-aligned reads
-        """
-        hisat-3n {config[hisat3n_dna_reference]} -q  -1 {input.R1} -2 {input.R2} \
---directional-mapping-reverse --base-change C,T {repeat_index_flag} \
---no-spliced-alignment --no-temp-splicesite -t  --new-summary \
---summary-file {output.stats} --threads {threads} | samtools view -b -q 10 -o {output.bam}
         """
 
 rule sort_dna_bam:
