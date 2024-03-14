@@ -56,9 +56,8 @@ module hisat3n:
         # here, plain paths, URLs and the special markers for code hosting providers (see below) are possible.
         os.path.join(PACKAGE_DIR,"files","smk",'hisat3n.smk')
     config: config
-    # skip_validation: True
 
-use rule * from hisat3n exclude index_local_bam as hisat3n_*
+use rule * from hisat3n exclude index_bam as hisat3n_*
 #=====================================================================
 # Processing multi-alignment reads and generate allc-multi
 #=====================================================================
