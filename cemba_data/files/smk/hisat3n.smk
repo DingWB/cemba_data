@@ -247,9 +247,9 @@ rule dedup:
 # index the bam file
 rule index_local_bam:
     input:
-        bam=local(bam_dir+"/{input_name}.bam")
+        bam=local(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam")
     output:
-        bai=local(temp(bam_dir+"/{input_name}.bam.bai"))
+        bai=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam.bai"))
     shell:
         """
         samtools index {input.bam}
