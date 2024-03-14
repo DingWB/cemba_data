@@ -19,7 +19,7 @@ if not config['local_fastq'] or config['gcp']:
 rule all:
     output:
         "test"
-    shell
+    shell:
         """
         touch test
         """
