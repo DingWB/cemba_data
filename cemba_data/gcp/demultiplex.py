@@ -248,7 +248,7 @@ def run_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 	-------
 
 	"""
-	smk1=os.path.join(PACKAGE_DIR,"gcp",'smk',"demultiplex.smk")
+	smk1 = os.path.join(PACKAGE_DIR, 'files/smk/demultiplex.smk')
 	if gcp:
 		# Demultiplex
 		config_str=f'--scheduler greedy --printshellcmds --rerun-incomplete --config gcp={gcp} fq_dir="{fq_dir}" outdir="{outdir}" barcode_version="{barcode_version}" '
