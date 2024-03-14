@@ -60,53 +60,12 @@ rule hisat_3n_pair_end_mapping_dna_mode:
         config['hisat3n_threads']
     resources:
         mem_mb=14000
-    shell: # -q 10 will filter out multi-aligned reads
+    shell: # -q 1
         """
         hisat-3n {config[hisat3n_dna_reference]} -q  -1 {input.R1} -2 {input.R2} \
 --directional-mapping-reverse --base-change C,T {repeat_index_flag} \
 --no-spliced-alignment --no-temp-splicesite -t  --new-summary \
---summary-file {output.stats} --threads {threads} | samtools view -b -q 10 -o {output.bam}
-        """
-
-rule mc_dedup_unique_bam:
-    input:
-        bam=local(bam_dir+"/{cell_id}.hisat3n_dna.unique_align.bam")
-    output:
-        bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.unique_align.deduped.bam")),
-        stats="bam/{cell_id}.hisat3n_dna.unique_align.deduped.matrix.txt"
-    resources:
-        mem_mb=1000
-    threads:
-        2
-    shell:
-        """
-        picard MarkDuplicates -I {input.bam} -O {output.bam} -M {output.stats} -REMOVE_DUPLICATES true -TMP_DIR bam/temp/
-        """
-
-# ==================================================
-# Generate ALLC
-# ==================================================
-rule unique_reads_allc:
-    input:
-        bam=local(bam_dir+"/{cell_id}.hisat3n_dna.unique_align.deduped.bam"),
-        bai=local(bam_dir+"/{cell_id}.hisat3n_dna.unique_align.deduped.bam.bai")
-    output:
-        allc="allc/{cell_id}.allc.tsv.gz",
-        tbi="allc/{cell_id}.allc.tsv.gz.tbi",
-        stats="allc/{cell_id}.allc.tsv.gz.count.csv"
-    threads:
-        1.5
-    resources:
-        mem_mb=500
-    shell:
-        """
-        mkdir -p {allc_dir}
-        allcools bam-to-allc --bam_path {input.bam} \
---reference_fasta {config[reference_fasta]} --output_path {output.allc} \
---num_upstr_bases {config[num_upstr_bases]} \
---num_downstr_bases {config[num_downstr_bases]} \
---compress_level {config[compress_level]} --save_count_df \
---convert_bam_strandness
+--summary-file {output.stats} --threads {threads} | samtools view -b -q 1 -o {output.bam}
         """
 
 rule mc_multi_sort_bam:
@@ -140,11 +99,52 @@ rule split_unique_and_multi_align_bam_dna:
             qlen_cutoff=30
         )
 
+rule mc_dedup_unique_bam:
+    input:
+        bam=local(bam_dir+"/{cell_id}.hisat3n_dna.unique_align.bam")
+    output:
+        bam="bam/{cell_id}.hisat3n_dna.unique_align.deduped.bam",
+        stats="bam/{cell_id}.hisat3n_dna.unique_align.deduped.matrix.txt"
+    resources:
+        mem_mb=1000
+    threads:
+        2
+    shell:
+        """
+        picard MarkDuplicates -I {input.bam} -O {output.bam} -M {output.stats} -REMOVE_DUPLICATES true -TMP_DIR bam/temp/
+        """
+
+# ==================================================
+# Generate ALLC
+# ==================================================
+rule unique_reads_allc:
+    input:
+        bam="bam/{cell_id}.hisat3n_dna.unique_align.deduped.bam",
+        bai="bam/{cell_id}.hisat3n_dna.unique_align.deduped.bam.bai"
+    output:
+        allc="allc/{cell_id}.allc.tsv.gz",
+        tbi="allc/{cell_id}.allc.tsv.gz.tbi",
+        stats="allc/{cell_id}.allc.tsv.gz.count.csv"
+    threads:
+        1.5
+    resources:
+        mem_mb=500
+    shell:
+        """
+        mkdir -p {allc_dir}
+        allcools bam-to-allc --bam_path {input.bam} \
+--reference_fasta {config[reference_fasta]} --output_path {output.allc} \
+--num_upstr_bases {config[num_upstr_bases]} \
+--num_downstr_bases {config[num_downstr_bases]} \
+--compress_level {config[compress_level]} --save_count_df \
+--convert_bam_strandness
+        """
+
 rule dedup_multi_bam: #dedup_unique_bam is included in mc.smk
     input:
         bam=local(bam_dir+"/{cell_id}.hisat3n_dna.multi_align.bam")
     output:
-        bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.multi_align.deduped.bam")),
+        bam="bam/{cell_id}.hisat3n_dna.multi_align.deduped.bam",
         stats="bam/{cell_id}.hisat3n_dna.multi_align.deduped.matrix.txt"
     resources:
         mem_mb=1000
