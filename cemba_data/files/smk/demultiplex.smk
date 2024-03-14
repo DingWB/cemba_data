@@ -93,6 +93,10 @@ rule summary_demultiplex:
         df_cell['BarcodeVersion'] = barcode_version
         # print(type(output),output)
         df_cell.to_csv(output.csv)
+        if os.path.exists("fastq_info.txt"):
+            os.remove("fastq_info.txt")
+        if os.path.exists("random_index.txt"):
+            os.remove("random_index.txt")
 
 rule download_from_gcp:
     output:
