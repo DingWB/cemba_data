@@ -17,7 +17,7 @@ rule summary:
         expand("bam/{cell_id}.hisat3n_dna.all_reads.deduped.matrix.txt",cell_id=CELL_IDS),
         expand("bam/{cell_id}.hisat3n_dna_split_reads_summary.{read_type}.txt",
                         cell_id=CELL_IDS,read_type=['R1','R2']),
-        expand("bam/{cell_id}.hisat3n_dna.all_reads.name_sort.bam",cell_id=CELL_IDS),
+        # expand("bam/{cell_id}.hisat3n_dna.all_reads.name_sort.bam",cell_id=CELL_IDS),
 
         # 3C contacts
         expand("hic/{cell_id}.hisat3n_dna.all_reads.contact_stats.csv", cell_id=CELL_IDS),
