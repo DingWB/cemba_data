@@ -100,7 +100,7 @@ rule dedup_multi_bam: #dedup_unique_bam is included in mc.smk
         2
     shell:
         """
-        picard MarkDuplicates I={input.bam} O={output.bam} M={output.stats} REMOVE_DUPLICATES=true TMP_DIR=bam/temp/
+        picard MarkDuplicates -I {input.bam} -O {output.bam} -M {output.stats} -REMOVE_DUPLICATES true -TMP_DIR bam/temp/
         """
 
 # ==================================================

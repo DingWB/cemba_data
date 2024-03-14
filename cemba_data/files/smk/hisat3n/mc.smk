@@ -71,7 +71,7 @@ rule mc_dedup_unique_bam:
         2
     shell:
         """
-        picard MarkDuplicates I={input.bam} O={output.bam} M={output.stats} REMOVE_DUPLICATES=true TMP_DIR=bam/temp/
+        picard MarkDuplicates -I {input.bam} -O {output.bam} -M {output.stats} -REMOVE_DUPLICATES true -TMP_DIR bam/temp/
         """
 
 # ==================================================
