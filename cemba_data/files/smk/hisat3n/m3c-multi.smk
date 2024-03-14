@@ -4,9 +4,6 @@ PACKAGE_DIR=cemba_data.__path__[0]
 include:
     os.path.join(PACKAGE_DIR,"files","smk",'base.smk')
 
-include:
-    os.path.join(PACKAGE_DIR,"files","smk",'hisat3n.smk')
-
 # ==================================================
 # Mapping summary
 # ==================================================
@@ -54,6 +51,14 @@ rule summary:
         shell(f"rm -rf {bam_dir}/temp")
 
 
+module hisat3n:
+    snakefile:
+        # here, plain paths, URLs and the special markers for code hosting providers (see below) are possible.
+        os.path.join(PACKAGE_DIR,"files","smk",'hisat3n.smk')
+    config: config
+    # skip_validation: True
+
+use rule * from hisat3n exclude index_local_bam as hisat3n_*
 #=====================================================================
 # Processing multi-alignment reads and generate allc-multi
 #=====================================================================
