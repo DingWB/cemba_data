@@ -4,15 +4,6 @@ PACKAGE_DIR=cemba_data.__path__[0]
 include:
     os.path.join(PACKAGE_DIR,"files","smk",'base.smk')
 
-module hisat3n:
-    snakefile:
-        # here, plain paths, URLs and the special markers for code hosting providers (see below) are possible.
-        os.path.join(PACKAGE_DIR,"files","smk",'hisat3n.smk')
-    config: config
-
-# use rule * from hisat3n exclude trim as hisat3n_*
-use rule * from hisat3n exclude all,unique_reads_allc as hisat3n_*
-
 # the summary rule is the final target
 rule summary:
     input:
@@ -43,6 +34,16 @@ rule summary:
 
         # cleanup
         shell(f"rm -rf {bam_dir}/temp")
+
+module hisat3n:
+    snakefile:
+        # here, plain paths, URLs and the special markers for code hosting providers (see below) are possible.
+        os.path.join(PACKAGE_DIR,"files","smk",'hisat3n.smk')
+    config: config
+
+# use rule * from hisat3n exclude trim as hisat3n_*
+use rule * from hisat3n exclude all,unique_reads_allc as hisat3n_*
+
 
 rule mc_sort_bam:
     input:

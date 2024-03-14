@@ -4,22 +4,6 @@ PACKAGE_DIR=cemba_data.__path__[0]
 include:
     os.path.join(PACKAGE_DIR,"files","smk",'mct_base.smk')
 
-module hisat3n:
-    snakefile:
-        # here, plain paths, URLs and the special markers for code hosting providers (see below) are possible.
-        os.path.join(PACKAGE_DIR,"files","smk",'hisat3n.smk')
-    config: config
-
-# use rule * from hisat3n exclude trim as hisat3n_*
-use rule sort_fq,hisat_3n_pair_end_mapping_dna_mode,unique_reads_cgn_extraction from hisat3n
-
-module mct:
-    snakefile:
-        # here, plain paths, URLs and the special markers for code hosting providers (see below) are possible.
-            os.path.join(PACKAGE_DIR,"files","smk",'hisat3n',"mct.smk")
-
-use rule * from mct exclude sort_dna_bam as mct_*
-
 # the summary rule is the final target
 rule summary:
     input:
@@ -65,6 +49,22 @@ rule summary:
 
         # cleanup
         shell(f"rm -rf {bam_dir}/temp")
+
+module hisat3n:
+    snakefile:
+        # here, plain paths, URLs and the special markers for code hosting providers (see below) are possible.
+        os.path.join(PACKAGE_DIR,"files","smk",'hisat3n.smk')
+    config: config
+
+# use rule * from hisat3n exclude trim as hisat3n_*
+use rule sort_fq,hisat_3n_pair_end_mapping_dna_mode,unique_reads_cgn_extraction from hisat3n
+
+module mct:
+    snakefile:
+        # here, plain paths, URLs and the special markers for code hosting providers (see below) are possible.
+            os.path.join(PACKAGE_DIR,"files","smk",'hisat3n',"mct.smk")
+
+use rule * from mct exclude sort_dna_bam as mct_*
 
 rule sort_dna_bam:
     input:
