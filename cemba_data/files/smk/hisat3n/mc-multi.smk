@@ -10,7 +10,7 @@ module hisat3n:
         os.path.join(PACKAGE_DIR,"files","smk",'hisat3n.smk')
     config: config
 
-use rule * from hisat3n exclude unique_reads_allc as hisat3n_*
+use rule * from hisat3n exclude all,unique_reads_allc as hisat3n_*
 
 module mc:
     snakefile:

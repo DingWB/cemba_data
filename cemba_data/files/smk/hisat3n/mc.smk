@@ -11,7 +11,7 @@ module hisat3n:
     config: config
 
 # use rule * from hisat3n exclude trim as hisat3n_*
-use rule * from hisat3n exclude unique_reads_allc as hisat3n_*
+use rule * from hisat3n exclude all,unique_reads_allc as hisat3n_*
 
 # the summary rule is the final target
 rule summary:

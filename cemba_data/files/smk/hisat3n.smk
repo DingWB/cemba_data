@@ -21,7 +21,7 @@ rule all:
         "test"
     shell:
         """
-        touch test
+        touch {output}
         """
 # Trim reads
 # sort the fastq files so that R1 and R2 are in the same order
