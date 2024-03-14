@@ -71,7 +71,7 @@ def snmct_summary(outname="MappingSummary.csv.gz",indir="."):
 	all_stats.append(df)
 
 	# hisat-3n RNA mapping
-	df = parse_single_stats_set(path_pattern=indir+'/rna_bam/*.hisat3n_rna_summary.txt',
+	df = parse_single_stats_set(path_pattern=indir+'/bam/*.hisat3n_rna_summary.txt',
 								parser=cell_parser_hisat_summary, prefix='RNA',indir=indir)
 	all_stats.append(df)
 
@@ -100,7 +100,7 @@ def snmct_summary(outname="MappingSummary.csv.gz",indir="."):
 	all_stats.append(df)
 
 	# uniquely mapped rna reads selection
-	df = parse_single_stats_set(path_pattern=indir+'/rna_bam/*.hisat3n_rna.unique_align.rna_reads.reads_mch_frac.csv',
+	df = parse_single_stats_set(path_pattern=indir+'/bam/*.hisat3n_rna.unique_align.rna_reads.reads_mch_frac.csv',
 								parser=cell_parser_reads_mc_frac_profile,indir=indir)
 	all_stats.append(df)
 
@@ -110,7 +110,7 @@ def snmct_summary(outname="MappingSummary.csv.gz",indir="."):
 	all_stats.append(df)
 
 	# feature count
-	df = parse_single_stats_set(path_pattern=indir+'/rna_bam/*.feature_count.tsv.summary',
+	df = parse_single_stats_set(path_pattern=indir+'/bam/*.feature_count.tsv.summary',
 								parser=cell_parser_feature_count_summary,indir=indir)
 	all_stats.append(df)
 

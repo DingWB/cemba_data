@@ -1,129 +1,3 @@
-"""
-Snakemake pipeline for hisat-3n mapping of snm3C-seq data
-
-hg38 normal index uses ~9 GB of memory
-repeat index will use more memory
-"""
-import os,sys
-import yaml
-import pathlib
-from cemba_data.hisat3n import *
-
-# ==================================================
-# Preparation
-# ==================================================
-# read mapping config and put all variables into the locals()
-DEFAULT_CONFIG = {
-    'hisat3n_repeat_index_type': 'no-repeat',
-    'r1_adapter': 'AGATCGGAAGAGCACACGTCTGAAC',
-    'r2_adapter': 'AGATCGGAAGAGCGTCGTGTAGGGA',
-    'r1_right_cut': 10,
-    'r2_right_cut': 10,
-    'r1_left_cut': 10,
-    'r2_left_cut': 10,
-    'min_read_length': 30,
-    'num_upstr_bases': 0,
-    'num_downstr_bases': 2,
-    'compress_level': 5,
-    'hisat3n_threads': 11,
-    # the post_mapping_script can be used to generate dataset, run other process etc.
-    # it gets executed before the final summary function.
-    # the default command is just a placeholder that has no effect
-    'post_mapping_script': 'true',
-}
-REQUIRED_CONFIG = ['hisat3n_dna_reference', 'reference_fasta', 'chrom_size_path']
-
-if "gcp" in config:
-    gcp=config["gcp"] # if the fastq files stored in GCP cloud, set gcp=True in snakemake: --config gcp=True
-else:
-    gcp=False
-
-if "local_fastq" in config and gcp:
-    local_fastq=config["local_fastq"] # if the fastq files stored in GCP cloud, set local_fastq=False in snakemake: --config local_fastq=False
-else:
-    local_fastq=True
-
-if not local_fastq or gcp:
-    from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
-    GS = GSRemoteProvider()
-    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
-
-bam_dir=os.path.abspath(workflow.default_remote_prefix+"/bam") if gcp else "bam"
-allc_dir=os.path.abspath(workflow.default_remote_prefix+"/allc") if gcp else "allc"
-hic_dir=os.path.abspath(workflow.default_remote_prefix+"/hic") if gcp else "hic"
-
-local_config = read_mapping_config()
-DEFAULT_CONFIG.update(local_config)
-
-for k, v in DEFAULT_CONFIG.items():
-    if k not in config:
-        config[k] = v
-
-missing_key = []
-for k in REQUIRED_CONFIG:
-    if k not in config:
-        missing_key.append(k)
-if len(missing_key) > 0:
-    raise ValueError('Missing required config: {}'.format(missing_key))
-
-if not gcp:
-    # fastq table and cell IDs
-    fastq_table = validate_cwd_fastq_paths()
-    CELL_IDS = fastq_table.index.tolist() # CELL_IDS will be writen in the beginning of this snakemake file.
-
-mcg_context = 'CGN' if int(config['num_upstr_bases']) == 0 else 'HCGN'
-#repeat_index_flag = "--repeat" if config['hisat3n_repeat_index_type'] == 'repeat' else "--no-repeat-index"
-repeat_index_flag="--no-repeat-index" #repeat would cause some randomness, get different output (mapping summary) even using the same input and parameters
-allc_mcg_dir=os.path.abspath(workflow.default_remote_prefix+f"/allc-{mcg_context}") if gcp else f"allc-{mcg_context}"
-# print(f"bam_dir: {bam_dir}\n allc_dir: {allc_dir}\n hic_dir: {hic_dir} \n allc_mcg_dir: {allc_mcg_dir}")
-
-for dir in [bam_dir,allc_dir,hic_dir,allc_mcg_dir]:
-    if not os.path.exists(dir):
-        os.mkdir(dir)
-
-# ==================================================
-# Mapping summary
-# ==================================================
-
-# the summary rule is the final target
-rule summary:
-    input:
-        # fastq trim
-        expand("fastq/{cell_id}.trimmed.stats.txt",cell_id=CELL_IDS),
-
-        # bam dir
-        expand("bam/{cell_id}.hisat3n_dna_summary.txt", cell_id=CELL_IDS),
-        expand("bam/{cell_id}.hisat3n_dna.all_reads.deduped.matrix.txt",cell_id=CELL_IDS),
-        expand("bam/{cell_id}.hisat3n_dna_split_reads_summary.{read_type}.txt",
-                        cell_id=CELL_IDS,read_type=['R1','R2']),
-        expand("bam/{cell_id}.hisat3n_dna.all_reads.name_sort.bam", cell_id=CELL_IDS),
-
-        # 3C contacts
-        expand("hic/{cell_id}.hisat3n_dna.all_reads.contact_stats.csv", cell_id=CELL_IDS),
-        expand("hic/{cell_id}.hisat3n_dna.all_reads.3C.contact.tsv.gz",cell_id=CELL_IDS),
-        expand("hic/{cell_id}.hisat3n_dna.all_reads.dedup_contacts.tsv.gz",cell_id=CELL_IDS),
-
-        # allc
-        expand("allc/{cell_id}.allc.tsv.gz.count.csv", cell_id=CELL_IDS),
-        expand("allc/{cell_id}.allc.tsv.gz",cell_id=CELL_IDS),
-        expand("allc/{cell_id}.allc.tsv.gz.tbi",cell_id=CELL_IDS),
-
-        # allc-CGN
-        expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz.tbi", cell_id=CELL_IDS, mcg_context=mcg_context),
-        expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz",cell_id=CELL_IDS,mcg_context=mcg_context)
-    output:
-        csv="MappingSummary.csv.gz"
-    run:
-        # execute any post-mapping script before generating the final summary
-        shell(config['post_mapping_script'])
-
-        # generate the final summary
-        indir='.' if not gcp else workflow.default_remote_prefix
-        snm3c_summary(outname=output.csv,indir=indir)
-
-        # cleanup
-        shell(f"rm -rf {bam_dir}/temp")
-
 
 # ==================================================
 # FASTQ Trimming
@@ -170,7 +44,6 @@ rule trim:
 # ==================================================
 # HISAT-3N DNA Mapping
 # ==================================================
-
 
 # Paired-end Hisat3n mapping using DNA mode
 rule hisat_3n_pair_end_mapping_dna_mode:
@@ -329,7 +202,7 @@ rule call_chromatin_contacts:
                                 save_hic_format=True)
 
 
-rule sort_bam:
+rule sort_bam_by_pos:
     input:
         bam=rules.sort_all_reads_by_name.output.bam #"bam/{cell_id}.hisat3n_dna.all_reads.name_sort.bam"
     output:
@@ -344,7 +217,7 @@ rule sort_bam:
         """
 
 # remove PCR duplicates
-rule dedup_unique_bam:
+rule dedup:
     input:
         bam=local(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.pos_sort.bam")
     output:
@@ -359,13 +232,12 @@ rule dedup_unique_bam:
         picard MarkDuplicates I={input.bam} O={output.bam} M={output.stats} REMOVE_DUPLICATES=true TMP_DIR=bam/temp/
         """
 
-
 # index the bam file
-rule index_unique_bam_dna_reads:
+rule index_bam:
     input:
-        bam=local(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam")
+        bam=local(bam_dir+"/{input_name}.bam")
     output:
-        bai=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam.bai"))
+        bai=local(temp(bam_dir+"/{input_name}.bam.bai"))
     shell:
         """
         samtools index {input.bam}
@@ -374,7 +246,6 @@ rule index_unique_bam_dna_reads:
 # ==================================================
 # Generate ALLC
 # ==================================================
-# generate ALLC
 rule unique_reads_allc:
     input:
         bam=local(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam"),
@@ -392,7 +263,7 @@ rule unique_reads_allc:
         mkdir -p {allc_dir}
         allcools bam-to-allc --bam_path {input.bam} \
 --reference_fasta {config[reference_fasta]} --output_path {output.allc} \
---num_upstr_bases {config[num_upstr_bases]} \
+--cpu {threads} --num_upstr_bases {config[num_upstr_bases]} \
 --num_downstr_bases {config[num_downstr_bases]} \
 --compress_level {config[compress_level]} --save_count_df \
 --convert_bam_strandness

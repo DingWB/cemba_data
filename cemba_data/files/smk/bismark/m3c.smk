@@ -1,21 +1,7 @@
-
-# Snakemake rules below
-# suitable for snm3C-seq
-
-# example 1: run on local HPC:
-
-# snakemake -d /gale/ddn/bican/Wubin/run_pipeline/mapping/AMB_220510_8wk_12D_13B_2_P3-5-A11 \
-# --snakefile /gale/ddn/bican/Wubin/run_pipeline/mapping/AMB_220510_8wk_12D_13B_2_P3-5-A11/Snakefile \
-# -j 10 --default-resources mem_mb=100 --resources mem_mb=50000
-
-# example 2: run on GCP
-# sync Snakefile to GCP:~/sky_workdir
-
-# conda activate yap
-# prefix="DATASET/mapping/Pool1/AMB_220510_8wk_12D_13B_2_P3-5-A11/"
-# snakemake --snakefile ~/sky_workdir/Snakefile -j 10 --default-resources mem_mb=100 --resources mem_mb=50000 
-# --config gcp=True --default-remote-prefix ${prefix} \
-# --default-remote-provider GS --google-lifesciences-region us-west1 -np
+import os,sys
+import yaml
+import pathlib
+from cemba_data.hisat3n import *
 
 if "gcp" in config:
     gcp=config["gcp"] # if the fastq files stored in GCP cloud, set gcp=True in snakemake: --config gcp=True
@@ -62,7 +48,7 @@ rule summary:
     output:
         "MappingSummary.csv.gz"
     params:
-        outdir=os.path.abspath("./") if not gcp else workflow.default_remote_prefix,
+        outdir=os.path.abspath("../../../mapping/Snakefile_template/") if not gcp else workflow.default_remote_prefix,
     shell:
         """
         yap-internal summary --output_dir {params.outdir} --fastq_dir {fastq_dir} --mode {mode} --barcode_version {barcode_version} \

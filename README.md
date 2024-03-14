@@ -36,15 +36,17 @@ conda activate yap
 
 ### (2). Generate config.ini
 ```shell
-yap default-mapping-config --mode m3c --barcode_version V2 --bismark_ref "~/Ref/mm10/mm10_ucsc_with_chrL.bismark1" --genome "~/Ref/mm10/mm10_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/mm10/mm10_ucsc.nochrM.sizes"  > config.ini
+yap default-mapping-config --mode m3c --barcode_version V2 --bismark_ref "~/Ref/mm10/mm10_ucsc_with_chrL.bismark1" --genome "~/Ref/mm10/mm10_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/mm10/mm10_ucsc.nochrM.sizes" --hisat3n_dna_ref  "~/Ref/mm10/mm10_ucsc_with_chrL" > m3c_config.ini
+
+yap default-mapping-config --mode mc --barcode_version V2 --bismark_ref "~/Ref/mm10/mm10_ucsc_with_chrL.bismark1" --genome "~/Ref/mm10/mm10_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/mm10/mm10_ucsc.nochrM.sizes" --hisat3n_dna_ref  "~/Ref/mm10/mm10_ucsc_with_chrL" > mc_config.ini
 # pay attention to the path of reference, should be the same as on the GCP if you are going to run the pipeline on GCP.      
 ```
 
 ### (3). Demultiplex
 ```shell
-yap demultiplex --fastq_pattern "/gale/netapp/seq12/illumina_runs/240228_LH00296_0010_B22CHYYLT3_240304090839967598165/Pool_Remind1_m3c/*.fastq.gz" -o mapping/Pool_Remind1_m3c -j 2 --aligner hisat3n --config_path config.ini
+yap demultiplex --fastq_pattern "Pool_Remind1_m3c/*.fastq.gz" -o mapping/Pool_Remind1_m3c -j 16 --aligner hisat3n --config_path m3c_config.ini
 # or
-# yap-gcp run_demultiplex --fq_dir="/gale/netapp/seq12/illumina_runs/240228_LH00296_0010_B22CHYYLT3_240304090839967598165/Pool_Remind1_m3c" --outdir="mapping/Pool_Remind1_m3c" --barcode_version="V2" --gcp=False --n_jobs=16 --print_only=True --n_jobs=2
+ yap-gcp run_demultiplex --fq_dir="Pool_Remind1_m3c" --outdir="mapping/Pool_Remind1_m3c" --barcode_version="V2" --gcp=False --n_jobs=16 --print_only=True 
 ```
 
 ### (4). Run mapping
@@ -52,7 +54,7 @@ yap demultiplex --fastq_pattern "/gale/netapp/seq12/illumina_runs/240228_LH00296
 ```shell
 sh mapping/snakemake/qsub/snakemake_cmd.txt
 # or
-yap-gcp run_mapping --fastq_prefix="mapping/Pool_Remind1_m3c" --gcp=False --config_path="config.ini" --aligner='hisat-3n' --n_jobs=2 --print_only=True
+yap-gcp run_mapping --fastq_prefix="mapping/Pool_Remind1_m3c" --gcp=False --config_path="m3c_config.ini" --aligner='hisat-3n' --n_jobs=64 --print_only=True
 ```
 
 ## 2 Run on GCP

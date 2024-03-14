@@ -10,18 +10,8 @@ from .mct import mct_config_str
 from ._4m import _4m_config_str
 from ...utilities import get_configuration
 # from cemba_data.utilities import get_configuration
-
 # Load defaults
 PACKAGE_DIR = pathlib.Path(cemba_data.__path__[0])
-INHOUSE_SERVERS = ['bpho', 'gale', 'cemba', 'oberon',
-				   'login1.stampede2.tacc.utexas.edu',
-				   'login2.stampede2.tacc.utexas.edu',
-				   'login3.stampede2.tacc.utexas.edu',
-				   'login4.stampede2.tacc.utexas.edu',
-				   'login5.stampede2.tacc.utexas.edu',
-				   'login6.stampede2.tacc.utexas.edu']
-
-
 def prepare_uid_snakefile(uid_dir, config_str, snake_template):
 	cell_ids = [path.name.split('.')[0][:-3] for path in (uid_dir / 'fastq').glob('*R1.fq.gz')]
 	cell_id_str = f'CELL_IDS = {cell_ids}\n'
@@ -60,9 +50,10 @@ def validate_mapping_config(output_dir):
 	print(f'Mapping config file looks good. Here is what will be used in generating Snakefile:\n{config_str}')
 	return
 
-def make_snakefile(output_dir,sky_template=None,aligner="bismark"):
+def make_snakefile(output_dir,aligner="bismark"):
 	output_dir = pathlib.Path(output_dir).absolute()
-	config = get_configuration(output_dir / 'mapping_config.ini')
+	mapping_config_name = list(output_dir.glob('mapping_config.*'))[0].name
+	config = get_configuration(output_dir / mapping_config_name)
 	try:
 		mode = config['mode']
 	except KeyError:
@@ -82,9 +73,9 @@ def make_snakefile(output_dir,sky_template=None,aligner="bismark"):
 	print(config_str)
 
 	if aligner.lower()=="bismark":
-		snakefile_path=os.path.join(PACKAGE_DIR, f'mapping/Snakefile_template/{mode}.smk')
+		snakefile_path=os.path.join(PACKAGE_DIR, f'files/smk/bismark/{mode.lower()}.smk')
 	elif aligner.lower() in ['hisat3n', 'hisat-3n', 'hisat_3n', 'hisat']:
-		snakefile_path = os.path.join(PACKAGE_DIR, f'hisat3n/snakefile/{mode.lower()}.smk')
+		snakefile_path = os.path.join(PACKAGE_DIR, f'files/smk/hisat3n/{mode.lower()}.smk')
 	else:
 		raise ValueError(f"Unknown aligner: {aligner}")
 	with open(snakefile_path) as f:
@@ -96,19 +87,20 @@ def make_snakefile(output_dir,sky_template=None,aligner="bismark"):
 				prepare_uid_snakefile(uid_dir=sub_dir,
 									  config_str=config_str,
 									  snake_template=snake_template)
-	if not sky_template is None:
-		write_gcp_skypolit_yaml(output_dir=output_dir, template_path=sky_template)
 	return
 
-def make_gcp_snakefile(output_dir,subdir,aligner="hisat-3n"):
-	from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
-	import json
-	os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.expanduser(
-		'~/.config/gcloud/application_default_credentials.json')
-	with open(os.environ['GOOGLE_APPLICATION_CREDENTIALS'], 'r') as f:
-		D = json.load(f)
-	gcp_project = D['quota_project_id']
-	GS = GSRemoteProvider(project=gcp_project)
+def make_all_snakefile(output_dir, subdir, aligner="hisat-3n", gcp=True):
+	if gcp:
+		from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
+		import json
+		os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.expanduser(
+			'~/.config/gcloud/application_default_credentials.json')
+		with open(os.environ['GOOGLE_APPLICATION_CREDENTIALS'], 'r') as f:
+			D = json.load(f)
+		gcp_project = D['quota_project_id']
+		GS = GSRemoteProvider(project=gcp_project)
+	else:
+		from snakemake.io import glob_wildcards
 	# assert os.path.exists(os.path.join(output_dir,'mapping_config.ini'))
 	try:
 		mapping_config_name = [file for file in os.listdir(output_dir) if file.startswith('mapping_config.')][0]
@@ -134,10 +126,10 @@ def make_gcp_snakefile(output_dir,subdir,aligner="hisat-3n"):
 	print('Making Snakefile based on mapping config INI file. The parameters are:')
 	print(config_str)
 
-	if aligner.lower()=="bismark":
-		snakefile_path=os.path.join(PACKAGE_DIR, f'mapping/Snakefile_template/{mode}.smk')
+	if aligner.lower() == "bismark":
+		snakefile_path = os.path.join(PACKAGE_DIR, f'files/smk/bismark/{mode.lower()}.smk')
 	elif aligner.lower() in ['hisat3n', 'hisat-3n', 'hisat_3n', 'hisat']:
-		snakefile_path = os.path.join(PACKAGE_DIR, f'hisat3n/snakefile/{mode.lower()}.smk')
+		snakefile_path = os.path.join(PACKAGE_DIR, f'files/smk/hisat3n/{mode.lower()}.smk')
 	else:
 		raise ValueError(f"Unknown aligner: {aligner}")
 
@@ -147,8 +139,11 @@ def make_gcp_snakefile(output_dir,subdir,aligner="hisat-3n"):
 	sub_folder=os.path.join(output_dir,subdir)
 	if not os.path.exists(sub_folder):
 		os.makedirs(sub_folder,exist_ok=True)
-	cell_ids = GS.glob_wildcards(os.path.join(sub_folder,"fastq/{cell_id}-R1.fq.gz"))[0]
-	#sub_folder can startwith gs://, if gs:// not present at the beginning, it also OK
+	if gcp:
+		cell_ids = GS.glob_wildcards(os.path.join(sub_folder,"fastq/{cell_id}-R1.fq.gz"))[0]
+		#sub_folder can startwith gs://, if gs:// not present at the beginning, it also OK
+	else:
+		cell_ids = glob_wildcards(os.path.join(sub_folder, "fastq/{cell_id}-R1.fq.gz"))[0]
 
 	if len(cell_ids) == 0: # length should be 64
 		raise ValueError(f"No cell fastq were identified under {sub_folder}/fastq")
@@ -164,6 +159,49 @@ def make_gcp_snakefile(output_dir,subdir,aligner="hisat-3n"):
 	with open(os.path.join(sub_folder,'Snakefile'), 'w') as f:
 	# with open(f'{subdir}.smk', 'w') as f:
 		f.write(total_snakefile)
+	return
+
+def make_snakefile_hisat3n(output_dir,aligner='hisat-3n'):
+	output_dir = pathlib.Path(output_dir)
+
+	mapping_config_name = list(output_dir.glob('mapping_config.*'))[0].name
+
+	config = get_configuration(output_dir / mapping_config_name)
+	try:
+		mode = config['mode']
+	except KeyError:
+		raise KeyError('mode not found in the config file.')
+
+	skip_dirs = ['stats', 'snakemake', 'scool']
+	mapping_job_dirs = [p for p in output_dir.glob('*')
+						if p.is_dir() and (p.name not in skip_dirs)]
+
+	snakemake_dir = output_dir / 'snakemake'
+	snakemake_dir.mkdir(exist_ok=True)
+	stats_dir = output_dir / 'stats'
+	stats_dir.mkdir(exist_ok=True)
+
+	package_dir = cemba_data.__path__[0]
+	if aligner.lower()=="bismark":
+		snakefile_path=os.path.join(PACKAGE_DIR, f'files/smk/bismark/{mode.lower()}.smk')
+	elif aligner.lower() in ['hisat3n', 'hisat-3n', 'hisat_3n', 'hisat']:
+		snakefile_path = os.path.join(PACKAGE_DIR, f'files/smk/hisat3n/{mode.lower()}.smk')
+	else:
+		raise ValueError(f"Unknown aligner: {aligner}")
+	if not pathlib.Path(snakefile_path).exists():
+		print('Possible snakefile templates:')
+		for p in pathlib.Path(f'{package_dir}/hisat3n/snakefile/').glob('*.smk'):
+			print(p)
+		raise ValueError(f'Mode {mode} not supported, '
+						 f'because Snakefile {snakefile_path} not found.')
+
+	for p in mapping_job_dirs:
+		subprocess.run(['cp', f'{output_dir}/{mapping_config_name}',
+						f'{p}/{mapping_config_name}'], check=True)
+		subprocess.run(['cp', snakefile_path, f'{p}/Snakefile'], check=True)
+
+	# leave a flag to indicate using hisat-3n pipeline
+	subprocess.run(['touch', f'{output_dir}/snakemake/hisat3n'], check=True)
 	return
 
 def write_qsub_commands(output_dir, cores_per_job, memory_gb_per_core, script_dir):
@@ -423,7 +461,6 @@ def prepare_run(output_dir, total_jobs=12, cores_per_job=10, memory_gb_per_core=
 		host_name = subprocess.run('hostname', stdout=subprocess.PIPE, encoding='utf8').stdout
 		if not isinstance(host_name, str):
 			host_name = 'unknown'
-	# if any([host_name.startswith(s) for s in INHOUSE_SERVERS]):
 	prepare_qsub(name=name,
 					snakemake_dir=snakemake_dir,
 					total_jobs=total_jobs,
@@ -441,7 +478,7 @@ def prepare_run(output_dir, total_jobs=12, cores_per_job=10, memory_gb_per_core=
 	print(f"Once all commands are executed successfully, use 'yap summary' to generate final mapping summary.")
 	return
 
-def start_from_cell_fastq(output_dir, fastq_pattern, config_path,sky_template=None):
+def start_from_cell_fastq(output_dir, fastq_pattern, config_path):
 	output_dir = pathlib.Path(output_dir).absolute()
 	if output_dir.exists():
 		raise FileExistsError(f'Output dir {output_dir} already exist, please delete it or use another path.')
@@ -489,6 +526,6 @@ def start_from_cell_fastq(output_dir, fastq_pattern, config_path,sky_template=No
 		new_r2_path.symlink_to(r2_path)
 
 	# prepare scripts
-	make_snakefile(output_dir,sky_template)
+	make_snakefile(output_dir)
 	prepare_run(output_dir)
 	return

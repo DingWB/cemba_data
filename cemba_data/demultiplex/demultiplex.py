@@ -9,9 +9,8 @@ import subprocess
 import pandas as pd
 import cemba_data
 from .fastq_dataframe import make_fastq_dataframe
-from ..mapping.pipelines import make_snakefile, prepare_run, validate_mapping_config
+from ..mapping.pipelines import make_snakefile, make_snakefile_hisat3n,prepare_run, validate_mapping_config
 from ..utilities import snakemake, get_configuration
-from ..hisat3n import make_snakefile_hisat3n
 
 # logger
 log = logging.getLogger(__name__)
@@ -427,7 +426,7 @@ def _reformat_v2_single(output_dir):
 SUPPORTED_TECHNOLOGY = ['mc', 'mct', 'm3c']
 
 
-def demultiplex_pipeline(fastq_pattern, output_dir, config_path, cpu, aligner,sky_template=None):
+def demultiplex_pipeline(fastq_pattern, output_dir, config_path, cpu, aligner):
     cpu = int(cpu)
     merge_cpu = min(48, cpu)
     demultiplex_cpu = min(32, cpu)
@@ -466,7 +465,7 @@ def demultiplex_pipeline(fastq_pattern, output_dir, config_path, cpu, aligner,sk
     _skip_abnormal_fastq_pairs(output_dir=output_dir)
 
     if aligner.lower() == 'bismark':
-        make_snakefile(output_dir=output_dir,sky_template=sky_template)
+        make_snakefile(output_dir=output_dir)
 
         # this is just a convenient step, so I fix the parameters here
         # users should change the resulting batch submission
@@ -479,7 +478,7 @@ def demultiplex_pipeline(fastq_pattern, output_dir, config_path, cpu, aligner,sk
     return
 
 
-def update_snakemake(output_dir,sky_template=None):
+def update_snakemake(output_dir):
     """When mapping_config.ini is updated, or the output_dir path changed,
     use this function to update snakefile and snakemake commands."""
     output_dir = pathlib.Path(output_dir).absolute()
@@ -488,6 +487,6 @@ def update_snakemake(output_dir,sky_template=None):
         # hisat3n pipeline
         make_snakefile_hisat3n(output_dir=output_dir)
     else:
-        make_snakefile(output_dir,sky_template)
+        make_snakefile(output_dir)
         prepare_run(output_dir)
     return

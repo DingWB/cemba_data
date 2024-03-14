@@ -226,11 +226,11 @@ def select_mct_reads(input_bam,
     return
 
 
-def aggregate_feature_counts():
+def aggregate_feature_counts(indir="."):
     cell_datas = []
 
     save_info = True
-    for path in pathlib.Path('rna_bam/').glob('*.feature_count.tsv'):
+    for path in pathlib.Path(indir+'/bam/').glob('*.feature_count.tsv'):
         table = pd.read_csv(path, comment='#', sep='\t', index_col=0)
         cell_data = table.iloc[:, -1].squeeze()
         cell_data.name = cell_data.name.split(':')[-1]

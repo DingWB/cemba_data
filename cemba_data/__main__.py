@@ -320,13 +320,6 @@ def demultiplex_register_subparser(subparser):
         choices=['bismark', 'hisat3n'],
         help="Choice of aligner and corresponding mapping pipelines."
     )
-
-    parser_req.add_argument(
-        "--sky_template",
-        type=str,
-        default=None,
-        help="skypilot template used to run the pipeline on GCP"
-    )
     return
 
 
@@ -344,14 +337,6 @@ def update_snakemake_register_subparser(subparser):
         type=str,
         required=True,
         help="Pipeline output directory."
-    )
-
-    parser_req.add_argument(
-        "--sky_template",
-        "-t",
-        type=str,
-        default=None,
-        help="skypilot template used to run the pipeline on GCP"
     )
     return
 
