@@ -245,11 +245,11 @@ rule dedup:
         """
 
 # index the bam file
-rule index_local_bam:
+rule index_bam:
     input:
-        bam=local(bam_dir + "/{cell_id}.hisat3n_dna.all_reads.deduped.bam"),
+        bam=local(bam_dir+"/{input_name}.bam")
     output:
-        bai=local(temp(bam_dir + "/{cell_id}.hisat3n_dna.all_reads.deduped.bam.bai")),
+        bai=local(temp(bam_dir+"/{input_name}.bam.bai"))
     shell:
         """
         samtools index {input.bam}
