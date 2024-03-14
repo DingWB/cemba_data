@@ -52,8 +52,8 @@ if not local_fastq or gcp:
 
 bam_dir=os.path.abspath(workflow.default_remote_prefix+"/bam") if gcp else "bam"
 allc_dir=os.path.abspath(workflow.default_remote_prefix+"/allc") if gcp else "allc"
+allc_multi_dir=os.path.abspath(workflow.default_remote_prefix+"/allc-multi") if gcp else "allc-multi"
 hic_dir=os.path.abspath(workflow.default_remote_prefix+"/hic") if gcp else "hic"
-
 
 local_config = read_mapping_config()
 DEFAULT_CONFIG.update(local_config)

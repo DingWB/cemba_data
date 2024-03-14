@@ -76,7 +76,7 @@ rule dedup_multi_bam:
         bam=local(bam_dir+"/{cell_id}.hisat3n_dna_sorted.multi_align.bam")
     output:
         bam="bam/{cell_id}.hisat3n_dna.multi_align.deduped.bam",
-        stats=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.multi_align.deduped.matrix.txt"))
+        stats="bam/{cell_id}.hisat3n_dna.multi_align.deduped.matrix.txt"
     resources:
         mem_mb=1000
     threads:
@@ -84,6 +84,16 @@ rule dedup_multi_bam:
     shell:
         """
         picard MarkDuplicates -I {input} -O {output.bam} -M {output.stats} -REMOVE_DUPLICATES true -TMP_DIR bam/temp/
+        """
+
+rule index_bam:
+    input:
+        bam="bam/{input_name}.bam"
+    output:
+        bai="bam/{input_name}.bam.bai"
+    shell:
+        """
+        samtools index {input.bam}
         """
 
 # generate ALLC
