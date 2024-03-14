@@ -2,13 +2,20 @@
 # ==================================================
 # FASTQ Trimming
 # ==================================================
+print(config)
 
+bam_dir=config['bam_dir']
+allc_dir=config['allc_dir']
+hic_dir=config['hic_dir']
+mcg_context=config['mcg_context']
+repeat_index_flag=config['repeat_index_flag']
+allc_mcg_dir=config['allc_mcg_dir']
 
 # Trim reads
 # sort the fastq files so that R1 and R2 are in the same order
 rule sort_fq:
     input:
-        fq=local("fastq/{cell_id}-{read_type}.fq.gz") if local_fastq else GS.remote("gs://"+workflow.default_remote_prefix+"/fastq/{cell_id}-{read_type}.fq.gz"),
+        fq=local("fastq/{cell_id}-{read_type}.fq.gz") if config['local_fastq'] else GS.remote("gs://"+workflow.default_remote_prefix+"/fastq/{cell_id}-{read_type}.fq.gz"),
     output:
         fq=local(temp("fastq/{cell_id}-{read_type}_sort.fq")),
     threads:
