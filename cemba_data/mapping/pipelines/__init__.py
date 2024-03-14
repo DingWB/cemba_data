@@ -112,9 +112,9 @@ def make_all_snakefile(output_dir, subdir, aligner="hisat-3n", gcp=True):
 	except KeyError:
 		raise KeyError('mode not found in the config file.')
 
-	if mode =='mc':
+	if mode in ['mc','mc-multi']:
 		config_str = mc_config_str(config)
-	elif mode == 'mct':
+	elif mode in ['mct','mct-multi']:
 		config_str = mct_config_str(config)
 	elif mode in ['m3c','m3c-multi']:
 		config_str = m3c_config_str(config)
