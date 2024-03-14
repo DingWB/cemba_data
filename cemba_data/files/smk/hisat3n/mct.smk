@@ -9,7 +9,7 @@ module hisat3n:
         # here, plain paths, URLs and the special markers for code hosting providers (see below) are possible.
         os.path.join(PACKAGE_DIR,"files","smk",'hisat3n.smk')
     config: config
-    skip_validation: True
+    # skip_validation: True
 
 # use rule * from hisat3n exclude trim as hisat3n_*
 use rule sort_fq,hisat_3n_pair_end_mapping_dna_mode,unique_reads_cgn_extraction from hisat3n
