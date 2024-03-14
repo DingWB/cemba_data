@@ -69,7 +69,7 @@ rule hisat_3n_pair_end_mapping_dna_mode:
         config['hisat3n_threads']
     resources:
         mem_mb=14000
-    shell:
+    shell: # # do not filter any reads in this step
         """
         hisat-3n {config[hisat3n_dna_reference]} -q  -1 {input.R1} -2 {input.R2} \
 --directional-mapping-reverse --base-change C,T {repeat_index_flag} \

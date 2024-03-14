@@ -42,8 +42,26 @@ module hisat3n:
     config: config
 
 # use rule * from hisat3n exclude trim as hisat3n_*
-use rule * from hisat3n exclude all,unique_reads_allc as hisat3n_*
+use rule * from hisat3n exclude unique_reads_allc,hisat_3n_pair_end_mapping_dna_mode as hisat3n_*
 
+rule hisat_3n_pair_end_mapping_dna_mode:
+    input:
+        R1=local("fastq/{cell_id}-R1.trimmed.fq.gz"),
+        R2=local("fastq/{cell_id}-R2.trimmed.fq.gz")
+    output:
+        bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.unsort.bam")),
+        stats="bam/{cell_id}.hisat3n_dna_summary.txt",
+    threads:
+        config['hisat3n_threads']
+    resources:
+        mem_mb=14000
+    shell: # -q 10 will filter out multi-aligned reads
+        """
+        hisat-3n {config[hisat3n_dna_reference]} -q  -1 {input.R1} -2 {input.R2} \
+--directional-mapping-reverse --base-change C,T {repeat_index_flag} \
+--no-spliced-alignment --no-temp-splicesite -t  --new-summary \
+--summary-file {output.stats} --threads {threads} | samtools view -b -q 10 -o {output.bam}
+        """
 
 rule mc_sort_bam:
     input:
