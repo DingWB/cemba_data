@@ -2,7 +2,7 @@ import os
 # ==================================================
 # FASTQ Trimming
 # ==================================================
-print(config)
+# print(config)
 
 bam_dir=config['bam_dir']
 allc_dir=config['allc_dir']
