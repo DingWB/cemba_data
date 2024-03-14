@@ -54,6 +54,7 @@ module mc:
         # here, plain paths, URLs and the special markers for code hosting providers (see below) are possible.
         os.path.join(PACKAGE_DIR,"files","smk",'hisat3n',"mc.smk")
     config: config
+    CELL_IDS: CELL_IDS
 
 use rule * from mc exclude mc_sort_bam as mc_*
 
