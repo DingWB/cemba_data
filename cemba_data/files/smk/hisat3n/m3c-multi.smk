@@ -1,8 +1,8 @@
 include:
-    '../base.smk'
+    os.path.join(PACKAGE_DIR,"files","smk",'base.smk')
 
 include:
-    '../hisat3n.smk'
+    os.path.join(PACKAGE_DIR,"files","smk",'hisat3n.smk')
 
 # ==================================================
 # Mapping summary

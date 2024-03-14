@@ -1,10 +1,10 @@
 include:
-    '../mct_base.smk'
+    os.path.join(PACKAGE_DIR,"files","smk",'mct_base.smk')
 
 module hisat3n:
     snakefile:
         # here, plain paths, URLs and the special markers for code hosting providers (see below) are possible.
-        '../hisat3n.smk'
+        os.path.join(PACKAGE_DIR,"files","smk",'hisat3n.smk')
 
 # use rule * from hisat3n exclude trim as hisat3n_*
 use rule sort_fq,hisat_3n_pair_end_mapping_dna_mode,unique_reads_cgn_extraction from hisat3n
@@ -12,7 +12,7 @@ use rule sort_fq,hisat_3n_pair_end_mapping_dna_mode,unique_reads_cgn_extraction 
 module mct:
     snakefile:
         # here, plain paths, URLs and the special markers for code hosting providers (see below) are possible.
-        'mct.smk'
+            os.path.join(PACKAGE_DIR,"files","smk",'hisat3n',"mct.smk")
 
 use rule * from mct exclude sort_dna_bam as mct_*
 

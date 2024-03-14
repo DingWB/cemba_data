@@ -1,13 +1,13 @@
 include:
-    '../base.smk'
+    os.path.join(PACKAGE_DIR,"files","smk",'base.smk')
 
 include:
-    '../hisat3n.smk'
+    os.path.join(PACKAGE_DIR,"files","smk",'hisat3n.smk')
 
 module mc:
     snakefile:
         # here, plain paths, URLs and the special markers for code hosting providers (see below) are possible.
-        'mc.smk'
+        os.path.join(PACKAGE_DIR,"files","smk",'hisat3n',"mc.smk")
 
 use rule * from mc exclude mc_sort_bam as mc_*
 

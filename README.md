@@ -59,22 +59,19 @@ yap-gcp run_mapping --fastq_prefix="mapping/Pool_Remind1_m3c" --gcp=False --conf
 
 ## 2 Run on GCP
 ```shell
-# mapping (bismark or hisat-3n)
-yap default-mapping-config --mode m3c-multi --barcode_version V2 --bismark_ref "~/Ref/hg38/hg38_ucsc_with_chrL.bismark1" --genome "~/Ref/hg38/hg38_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/hg38/hg38_ucsc.main.chrom.sizes" --hisat3n_dna_ref  "~/Ref/hg38/hg38_ucsc_with_chrL" > config.ini
-# vim config.ini, check hisat3n_repeat_index_type should be: repeat, mode is m3c-multi
-
-# gs://mapping_example/test_gcp_hisat3n is the outdir of prepare_demultiplex
-yap-gcp prepare_mapping --fastq_prefix gs://mapping_example/test_gcp_hisat3n --config_path config.ini --aligner hisat-3n --chunk_size 6 --job_name='mapping' --env_name='yap' --n_jobs=8
-# folder mapping_gcp_tmp will be created (default folder name)
-# view and edit run_mapping.yaml; Note: remember to copy reference to VM machine
-# When one want to run the jobs on multiple nodes, please change num_nodes and use --node_rank "$SKYPILOT_NODE_RANK"'
-# to tell yap-gcp run_mapping which node and batch it is running
-# when set node_rank < 0, for example, -1, will run with only 1 node, chunk_size is overwritten.
-# remember to change instance type
-sky spot launch -y -n mapping run_mapping.yaml
-# or: sky launch -y -n mapping run_mapping.yaml
+yap-gcp yap_pipeline --fq_dir="gs://mapping_example/fastq/novaseq_fastq" \
+--remote_prefix='mapping_example' --outdir='novaseq_mapping' --env_name='yap' \
+--n_jobs1=16 --n_jobs2=60 \
+--image="bican" --n_node 1 --disk_size1 300 --disk_size2 300 \
+--demultiplex_template="~/Projects/BICAN/yaml/demultiplex.yaml" \
+--mapping_template="~/Projects/BICAN/yaml/mapping.yaml" \
+--genome="~/Ref/hg38/hg38_ucsc_with_chrL.fa" \
+--hisat3n_dna_ref="~/Ref/hg38/hg38_ucsc_with_chrL" \
+--mode='m3c' --bismark_ref='~/Ref/hg38/hg38_ucsc_with_chrL.bismark1' \
+--chrom_size_path='~/Ref/hg38/hg38_ucsc.main.chrom.sizes' \
+--aligner='hisat-3n' > run.sh
+source run.sh
 ```
-
 
 # Testing pipeline
 ## 1.1. Make example fastq files
