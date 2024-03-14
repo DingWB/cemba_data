@@ -58,7 +58,7 @@ module hisat3n:
     # skip_validation: True
 
 # use rule * from hisat3n exclude trim as hisat3n_*
-use rule sort_fq,unique_reads_cgn_extraction from hisat3n
+use rule sort_fq,unique_reads_cgn_extraction,index_bam from hisat3n
 
 
 rule trim:
@@ -232,16 +232,6 @@ rule feature_count:
         """
         featureCounts -t {config[feature_type]} -g {config[id_type]} \
 -a {config[gtf_path]} -o {output.tsv} --byReadGroup -T {threads} {input}
-        """
-
-rule index_bam:
-    input:
-        bam="bam/{input_name}.bam"
-    output:
-        bai="bam/{input_name}.bam.bai"
-    shell:
-        """
-        samtools index {input.bam}
         """
 
 # ==================================================

@@ -114,16 +114,6 @@ rule mc_dedup_unique_bam:
         picard MarkDuplicates -I {input.bam} -O {output.bam} -M {output.stats} -REMOVE_DUPLICATES true -TMP_DIR bam/temp/
         """
 
-rule index_bam:
-    input:
-        bam="bam/{input_name}.bam"
-    output:
-        bai="bam/{input_name}.bam.bai"
-    shell:
-        """
-        samtools index {input.bam}
-        """
-
 # ==================================================
 # Generate ALLC
 # ==================================================

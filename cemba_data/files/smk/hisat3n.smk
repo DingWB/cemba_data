@@ -247,9 +247,9 @@ rule dedup:
 # index the bam file
 rule index_bam:
     input:
-        bam=local(bam_dir+"/{input_name}.bam")
+        bam="{input_name}.bam"
     output:
-        bai=local(temp(bam_dir+"/{input_name}.bam.bai"))
+        bai="{input_name}.bam.bai"
     shell:
         """
         samtools index {input.bam}

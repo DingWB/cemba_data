@@ -57,7 +57,7 @@ module hisat3n:
     config: config
 
 # use rule * from hisat3n exclude trim as hisat3n_*
-use rule sort_fq,unique_reads_cgn_extraction from hisat3n
+use rule sort_fq,unique_reads_cgn_extraction,index_bam from hisat3n
 
 module mct:
     snakefile:
