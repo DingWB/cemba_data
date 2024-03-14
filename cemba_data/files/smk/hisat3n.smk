@@ -1,4 +1,4 @@
-
+import os
 # ==================================================
 # FASTQ Trimming
 # ==================================================
@@ -10,6 +10,11 @@ hic_dir=config['hic_dir']
 mcg_context=config['mcg_context']
 repeat_index_flag=config['repeat_index_flag']
 allc_mcg_dir=config['allc_mcg_dir']
+
+if not config['local_fastq'] or config['gcp']:
+    from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
+    GS = GSRemoteProvider()
+    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
 
 # Trim reads
 # sort the fastq files so that R1 and R2 are in the same order
