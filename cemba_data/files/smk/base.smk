@@ -37,13 +37,11 @@ if "gcp" in config:
     gcp=config["gcp"] # if the fastq files stored in GCP cloud, set gcp=True in snakemake: --config gcp=True
 else:
     gcp=False
-config['gcp']=gcp
 
 if "local_fastq" in config and gcp:
     local_fastq=config["local_fastq"] # if the fastq files stored in GCP cloud, set local_fastq=False in snakemake: --config local_fastq=False
 else:
     local_fastq=True
-config['local_fastq']=local_fastq
 
 if not local_fastq or gcp:
     from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
@@ -80,6 +78,8 @@ repeat_index_flag="--no-repeat-index" #repeat would cause some randomness, get d
 allc_mcg_dir=os.path.abspath(workflow.default_remote_prefix+f"/allc-{mcg_context}") if gcp else f"allc-{mcg_context}"
 # print(f"bam_dir: {bam_dir}\n allc_dir: {allc_dir}\n hic_dir: {hic_dir} \n allc_mcg_dir: {allc_mcg_dir}")
 
+config['gcp']=gcp
+config['local_fastq']=local_fastq
 config['bam_dir']=bam_dir
 config['allc_dir']=allc_dir
 config['hic_dir']=hic_dir

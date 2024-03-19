@@ -22,6 +22,7 @@ DEFAULT_CONFIG = {
     'num_downstr_bases': 2,
     'compress_level': 5,
     'hisat_threads': 11,
+    'hisat3n_threads': 11,
     # the post_mapping_script can be used to generate dataset, run other process etc.
     # it gets executed before the final summary function.
     # the default command is just a placeholder that has no effect
@@ -78,6 +79,14 @@ repeat_index_flag="--no-repeat-index" #repeat would cause some randomness, get d
 allc_mcg_dir=os.path.abspath(workflow.default_remote_prefix+f"/allc-{mcg_context}") if gcp else f"allc-{mcg_context}"
 # print(f"bam_dir: {bam_dir}\n allc_dir: {allc_dir}\n hic_dir: {hic_dir} \n allc_mcg_dir: {allc_mcg_dir}")
 
+config['gcp']=gcp
+config['local_fastq']=local_fastq
+config['bam_dir']=bam_dir
+config['allc_dir']=allc_dir
+config['hic_dir']=hic_dir
+config['mcg_context']=mcg_context
+config['repeat_index_flag']=repeat_index_flag
+config['allc_mcg_dir']=allc_mcg_dir
 for dir in [bam_dir,allc_dir,hic_dir,allc_mcg_dir]:
     if not os.path.exists(dir):
         os.mkdir(dir)

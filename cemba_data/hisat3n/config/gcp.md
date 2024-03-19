@@ -78,6 +78,9 @@ hisat-3n-build --base-change C,T genome.fa genome
 hisat-3n-build --base-change T,C --repeat-index genome.fa genome
 # Build the repeat HISAT-3N integrated index with splice site information
 hisat-3n-build --base-change C,T --repeat-index --ss genome.ss --exon genome.exon genome.fa genome 
+
+# Build index for RNA
+hisat2-build -p 16 genome.fa genome
 ```
 
 ### hg38
@@ -88,4 +91,6 @@ hisat-3n-build --base-change C,T -p 16 hg38_ucsc_with_chrL.fa hg38_ucsc_with_chr
 hisat-3n-build --base-change C,T -p 16 --repeat-index hg38_ucsc_with_chrL.fa hg38_ucsc_with_chrL
 
 # hisat-3n-build --base-change C,T -p 16 --repeat-index --ss hg38_ucsc_with_chrL.ss --exon hg38_ucsc_with_chrL.exon hg38_ucsc_with_chrL.fa 
+# for RNA
+hisat2-build -p 16 genome.fa genome
 ```
