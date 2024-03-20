@@ -13,7 +13,18 @@
 
 
 # Install
-To install this latest version:
+## Create environment and install
+```shell
+conda install -y -n base -c conda-forge mamba
+conda config --add channels defaults
+conda config --add channels bioconda
+conda config --add channels conda-forge
+
+mamba env create -f https://raw.githubusercontent.com/DingWB/cemba_data/master/env.yaml
+pip install pysam==0.20.0
+conda activate yap
+```
+## To install this latest version:
 ```shell
 pip install git+https://github.com/DingWB/cemba_data
 ```
