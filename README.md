@@ -22,6 +22,7 @@ conda config --add channels conda-forge
 
 mamba env create -f https://raw.githubusercontent.com/DingWB/cemba_data/master/env.yaml
 pip install pysam==0.20.0
+conda install -c bioconda subread=2.0.1
 conda activate yap
 ```
 ## To install this latest version:

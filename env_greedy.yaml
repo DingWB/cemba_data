@@ -8,13 +8,13 @@ dependencies:
  - pip
  - parallel
  - jupyter
- - snakemake
- - pytables
- - seaborn
- - xarray
- - dask
+ - snakemake=7.32.4
+ - pytables=3.8.0
+ - seaborn=0.13.2
+ - xarray=2023.1.0
+ - dask=2023.5.0
  - mamba
- - natsort
+ - natsort=8.4.0
  - netCDF4
  - networkx
  - opentsne
@@ -25,6 +25,7 @@ dependencies:
  - scanpy
  - scikit-learn
  - statsmodels
+ - xarray
  - yaml
  - zarr
  - biopython
@@ -42,6 +43,7 @@ dependencies:
  - subread=2.0.1
  - git
  - ipython
+ - pysam
  - pip:
     - papermill
     - imblearn
@@ -50,9 +52,9 @@ dependencies:
     - squidpy
     - pybiomart
     - harmonypy
+    - scanorama
     - openpyxl
     - Black
     - fire
-    - pysam=0.20.0
     - git+https://github.com/DingWB/cemba_data
     - git+https://github.com/DingWB/ALLCools
