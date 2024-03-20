@@ -1,18 +1,4 @@
-[](http://www.network-science.de/ascii/)
-<pre>
- **    **     **        *******
-//**  **     ****      /**////**
- //****     **//**     /**   /**
-  //**     **  //**    /*******
-   /**    **********   /**////
-   /**   /**//////**   /**
-   /**   /**     /**   /**
-   //    //      //    //
-</pre>
-[See Documentation](https://hq-1.gitbook.io/mc/)
-
-
-# Install
+# Installation
 ## Create environment and install
 ```shell
 conda install -y -n base -c conda-forge mamba
