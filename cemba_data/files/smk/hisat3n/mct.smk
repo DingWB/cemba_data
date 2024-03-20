@@ -229,7 +229,7 @@ rule feature_count:
         mem_mb=1000
     shell: #20240319, add parameter "-p" to avoid error:  Paired-end reads were detected in single-end read library
         """
-        featureCounts -p -t {config[feature_type]} -g {config[id_type]} \
+        featureCounts -t {config[feature_type]} -g {config[id_type]} \
 -a {config[gtf_path]} -o {output.tsv} --byReadGroup -T {threads} {input}
         """
 
