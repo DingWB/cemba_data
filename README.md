@@ -21,13 +21,19 @@ conda config --add channels bioconda
 conda config --add channels conda-forge
 
 mamba env create -f https://raw.githubusercontent.com/DingWB/cemba_data/master/env.yaml
-#conda install -c bioconda subread=2.0.1
-#pip install pysam==0.20.0
+
+# if failed, try:
+# mamba env create -f https://raw.githubusercontent.com/DingWB/cemba_data/master/env_greedy.yaml
 conda activate yap
+
+# conda env export > env_greedy.yaml
 ```
 ## To install this latest version:
 ```shell
 pip install git+https://github.com/DingWB/cemba_data
+
+# reinstall
+pip uninstall -y cemba_data && pip install git+https://github.com/DingWB/cemba_data
 ```
 
 # Documentation
