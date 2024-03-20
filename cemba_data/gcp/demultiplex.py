@@ -442,7 +442,7 @@ def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 		cmds.append(cmd)
 
 	for cmd in cmds:
-		print(f"CMD: {cmd}")
+		print(f"{cmd}")
 		if print_only:
 			continue
 		with open(log_path, 'a') as f:
