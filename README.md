@@ -25,32 +25,29 @@ pip uninstall -y cemba_data && pip install git+https://github.com/DingWB/cemba_d
 # Documentation
 ## 1. Run on local
 ### (1). Make sure create the right environment
-```shell
-git clone https://github.com/DingWB/cemba_data.git
-mamba env create -f cemba_data/env.yaml
-pip install pysam==0.20.0
-conda activate yap
-```
-Or directly read from http:
-```shell
-mamba env create -f https://raw.githubusercontent.com/DingWB/cemba_data/master/env.yaml
-pip install pysam==0.20.0
-conda activate yap
-```
 
 ### (2). Generate config.ini
 ```shell
+# m3c
 yap default-mapping-config --mode m3c --barcode_version V2 --bismark_ref "~/Ref/mm10/mm10_ucsc_with_chrL.bismark1" --genome "~/Ref/mm10/mm10_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/mm10/mm10_ucsc.nochrM.sizes" --hisat3n_dna_ref  "~/Ref/mm10/mm10_ucsc_with_chrL" > m3c_config.ini
 
+#mC
 yap default-mapping-config --mode mc --barcode_version V2 --bismark_ref "~/Ref/mm10/mm10_ucsc_with_chrL.bismark1" --genome "~/Ref/mm10/mm10_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/mm10/mm10_ucsc.nochrM.sizes" --hisat3n_dna_ref  "~/Ref/mm10/mm10_ucsc_with_chrL" > mc_config.ini
-# pay attention to the path of reference, should be the same as on the GCP if you are going to run the pipeline on GCP.      
+# pay attention to the path of reference, should be the same as on the GCP if you are going to run the pipeline on GCP.    
+
+# mct
+yap default-mapping-config --mode mct --barcode_version V2 --genome "~/Projects/Remind/customized_ref/mm10_ucsc_with_chrG.fa" --chrom_size_path "~/Projects/Remind/customized_ref/mm10_ucsc_with_chrG.sizes" --hisat3n_dna_ref  "~/Projects/Remind/customized_ref/mm10_ucsc_with_chrG" --hisat3n_rna_ref "~/Projects/Remind/customized_ref/mm10_ucsc_with_chrG" --gtf "~/Projects/Remind/customized_ref/gencode.vM23.annotation_with_chrG.gtf" > mct_config.ini
 ```
 
 ### (3). Demultiplex
 ```shell
+# m3c
 yap demultiplex --fastq_pattern "Pool_Remind1_m3c/*.fastq.gz" -o mapping/Pool_Remind1_m3c -j 16 --aligner hisat3n --config_path m3c_config.ini
 # or
- yap-gcp run_demultiplex --fq_dir="Pool_Remind1_m3c" --outdir="mapping/Pool_Remind1_m3c" --barcode_version="V2" --gcp=False --n_jobs=16 --print_only=True 
+ yap-gcp run_demultiplex --fq_dir="Pool_Remind1_m3c" --outdir="mapping/Pool_Remind1_m3c" --gcp=False --n_jobs=16 --print_only=True 
+ 
+# mc
+ yap-gcp run_demultiplex --fq_dir="Pool_Remind1_mC" --outdir="mapping/Pool_Remind1_mC" --gcp=False --n_jobs=16 --print_only=True 
 ```
 
 ### (4). Run mapping
