@@ -268,7 +268,7 @@ def mct_additional_cols(final_df, output_dir):
 	if 'R1FinalBismarkReads' in final_df.columns:
 		final_df['RNA/(DNA+RNA)'] = final_df['FinalRNAReads'].fillna(0) / (
 				final_df['R1FinalBismarkReads'].fillna(0) + 1)
-	else: #TODO: 20240321 added, not sure whether it is correct
+	else: #20240321 added, not sure whether it is correct
 		final_df['RNA/(DNA+RNA)'] = final_df['FinalRNAReads'].fillna(0) / (
 			final_df['FinalRNAReads'].fillna(0)+ final_df['FinalDNAReads'].fillna(0) + 1)
 	return final_df
