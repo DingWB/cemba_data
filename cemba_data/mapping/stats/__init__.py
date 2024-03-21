@@ -444,7 +444,6 @@ def final_summary(output_dir, cleanup=True, notebook=None,mode='m3c'):
 
     # if this is mct, aggregate all the gene counts
     if mode in ['mct', '4m']:
-        from ..stats.mct import aggregate_feature_counts
         aggregate_feature_counts(output_dir)
 
     # add additional columns based on some calculation

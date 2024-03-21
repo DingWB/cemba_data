@@ -8,13 +8,16 @@ from snakemake.io import glob_wildcards
 PACKAGE_DIR=cemba_data.__path__[0]
 from cemba_data.demultiplex.fastq_dataframe import _parse_v2_fastq_path
 from cemba_data.demultiplex import _parse_index_fasta
-os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.expanduser(
-		'~/.config/gcloud/application_default_credentials.json')
 from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
 import json
-with open(os.environ['GOOGLE_APPLICATION_CREDENTIALS'] ,'r') as f:
-	D=json.load(f)
-gcp_project=D['quota_project_id']
+try: #gcp
+	os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.expanduser(
+			'~/.config/gcloud/application_default_credentials.json')
+	with open(os.environ['GOOGLE_APPLICATION_CREDENTIALS'] ,'r') as f:
+		D=json.load(f)
+	gcp_project=D['quota_project_id']
+except:
+	pass
 
 def make_v2_fastq_df(fq_dir,run_on_gcp):
 	# For example: UWA7648_CX05_A10_2_P8-1-O4_22F25JLT3_S15_L001_I1_001.fastq.gz
