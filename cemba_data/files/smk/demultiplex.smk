@@ -35,7 +35,7 @@ outdir=config["outdir"] if 'outdir' in config else 'mapping'
 local_outdir=outdir if not run_on_gcp else workflow.default_remote_prefix+"/"+outdir
 barcode_version = config["barcode_version"] if 'barcode_version' in config else "V2"
 
-df_fq=get_fastq_info(fq_dir,run_on_gcp)
+df_fq=get_fastq_info(fq_dir,run_on_gcp,local_outdir)
 # df_fq['stats_out']=df_fq.apply(lambda row: os.path.join(local_outdir, f"{row.uid}/demultiplex.stats.txt"),axis=1) #"{dir}/{uid}/lanes/{uid}-{lane}.demultiplex.stats.txt"
 #for each pool, there are 16 old uid, 96 (16*6) new uid (6 multiplex groups)
 uid_fastqs_dict=df_fq.loc[:,['uid','R1','R2']].groupby('uid').agg(lambda x:x.tolist()).to_dict(orient='index') #uid_fastqs_dict[uid]['R1'] and R2 are list
@@ -44,7 +44,7 @@ if barcode_version == 'V2' and df_fq['multiplex_group'].nunique() == 1:
     # print('Detect only single multiplex group in each plate, will use V2-single mode.')
     barcode_version = 'V2-single'
 
-df_index=get_random_index(df_fq.uid.unique().tolist(),barcode_version) #old uids, 16 each pool
+df_index=get_random_index(df_fq.uid.unique().tolist(),barcode_version,local_outdir) #old uids, 16 each pool
 
 rule summary_demultiplex:
     input:

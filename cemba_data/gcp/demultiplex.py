@@ -39,9 +39,10 @@ def make_v2_fastq_df(fq_dir,run_on_gcp):
 	df.fastq_path=df.fastq_path.apply(lambda x:str(x))
 	return df
 
-def get_fastq_info(fq_dir,run_on_gcp):
-	if os.path.exists("fastq_info.txt"):
-		df=pd.read_csv("fastq_info.txt",sep='\t')
+def get_fastq_info(fq_dir,run_on_gcp,local_outdir="./"):
+	outfile=os.path.join(local_outdir,"fastq_info.txt")
+	if os.path.exists(outfile):
+		df=pd.read_csv(outfile,sep='\t')
 		# need to write to file, otherwise, snakemake will call this function multiple times.
 		return df
 	df=make_v2_fastq_df(fq_dir,run_on_gcp)
@@ -52,7 +53,7 @@ def get_fastq_info(fq_dir,run_on_gcp):
 	df=df.loc[df.read_type=='R1']
 	df.rename(columns={'fastq_path':'R1'},inplace=True)
 	df['R2']=df.R1.apply(lambda x:x.replace('_R1_','_R2_'))
-	df.to_csv("fastq_info.txt",sep='\t',index=False)
+	df.to_csv(outfile,sep='\t',index=False)
 	return df
 
 def index_name2multiplex_group(x):
@@ -100,9 +101,10 @@ def get_lanes_info(outdir,barcode_version):
 	df1.to_csv("lane_info.txt",sep='\t',index=False)
 	return df1
 
-def get_random_index(UIDs, barcode_version):
-	if os.path.exists("random_index.txt"):
-		df_index=pd.read_csv("random_index.txt",sep='\t')
+def get_random_index(UIDs, barcode_version,local_outdir="./"):
+	outfile = os.path.join(local_outdir, "random_index.txt")
+	if os.path.exists(outfile):
+		df_index=pd.read_csv(outfile,sep='\t')
 		return df_index
 	R=[]
 	for uid in UIDs:
@@ -123,7 +125,7 @@ def get_random_index(UIDs, barcode_version):
 	df_index['uid']=df_index.loc[:,['old_uid','real_multiplex_group']].apply(
 		lambda x:'-'.join([x.old_uid.split('-')[0],str(x.real_multiplex_group),x.old_uid.split('-')[-1]]),axis=1
 	)
-	df_index.to_csv("random_index.txt", sep='\t', index=False)
+	df_index.to_csv(outfile, sep='\t', index=False)
 	return df_index
 
 def get_fastq_uids(remote_prefix=None):
