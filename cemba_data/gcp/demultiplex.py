@@ -40,6 +40,8 @@ def make_v2_fastq_df(fq_dir,run_on_gcp):
 	return df
 
 def get_fastq_info(fq_dir,run_on_gcp,local_outdir="./"):
+	if not os.path.exists(local_outdir):
+		os.makedirs(local_outdir,exist_ok=True)
 	outfile=os.path.join(local_outdir,"fastq_info.txt")
 	if os.path.exists(outfile):
 		df=pd.read_csv(outfile,sep='\t')
@@ -102,6 +104,8 @@ def get_lanes_info(outdir,barcode_version):
 	return df1
 
 def get_random_index(UIDs, barcode_version,local_outdir="./"):
+	if not os.path.exists(local_outdir):
+		os.makedirs(local_outdir,exist_ok=True)
 	outfile = os.path.join(local_outdir, "random_index.txt")
 	if os.path.exists(outfile):
 		df_index=pd.read_csv(outfile,sep='\t')
