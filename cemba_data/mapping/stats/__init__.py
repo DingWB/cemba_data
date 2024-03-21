@@ -366,7 +366,7 @@ def _parse_cell_id_v2(cell_id):
 	return record
 
 
-def get_plate_info(cell_ids, barcode_version):
+def get_plate_info(cell_ids, barcode_version="V2"):
 	if barcode_version == 'V1':
 		func = _parse_cell_id_v1
 	else:
@@ -462,6 +462,10 @@ def final_summary(output_dir, cleanup=True, notebook=None,mode='m3c'):
 		total_mapping_summary = _4m_additional_cols(total_mapping_summary, output_dir=output_dir)
 	else:
 		raise
+
+	# plate info, 20240321
+	_plate_info = get_plate_info(total_mapping_summary.index)
+	total_mapping_summary = pd.concat([_plate_info, total_mapping_summary], axis=1)
 
 	# save total mapping summary
 	total_mapping_summary.to_csv(total_mapping_summary_path)
