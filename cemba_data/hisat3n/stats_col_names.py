@@ -31,6 +31,15 @@ COL_NAMES = {
     ('cell_parser_hisat_summary', 'UniqueMappingRate'): 'UniqueMappingRate',
     ('cell_parser_hisat_summary', 'MultiMappingRate'): 'MultiMappingRate',
     ('cell_parser_hisat_summary', 'OverallMappingRate'): 'OverallMappingRate',
+
+	('cell_parser_hisat_se_summary', 'ReadsMappedInSE'): 'DELETE',
+    ('cell_parser_hisat_se_summary', 'UnmappableReads'): 'DELETE',
+    ('cell_parser_hisat_se_summary', 'UniqueMappedReads'): 'UniqueMappedReads',
+    ('cell_parser_hisat_se_summary', 'MultiMappedReads'): 'MultiMappedReads',
+    ('cell_parser_hisat_se_summary', 'UniqueMappingRate'): 'UniqueMappingRate',
+    ('cell_parser_hisat_se_summary', 'MultiMappingRate'): 'MultiMappingRate',
+    ('cell_parser_hisat_se_summary', 'OverallMappingRate'): 'OverallMappingRate',
+
     ('cell_parser_picard_dedup_stat', 'LIBRARY'): 'DELETE',
     ('cell_parser_picard_dedup_stat', 'UNPAIRED_READS_EXAMINED'): 'DELETE',
     ('cell_parser_picard_dedup_stat', 'READ_PAIRS_EXAMINED'): 'DELETE',
