@@ -122,24 +122,36 @@ def m3c_mapping_stats(output_dir,fastq_dir,mode,mc_stat_feature,mc_stat_alias,nu
 
 
 def m3c_additional_cols(final_df):
-	final_df['FinalmCReads'] = final_df['R1DeduppedReads'] + final_df['R2DeduppedReads']
-	final_df['CellInputReadPairs'] = final_df['R1InputReads']
+	try:
+		final_df['FinalmCReads'] = final_df['R1DeduppedReads'] + final_df['R2DeduppedReads']
+	except:
+		final_df['FinalmCReads']=final_df['UniqueAlignFinalReads']
+	try:
+		final_df['CellInputReadPairs'] = final_df['R1InputReads']
+	except:
+		final_df['CellInputReadPairs'] = final_df['InputReadPairs']
 	# use % to be consistent with others
-	final_df['R1MappingRate'] = final_df['R1UniqueMappedReads'] / final_df['R1TrimmedReads'] * 100
-	final_df['R2MappingRate'] = final_df['R2UniqueMappedReads'] / final_df['R2TrimmedReads'] * 100
-	final_df['R1DuplicationRate'] = (1 - final_df['R1DeduppedReads'] / final_df['R1UniqueMappedReads']) * 100
-	final_df['R2DuplicationRate'] = (1 - final_df['R2DeduppedReads'] / final_df['R2UniqueMappedReads']) * 100
+	try:
+		final_df['R1MappingRate'] = final_df['R1UniqueMappedReads'] / final_df['R1TrimmedReads'] * 100
+		final_df['R2MappingRate'] = final_df['R2UniqueMappedReads'] / final_df['R2TrimmedReads'] * 100
+		final_df['R1DuplicationRate'] = (1 - final_df['R1DeduppedReads'] / final_df['R1UniqueMappedReads']) * 100
+		final_df['R2DuplicationRate'] = (1 - final_df['R2DeduppedReads'] / final_df['R2UniqueMappedReads']) * 100
+	except:
+		pass
 
 	if 'PCRIndex' in final_df.columns:  # plate info might not exist if the cell name is abnormal
 		cell_barcode_ratio = pd.concat([(i['CellInputReadPairs'] / i['CellInputReadPairs'].sum())
 										for _, i in final_df.groupby('PCRIndex')])
 		final_df['CellBarcodeRatio'] = cell_barcode_ratio
 
-	final_df['TotalContacts'] = final_df[
-		['CisShortContact', 'CisLongContact', 'TransContact']].sum(axis=1)
-	final_df['CisShortRatio'] = final_df['CisShortContact'] / final_df['TotalContacts']
-	final_df['CisLongRatio'] = final_df['CisLongContact'] / final_df['TotalContacts']
-	final_df['TransRatio'] = final_df['TransContact'] / final_df['TotalContacts']
+	try:
+		final_df['TotalContacts'] = final_df[
+			['CisShortContact', 'CisLongContact', 'TransContact']].sum(axis=1)
+		final_df['CisShortRatio'] = final_df['CisShortContact'] / final_df['TotalContacts']
+		final_df['CisLongRatio'] = final_df['CisLongContact'] / final_df['TotalContacts']
+		final_df['TransRatio'] = final_df['TransContact'] / final_df['TotalContacts']
+	except:
+		pass
 	return final_df
 
 # mct

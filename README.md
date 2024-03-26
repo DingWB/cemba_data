@@ -49,13 +49,14 @@ yap demultiplex --fastq_pattern "Pool_Remind1_m3c/*.fastq.gz" -o mapping/Pool_Re
 # mc
  yap-gcp run_demultiplex --fq_dir="Pool_Remind1_mC" --outdir="mapping/Pool_Remind1_mC" --gcp=False --n_jobs=16 --print_only=True 
  
-yap-gcp run_mapping --fastq_prefix="mapping/mCT" --gcp=False --config_path="mct_config.ini" --aligner='hisat-3n' --n_jobs=64 --print_only True > run_mct_mapping.sh
+yap-gcp run_mapping --fastq_prefix="mapping/mCT" --gcp=False --config_path="mct_config.ini" --aligner='hisat-3n' --n_jobs=64 --print_only True | grep "^snakemake" > run_mct_mapping.sh
 yap sbatch --project_name mapping --command_file_path run_mct_mapping.sh --queue shared --max_jobs 4 --dry_run --working_dir ./ --time_str 1
 # or
 split -n l/8 -d run_mct_mapping.sh run_mct_mapping.
 for i in {0..7}; do 
   echo "run_mct_mapping.0${i}"
-  Pbsgen -name mapping_${i} -c 64 -d 2 -m 80 -p shared run_mct_mapping.0${i}
+  Pbsgen -name mapping_${i} -c 64 -d 2 -m 90 -p shared -submit sh run_mct_mapping.0${i}
+#  Pbsgen -name mapping_${i} -c 64 -d 2 -m 90 -p shared sh run_mct_mapping.0${i}
 done;
 ```
 
