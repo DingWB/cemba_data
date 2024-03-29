@@ -227,7 +227,7 @@ rule feature_count:
         1
     resources:
         mem_mb=1000
-    shell: #20240319, add parameter "-p" to avoid error:  Paired-end reads were detected in single-end read library
+    shell: #version 2.0.1, if there is overlap between two records in gtf, then there will be no reads assigned to these two features.
         """
         featureCounts -t {config[feature_type]} -g {config[id_type]} \
 -a {config[gtf_path]} -o {output.tsv} --byReadGroup -T {threads} {input}

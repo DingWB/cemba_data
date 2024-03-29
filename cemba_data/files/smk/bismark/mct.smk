@@ -46,7 +46,7 @@ rule summary:
     output:
         "MappingSummary.csv.gz"
     params:
-        outdir=os.path.abspath("./") if not gcp else workflow.default_remote_prefix,
+        outdir="./" if not gcp else workflow.default_remote_prefix,
     shell:
         """
         yap-internal summary --output_dir {params.outdir} --fastq_dir {fastq_dir} --mode {mode} --barcode_version {barcode_version} \
