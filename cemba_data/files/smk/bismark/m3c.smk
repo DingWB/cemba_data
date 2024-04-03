@@ -92,7 +92,7 @@ rule bismark:
         local("fastq/{cell_id}-{read_type}.trimmed.fq.gz")
     output:
         bam=local(temp(bam_dir+"/{cell_id}-{read_type}.trimmed_bismark.bam")),
-        um=local(temp(bam_dir+"/{cell_id}-{read_type}.trimmed_unmapped_reads.fq.gz")),
+        um=local(temp(bam_dir+"/{cell_id}-{read_type}.trimmed.fq.gz_unmapped_reads.fq.gz")),
         stats=local(temp(bam_dir+"/{cell_id}-{read_type}.trimmed_bismark_SE_report.txt"))
     params:
         mode=lambda wildcards: "--pbat" if wildcards.read_type=="R1" else ""
@@ -110,9 +110,9 @@ rule bismark:
 # split unmapped fastq
 rule split_um_fastq:
     input:
-        local(bam_dir+"/{cell_id}-{read_type}.trimmed_unmapped_reads.fq.gz")
+        local(bam_dir+"/{cell_id}-{read_type}.trimmed.fq.gz_unmapped_reads.fq.gz")
     output:
-        local(temp(bam_dir+"/{cell_id}-{read_type}.trimmed_unmapped_reads.split.fq.gz"))
+        local(temp(bam_dir+"/{cell_id}-{read_type}.trimmed.fq.gz_unmapped_reads.split.fq.gz"))
     threads:
         1
     shell:
@@ -123,10 +123,10 @@ rule split_um_fastq:
 # map split fastq again
 rule bismark_split:
     input:
-        local(bam_dir+"/{cell_id}-{read_type}.trimmed_unmapped_reads.split.fq.gz")
+        local(bam_dir+"/{cell_id}-{read_type}.trimmed.fq.gz_unmapped_reads.split.fq.gz")
     output:
-        bam=local(temp(bam_dir+"/{cell_id}-{read_type}.trimmed_unmapped_reads.split_bismark.bam")),
-        stats=local(temp(bam_dir+"/{cell_id}-{read_type}.trimmed_unmapped_reads.split_bismark_SE_report.txt"))
+        bam=local(temp(bam_dir+"/{cell_id}-{read_type}.trimmed.fq.gz_unmapped_reads.split_bismark.bam")),
+        stats=local(temp(bam_dir+"/{cell_id}-{read_type}.trimmed.fq.gz_unmapped_reads.split_bismark_SE_report.txt"))
     params:
         mode=lambda wildcards: "--pbat" if wildcards.read_type=="R1" else ""
     threads:
@@ -142,7 +142,7 @@ rule bismark_split:
 rule merge_raw_bam:
     input:
         local(bam_dir+"/{cell_id}-{read_type}.trimmed_bismark.bam"),
-        local(bam_dir+"/{cell_id}-{read_type}.trimmed_unmapped_reads.split_bismark.bam")
+        local(bam_dir+"/{cell_id}-{read_type}.trimmed.fq.gz_unmapped_reads.split_bismark.bam")
     output:
         local(temp(bam_dir+"/{cell_id}-{read_type}.merged.bam"))
     shell:
