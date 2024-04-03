@@ -1,25 +1,34 @@
+"""
+Snakemake pipeline for hisat-3n mapping of snm3C-seq data
 
-# Snakemake rules below
-# suitable for snmCT-seq, snmC2T-seq (with NOMe treatment)
+hg38 normal index uses ~9 GB of memory
+repeat index will use more memory
+"""
+import os,sys
+import yaml
+import pathlib
 
 if "gcp" in config:
     gcp=config["gcp"] # if the fastq files stored in GCP cloud, set gcp=True in snakemake: --config gcp=True
 else:
     gcp=False
 
-if gcp:
+if "local_fastq" in config and gcp:
+    local_fastq=config["local_fastq"] # if the fastq files stored in GCP cloud, set local_fastq=False in snakemake: --config local_fastq=False
+else:
+    local_fastq=True
+
+if not local_fastq or gcp:
     from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
     GS = GSRemoteProvider()
     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
-    bam_dir=workflow.default_remote_prefix+"/bam"
-    allc_dir=workflow.default_remote_prefix+"/allc"
-    hic_dir=workflow.default_remote_prefix+"/hic"
-else:
-    bam_dir="bam"
-    allc_dir="allc"
-    hic_dir="hic"
 
-fastq_dir=os.path.abspath("fastq")
+bam_dir=os.path.abspath(workflow.default_remote_prefix+"/bam") if gcp else "bam"
+allc_dir=os.path.abspath(workflow.default_remote_prefix+"/allc") if gcp else "allc"
+hic_dir=os.path.abspath(workflow.default_remote_prefix+"/hic") if gcp else "hic"
+fastq_dir=os.path.abspath(workflow.default_remote_prefix+"/fastq") if gcp else "fastq"
+mcg_context = 'CGN' if int(config['num_upstr_bases']) == 0 else 'HCGN'
+allc_mcg_dir=os.path.abspath(workflow.default_remote_prefix+f"/allc-{mcg_context}") if gcp else f"allc-{mcg_context}"
 
 # the summary rule is the final target
 rule summary:
@@ -28,21 +37,21 @@ rule summary:
         # also add all the stats path here,
         # once summary is generated, snakemake will delete these stats
         expand("allc/{cell_id}.allc.tsv.gz.count.csv", cell_id=CELL_IDS),
-        expand("fastq/{cell_id}-R1.trimmed.stats.txt", cell_id=CELL_IDS),
-        expand("fastq/{cell_id}-R2.trimmed.stats.txt", cell_id=CELL_IDS),
-        expand("bam/{cell_id}-R1.trimmed_bismark_bt2.deduped.matrix.txt", cell_id=CELL_IDS),
-        expand("bam/{cell_id}-R2.trimmed_bismark_bt2.deduped.matrix.txt", cell_id=CELL_IDS),
-        expand("bam/{cell_id}-R1.trimmed_bismark_bt2_SE_report.txt", cell_id=CELL_IDS),
-        expand("bam/{cell_id}-R2.trimmed_bismark_bt2_SE_report.txt", cell_id=CELL_IDS),
+        # allc-CGN
+        expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz.tbi",cell_id=CELL_IDS,mcg_context=mcg_context),
+        expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz",cell_id=CELL_IDS,mcg_context=mcg_context),
+        expand("fastq/{cell_id}-{read_type}.trimmed.stats.txt", cell_id=CELL_IDS,read_type=['R1','R2']),
+        expand("bam/{cell_id}-{read_type}.trimmed_bismark_bt2.deduped.matrix.txt", cell_id=CELL_IDS,read_type=['R1','R2']),
+        expand("bam/{cell_id}-{read_type}.trimmed_bismark_bt2_SE_report.txt", cell_id=CELL_IDS,read_type=['R1','R2']),
         expand("bam/{cell_id}.dna_reads.bam.reads_profile.csv", cell_id=CELL_IDS),
-        'rna_bam/TotalRNAAligned.filtered.bam',  # needed for count star mapped reads by RG
-        'rna_bam/TotalRNALog.final.out',
-        'rna_bam/TotalRNALog.out',
-        'rna_bam/TotalRNALog.progress.out',
-        'rna_bam/TotalRNAAligned.rna_reads.bam',
-        'rna_bam/TotalRNAAligned.rna_reads.bam.reads_profile.csv',
-        'rna_bam/TotalRNAAligned.rna_reads.feature_count.tsv',
-        'rna_bam/TotalRNAAligned.rna_reads.feature_count.tsv.summary'
+        'bam/TotalRNAAligned.filtered.bam',  # needed for count star mapped reads by RG
+        'bam/TotalRNALog.final.out',
+        'bam/TotalRNALog.out',
+        'bam/TotalRNALog.progress.out',
+        # 'bam/TotalRNAAligned.rna_reads.bam',
+        'bam/TotalRNAAligned.rna_reads.bam.reads_profile.csv',
+        'bam/TotalRNAAligned.rna_reads.feature_count.tsv',
+        'bam/TotalRNAAligned.rna_reads.feature_count.tsv.summary'
     output:
         "MappingSummary.csv.gz"
     params:
@@ -50,22 +59,26 @@ rule summary:
     shell:
         """
         yap-internal summary --output_dir {params.outdir} --fastq_dir {fastq_dir} --mode {mode} --barcode_version {barcode_version} \
-                    --mc_stat_feature "{mc_stat_feature}" --mc_stat_alias "{mc_stat_alias}" \
-                    --num_upstr_bases {num_upstr_bases} --mc_rate_max_threshold {mc_rate_max_threshold} \
-                    --dna_cov_min_threshold {dna_cov_min_threshold}
+--mc_stat_feature "{mc_stat_feature}" --mc_stat_alias "{mc_stat_alias}" \
+--num_upstr_bases {num_upstr_bases} --mc_rate_max_threshold {mc_rate_max_threshold} \
+--dna_cov_min_threshold {dna_cov_min_threshold}
         """
 
 # Trim reads
-rule trim_r1:
+rule trim:
     input:
-        "fastq/{cell_id}-R1.fq.gz"
+        local("fastq/{cell_id}-{read_type}.fq.gz")
     output:
-        fq=temp("fastq/{cell_id}-R1.trimmed.fq.gz"),
-        stats=temp("fastq/{cell_id}-R1.trimmed.stats.txt")
+        fq=local(temp("fastq/{cell_id}-{read_type}.trimmed.fq.gz")),
+        stats="fastq/{cell_id}-{read_type}.trimmed.stats.txt"
+    params:
+        adapter=lambda wildcards: r1_adapter if wildcards.read_type == 'R1' else r2_adapter,
+        left_cut= lambda wildcards: r1_left_cut if wildcards.read_type == 'R1' else r2_left_cut,
+        right_cut=lambda wildcards: r1_right_cut if wildcards.read_type == 'R1' else r2_right_cut,
     threads:
         2
     shell:
-        "cutadapt -a R1Adapter={r1_adapter} "
+        "cutadapt -a R1Adapter={params.adapter} "
         "-a TSO=AAGCAGTGGTATCAACGCAGAGTGAATGG "
         "-a N6=AAGCAGTGGTATCAACGCAGAGTAC "
         "-a TSO_rc=CCATTCACTCTGCGTTGATACCACTGCTT "
@@ -79,136 +92,72 @@ rule trim_r1:
         "-a ISPCR_F=AAGCAGTGGTATCAACGCAGAGT "
         "-a ISPCR_R=ACTCTGCGTTGATACCACTGCTT "
         "{input} 2> {output.stats} | "
-        "cutadapt --report=minimal -O 6 -q 20 -u {r1_left_cut} -u -{r1_right_cut} -m 30 "
+        "cutadapt --report=minimal -O 6 -q 20 -u {params.left_cut} -u -{params.right_cut} -m 30 "
         "-o {output.fq} - >> {output.stats}"
 
-rule trim_r2:
+rule bismark:
     input:
-        "fastq/{cell_id}-R2.fq.gz"
+        local("fastq/{cell_id}-{read_type}.trimmed.fq.gz")
     output:
-        fq=temp("fastq/{cell_id}-R2.trimmed.fq.gz"),
-        stats=temp("fastq/{cell_id}-R2.trimmed.stats.txt")
-    threads:
-        2
-    shell:
-        "cutadapt -a R2Adapter={r2_adapter} "
-        "-a TSO=AAGCAGTGGTATCAACGCAGAGTGAATGG "
-        "-a N6=AAGCAGTGGTATCAACGCAGAGTAC "
-        "-a TSO_rc=CCATTCACTCTGCGTTGATACCACTGCTT "
-        "-a N6_rc=GTACTCTGCGTTGATACCACTGCTT "
-        "-a 3PpolyT=TTTTTTTTTTTTTTTX "
-        "-g 5PpolyT=XTTTTTTTTTTTTTTT "
-        "-a 3PpolyA=AAAAAAAAAAAAAAAX "
-        "-g 5PpolyA=XAAAAAAAAAAAAAAA "
-        "-a polyTLong=TTTTTTTTTTTTTTTTTTTTTTTTTTTTTT "
-        "-a polyALong=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA "
-        "-a ISPCR_F=AAGCAGTGGTATCAACGCAGAGT "
-        "-a ISPCR_R=ACTCTGCGTTGATACCACTGCTT "
-        "{input} 2> {output.stats} | "
-        "cutadapt --report=minimal -O 6 -q 20 -u {r2_left_cut} -u -{r2_right_cut} -m 30 "
-        "-o {output.fq} - >> {output.stats}"
-
-# first is bismark mapping, R1 and R2 separately
-rule bismark_r1:
-    input:
-        "fastq/{cell_id}-R1.trimmed.fq.gz"
-    output:
-        bam=temp("bam/{cell_id}-R1.trimmed_bismark_bt2.bam"),
-        stats=temp("bam/{cell_id}-R1.trimmed_bismark_bt2_SE_report.txt")
+        bam=local(temp(bam_dir+"/{cell_id}-{read_type}.trimmed_bismark_bt2.bam")),
+        stats="bam/{cell_id}-{read_type}.trimmed_bismark_bt2_SE_report.txt"
+    params:
+        mode=lambda wildcards: "--pbat" if wildcards.read_type == "R1" else ""
     threads:
         3
     resources:
         mem_mb=14000
     shell:
         # map R1 with --pbat mode
-        "bismark {bismark_reference} {unmapped_param_str} --bowtie2 {input} "
-        "--pbat -o bam/ --temp_dir bam/"
-
-rule bismark_r2:
-    input:
-        "fastq/{cell_id}-R2.trimmed.fq.gz"
-    output:
-        bam=temp("bam/{cell_id}-R2.trimmed_bismark_bt2.bam"),
-        stats=temp("bam/{cell_id}-R2.trimmed_bismark_bt2_SE_report.txt")
-    threads:
-        3
-    resources:
-        mem_mb=14000
-    shell:
-        # map R2 with normal SE mode
-        "bismark {bismark_reference} {unmapped_param_str} --bowtie2 {input} "
-        "-o bam/ --temp_dir bam/"
+        """
+        bismark {bismark_reference} {unmapped_param_str} --bowtie2 {input} {params.mode} -o {bam_dir} --temp_dir {bam_dir}
+        """
 
 # filter bam
-rule filter_r1_bam:
+rule filter_bam:
     input:
-        "bam/{cell_id}-R1.trimmed_bismark_bt2.bam"
+        local(bam_dir+"/{cell_id}-{read_type}.trimmed_bismark_bt2.bam")
     output:
-        temp("bam/{cell_id}-R1.trimmed_bismark_bt2.filter.bam")
+        local(temp(bam_dir+"/{cell_id}-{read_type}.trimmed_bismark_bt2.filter.bam"))
     shell:
         "samtools view -b -h -q 10 -o {output} {input}"
 
-rule filter_r2_bam:
+# sort bam by position
+rule sort_bam:
     input:
-        "bam/{cell_id}-R2.trimmed_bismark_bt2.bam"
+        local(bam_dir+"/{cell_id}-{read_type}.trimmed_bismark_bt2.filter.bam")
     output:
-        temp("bam/{cell_id}-R2.trimmed_bismark_bt2.filter.bam")
-    shell:
-        "samtools view -b -h -q 10 -o {output} {input}"
-
-# sort bam
-rule sort_r1_bam:
-    input:
-        "bam/{cell_id}-R1.trimmed_bismark_bt2.filter.bam"
-    output:
-        temp("bam/{cell_id}-R1.trimmed_bismark_bt2.sorted.bam")
+        local(temp(bam_dir+"/{cell_id}-{read_type}.trimmed_bismark_bt2.sorted.bam"))
     resources:
         mem_mb=1000
     shell:
-        "samtools sort -o {output} {input}"
-
-rule sort_r2_bam:
-    input:
-        "bam/{cell_id}-R2.trimmed_bismark_bt2.filter.bam"
-    output:
-        temp("bam/{cell_id}-R2.trimmed_bismark_bt2.sorted.bam")
-    resources:
-        mem_mb=1000
-    shell:
-        "samtools sort -o {output} {input}"
+        """
+        samtools sort -o {output} {input}
+        """
 
 # remove PCR duplicates
-rule dedup_r1_bam:
+rule dedup_bam:
     input:
-        "bam/{cell_id}-R1.trimmed_bismark_bt2.sorted.bam"
+        local(bam_dir+"/{cell_id}-{read_type}.trimmed_bismark_bt2.sorted.bam")
     output:
-        bam=temp("bam/{cell_id}-R1.trimmed_bismark_bt2.deduped.bam"),
-        stats=temp("bam/{cell_id}-R1.trimmed_bismark_bt2.deduped.matrix.txt")
+        bam=local(temp(bam_dir+"/{cell_id}-{read_type}.trimmed_bismark_bt2.deduped.bam")),
+        stats="bam/{cell_id}-{read_type}.trimmed_bismark_bt2.deduped.matrix.txt"
+    params:
+        tmp_dir="bam/temp" if not gcp else workflow.default_remote_prefix+"/bam/temp"
     resources:
         mem_mb=1000
     shell:
-        "picard MarkDuplicates I={input} O={output.bam} M={output.stats} "
-        "REMOVE_DUPLICATES=true TMP_DIR=bam/temp/"
-
-rule dedup_r2_bam:
-    input:
-        "bam/{cell_id}-R2.trimmed_bismark_bt2.sorted.bam"
-    output:
-        bam=temp("bam/{cell_id}-R2.trimmed_bismark_bt2.deduped.bam"),
-        stats=temp("bam/{cell_id}-R2.trimmed_bismark_bt2.deduped.matrix.txt")
-    resources:
-        mem_mb=1000
-    shell:
-        "picard MarkDuplicates I={input} O={output.bam} M={output.stats} "
-        "REMOVE_DUPLICATES=true TMP_DIR=bam/temp/"
+        """
+        picard MarkDuplicates -I {input} -O {output.bam} -M {output.stats} -REMOVE_DUPLICATES true -TMP_DIR {params.tmp_dir}
+        """
 
 # merge R1 and R2, get final bam
 rule merge_bam:
     input:
-        "bam/{cell_id}-R1.trimmed_bismark_bt2.deduped.bam",
-        "bam/{cell_id}-R2.trimmed_bismark_bt2.deduped.bam"
+        local(bam_dir+"/{cell_id}-R1.trimmed_bismark_bt2.deduped.bam"),
+        local(bam_dir+"/{cell_id}-R2.trimmed_bismark_bt2.deduped.bam")
     output:
-        temp("bam/{cell_id}.final.bam")
+        "bam/{cell_id}.final.bam"
     shell:
         "samtools merge -f {output} {input}"
 
@@ -218,41 +167,44 @@ rule select_dna:
         "bam/{cell_id}.final.bam"
     output:
         bam="bam/{cell_id}.dna_reads.bam",
-        stats=temp('bam/{cell_id}.dna_reads.bam.reads_profile.csv')
+        stats='bam/{cell_id}.dna_reads.bam.reads_profile.csv'
     shell:
-        'yap-internal select-dna-reads --input_bam {input} '
-        '--output_bam {output.bam} --mc_rate_max_threshold {mc_rate_max_threshold} '
-        '--cov_min_threshold {dna_cov_min_threshold} '
-        '{nome_flag_str} '
-        '--assay_type mc'
+        """
+        yap-internal select-dna-reads --input_bam {input} \
+--output_bam {output.bam} --mc_rate_max_threshold {mc_rate_max_threshold} \
+--cov_min_threshold {dna_cov_min_threshold} {nome_flag_str} --assay_type mc
+        """
 
 # generate ALLC using dna_reads.bam
 rule allc:
     input:
-        "bam/{cell_id}.dna_reads.bam"
+        bam="bam/{cell_id}.dna_reads.bam"
     output:
         allc="allc/{cell_id}.allc.tsv.gz",
-        stats=temp("allc/{cell_id}.allc.tsv.gz.count.csv")
+        stats="allc/{cell_id}.allc.tsv.gz.count.csv"
     threads:
         2
     resources:
         mem_mb=500
     shell:
-        'allcools bam-to-allc '
-        '--bam_path {input} '
-        '--reference_fasta {reference_fasta} '
-        '--output_path {output.allc} '
-        '--cpu 1 '
-        '--num_upstr_bases {num_upstr_bases} '
-        '--num_downstr_bases {num_downstr_bases} '
-        '--compress_level {compress_level} '
-        '--save_count_df'
+        """
+        mkdir -p {allc_dir}
+        allcools bam-to-allc \
+                --bam_path {input.bam} \
+                --reference_fasta {reference_fasta} \
+                --output_path {output.allc} \
+                --cpu 1 \
+                --num_upstr_bases {num_upstr_bases} \
+                --num_downstr_bases {num_downstr_bases} \
+                --compress_level {compress_level} \
+                --save_count_df
+        """
 
 
 # RNA mapping, also start from trimmed fastq
 cell_ids_str = ' , ID:'.join(CELL_IDS)
 # star separate multiple input by ,
-star_input_str = ','.join([f"fastq/{cell_id}-R1.trimmed.fq.gz" for cell_id in CELL_IDS])
+star_input_str = ','.join([fastq_dir+f"/{cell_id}-R1.trimmed.fq.gz" for cell_id in CELL_IDS])
 
 rule star:
     input:
@@ -260,13 +212,13 @@ rule star:
         # R2 SE or R1R2 PE is worse than R1 actually, due to R2's low quality
         # And we map all cells together, so the genome is only load once
         # each cell will have a different @RG tag
-        expand("fastq/{cell_id}-R1.trimmed.fq.gz", cell_id = CELL_IDS)
+        local(expand("fastq/{cell_id}-R1.trimmed.fq.gz", cell_id = CELL_IDS))
     output:
-        temp('rna_bam/TotalRNAAligned.out.bam'),
-        temp('rna_bam/TotalRNALog.final.out'),
-        temp('rna_bam/TotalRNALog.out'),
-        temp('rna_bam/TotalRNALog.progress.out'),
-        temp('rna_bam/TotalRNASJ.out.tab')
+        'bam/TotalRNAAligned.out.bam',
+        'bam/TotalRNALog.final.out',
+        'bam/TotalRNALog.out',
+        'bam/TotalRNALog.progress.out',
+        'bam/TotalRNASJ.out.tab'
     threads:
         workflow.cores * 0.8  # workflow.cores is user provided cores for snakemake
     resources:
@@ -297,9 +249,9 @@ rule star:
 
 rule filter_bam:
     input:
-        'rna_bam/TotalRNAAligned.out.bam'
+        local(bam_dir+'/TotalRNAAligned.out.bam')
     output:
-        temp('rna_bam/TotalRNAAligned.filtered.bam')
+        'bam/TotalRNAAligned.filtered.bam'
     threads:
         min(workflow.cores * 0.8, 10)
     shell:
@@ -307,29 +259,28 @@ rule filter_bam:
 
 rule select_rna:
     input:
-        'rna_bam/TotalRNAAligned.filtered.bam'
+        'bam/TotalRNAAligned.filtered.bam'
     output:
-        bam='rna_bam/TotalRNAAligned.rna_reads.bam',
-        stats=temp('rna_bam/TotalRNAAligned.rna_reads.bam.reads_profile.csv')
+        bam='bam/TotalRNAAligned.rna_reads.bam',
+        stats='bam/TotalRNAAligned.rna_reads.bam.reads_profile.csv'
     shell:
-        'yap-internal select-rna-reads ' \
-        '--input_bam {input} ' \
-        '--output_bam {output.bam} ' \
-        '--mc_rate_min_threshold {mc_rate_min_threshold} ' \
-        '--cov_min_threshold {rna_cov_min_threshold} '
-        '{nome_flag_str} '
-        '--assay_type mc'
+        """
+        yap-internal select-rna-reads  --input_bam {input}  --output_bam {output.bam}  \
+        --mc_rate_min_threshold {mc_rate_min_threshold} --cov_min_threshold {rna_cov_min_threshold} \ 
+        {nome_flag_str} --assay_type mc
+        """
 
 rule feature_count:
     input:
-        'rna_bam/TotalRNAAligned.rna_reads.bam'
+        'bam/TotalRNAAligned.rna_reads.bam'
     output:
-        count='rna_bam/TotalRNAAligned.rna_reads.feature_count.tsv',
-        stats=temp('rna_bam/TotalRNAAligned.rna_reads.feature_count.tsv.summary')
+        count='bam/TotalRNAAligned.rna_reads.feature_count.tsv',
+        stats='bam/TotalRNAAligned.rna_reads.feature_count.tsv.summary'
     threads:
         min(workflow.cores * 0.8, 10)
     resources:
         mem_mb=1000
     shell:
-        'featureCounts -t {feature_type} -g {id_type} ' \
-        '-a {gtf_path} -o {output.count} --byReadGroup -T {threads} {input}'
+        """
+        featureCounts -t {feature_type} -g {id_type} -a {gtf_path} -o {output.count} --byReadGroup -T {threads} {input}
+        """

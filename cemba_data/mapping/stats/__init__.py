@@ -87,8 +87,7 @@ def m3c_mapping_stats(output_dir,fastq_dir,mode,mc_stat_feature,mc_stat_alias,nu
 	bam_dir = output_dir / 'bam'
 	hic_dir = output_dir / 'hic'
 	cell_stats = []
-	cell_ids = [path.name.split('.')[0]
-				for path in bam_dir.glob('*.3C.sorted.bam')]
+	cell_ids = [path.name.split('.')[0] for path in bam_dir.glob('*.3C.sorted.bam')]
 
 	for cell_id in cell_ids:
 		total_stats = []  # list of series
@@ -176,10 +175,10 @@ def summary_rna_mapping(output_dir):
 	output_dir = pathlib.Path(output_dir)
 
 	# summarize read counts for each cell before filter by mC rate
-	total_star_mapped_reads = _count_reads_by_rg_in_star_bam(output_dir / 'rna_bam/TotalRNAAligned.filtered.bam')
+	total_star_mapped_reads = _count_reads_by_rg_in_star_bam(output_dir / 'bam/TotalRNAAligned.filtered.bam')
 
 	# feature count summary
-	total_counts = pd.read_csv(output_dir / 'rna_bam/TotalRNAAligned.rna_reads.feature_count.tsv.summary',
+	total_counts = pd.read_csv(output_dir / 'bam/TotalRNAAligned.rna_reads.feature_count.tsv.summary',
 							   sep='\t', index_col=0).T
 	total_counts.index = total_counts.index.map(lambda i: i.split(':')[-1])
 	feature_count_summary = total_counts[['Assigned']].copy()

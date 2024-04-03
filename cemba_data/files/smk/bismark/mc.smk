@@ -1,44 +1,56 @@
+"""
+Snakemake pipeline for hisat-3n mapping of snm3C-seq data
 
-# Snakemake rules below
-# suitable for snmC-seq2, snmC-seq3, NOMe-seq
-
-# use diff mcg_context for normal mC or NOMe
-mcg_context = 'CGN' if num_upstr_bases == 0 else 'HCGN'
+hg38 normal index uses ~9 GB of memory
+repeat index will use more memory
+"""
+import os,sys
+import yaml
+import pathlib
 
 if "gcp" in config:
     gcp=config["gcp"] # if the fastq files stored in GCP cloud, set gcp=True in snakemake: --config gcp=True
 else:
     gcp=False
 
-if gcp:
+if "local_fastq" in config and gcp:
+    local_fastq=config["local_fastq"] # if the fastq files stored in GCP cloud, set local_fastq=False in snakemake: --config local_fastq=False
+else:
+    local_fastq=True
+
+if not local_fastq or gcp:
     from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
     GS = GSRemoteProvider()
     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
-    bam_dir=workflow.default_remote_prefix+"/bam"
-    allc_dir=workflow.default_remote_prefix+"/allc"
-    hic_dir=workflow.default_remote_prefix+"/hic"
-else:
-    bam_dir="bam"
-    allc_dir="allc"
-    hic_dir="hic"
 
-fastq_dir=os.path.abspath("fastq")
+bam_dir=os.path.abspath(workflow.default_remote_prefix+"/bam") if gcp else "bam"
+allc_dir=os.path.abspath(workflow.default_remote_prefix+"/allc") if gcp else "allc"
+hic_dir=os.path.abspath(workflow.default_remote_prefix+"/hic") if gcp else "hic"
+fastq_dir=os.path.abspath(workflow.default_remote_prefix+"/fastq") if gcp else "fastq"
+mcg_context = 'CGN' if int(config['num_upstr_bases']) == 0 else 'HCGN'
+allc_mcg_dir=os.path.abspath(workflow.default_remote_prefix+f"/allc-{mcg_context}") if gcp else f"allc-{mcg_context}"
+
+for dir in [bam_dir,allc_dir,hic_dir,allc_mcg_dir]:
+    if not os.path.exists(dir):
+        os.mkdir(dir)
+
+if not config['local_fastq'] or config['gcp']:
+    from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
+    GS = GSRemoteProvider()
+    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
 
 # the summary rule is the final target
 rule summary:
     input:
         expand("allc/{cell_id}.allc.tsv.gz", cell_id=CELL_IDS),
-        expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz", cell_id=CELL_IDS,
-               mcg_context=mcg_context),
-        # also add all the stats path here,
         # once summary is generated, snakemake will delete these stats
         expand("allc/{cell_id}.allc.tsv.gz.count.csv", cell_id=CELL_IDS),
-        expand("fastq/{cell_id}-R1.trimmed.stats.tsv", cell_id=CELL_IDS),
-        expand("fastq/{cell_id}-R2.trimmed.stats.tsv", cell_id=CELL_IDS),
-        expand("bam/{cell_id}-R1.trimmed_bismark_bt2.deduped.matrix.txt", cell_id=CELL_IDS),
-        expand("bam/{cell_id}-R2.trimmed_bismark_bt2.deduped.matrix.txt", cell_id=CELL_IDS),
-        expand("bam/{cell_id}-R1.trimmed_bismark_bt2_SE_report.txt", cell_id=CELL_IDS),
-        expand("bam/{cell_id}-R2.trimmed_bismark_bt2_SE_report.txt", cell_id=CELL_IDS),
+        # allc-CGN
+        expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz.tbi",cell_id=CELL_IDS,mcg_context=mcg_context),
+        expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz",cell_id=CELL_IDS,mcg_context=mcg_context),
+        expand("fastq/{cell_id}-{read_type}.trimmed.stats.tsv", cell_id=CELL_IDS,read_type=['R1','R2']),
+        expand("bam/{cell_id}-{read_type}.trimmed_bismark_bt2.deduped.matrix.txt", cell_id=CELL_IDS,read_type=['R1','R2']),
+        expand("bam/{cell_id}-{read_type}.trimmed_bismark_bt2_SE_report.txt", cell_id=CELL_IDS,read_type=['R1','R2']),
     output:
         "MappingSummary.csv.gz"
     params:
@@ -52,131 +64,85 @@ rule summary:
         """
 
 # Trim reads
-rule trim_r1:
+rule trim:
     input:
-        "fastq/{cell_id}-R1.fq.gz"
+        fq=local("fastq/{cell_id}-{read_type}.fq.gz") if local_fastq else GS.remote("gs://"+workflow.default_remote_prefix+"/fastq/{cell_id}-{read_type}.fq.gz")
     output:
-        fq=temp("fastq/{cell_id}-R1.trimmed.fq.gz"),
-        stats=temp("fastq/{cell_id}-R1.trimmed.stats.tsv")
+        fq=local(temp("fastq/{cell_id}-{read_type}.trimmed.fq.gz")),
+        stats="fastq/{cell_id}-{read_type}.trimmed.stats.tsv"
+    params:
+        adapter=lambda wildcards: r1_adapter if wildcards.read_type=='R1' else r2_adapter, #r1_adapter, r2_adapter and other config_str will be written into the header
+        left_cut=lambda wildcards: r1_left_cut if wildcards.read_type=='R1' else r2_left_cut,
+        right_cut= lambda wildcards: r1_right_cut if wildcards.read_type == 'R1' else r2_right_cut,
     threads:
         2
     shell:
-        "cutadapt --report=minimal -a {r1_adapter} {input} 2> {output.stats} | "
-        "cutadapt --report=minimal -O 6 -q 20 -u {r1_left_cut} -u -{r1_right_cut} -m 30 "
-        "-o {output.fq} - >> {output.stats}"
+        """
+        cutadapt --report=minimal -a {params.adapter} {input.fq} 2> {output.stats} | cutadapt --report=minimal -O 6 -q 20 -u {params.left_cut} -u -{params.right_cut} -m 30 -o {output.fq} - >> {output.stats}
+        """
 
-rule trim_r2:
+# bismark mapping
+rule bismark:
     input:
-        "fastq/{cell_id}-R2.fq.gz"
+        local("fastq/{cell_id}-{read_type}.trimmed.fq.gz")
     output:
-        fq=temp("fastq/{cell_id}-R2.trimmed.fq.gz"),
-        stats=temp("fastq/{cell_id}-R2.trimmed.stats.tsv")
-    threads:
-        2
-    shell:
-        "cutadapt --report=minimal -a {r2_adapter} {input} 2> {output.stats} | "
-        "cutadapt --report=minimal -O 6 -q 20 -u {r2_left_cut} -u -{r2_right_cut} -m 30 "
-        "-o {output.fq} - >> {output.stats}"
-
-# bismark mapping, R1 and R2 separately
-rule bismark_r1:
-    input:
-        "fastq/{cell_id}-R1.trimmed.fq.gz"
-    output:
-        bam=temp("bam/{cell_id}-R1.trimmed_bismark_bt2.bam"),
-        stats=temp("bam/{cell_id}-R1.trimmed_bismark_bt2_SE_report.txt")
+        bam=local(temp(bam_dir+"/{cell_id}-{read_type}.trimmed_bismark_bt2.bam")),
+        stats=local(temp(bam_dir+"/{cell_id}-{read_type}.trimmed_bismark_bt2_SE_report.txt"))
+    params:
+        mode=lambda wildcards: "--pbat" if wildcards.read_type == "R1" else ""
     threads:
         3
     resources:
         mem_mb=14000
     shell:
         # map R1 with --pbat mode
-        "bismark {bismark_reference} {unmapped_param_str} --bowtie2 {input} "
-        "--pbat -o bam/ --temp_dir bam/"
-
-rule bismark_r2:
-    input:
-        "fastq/{cell_id}-R2.trimmed.fq.gz"
-    output:
-        bam=temp("bam/{cell_id}-R2.trimmed_bismark_bt2.bam"),
-        stats=temp("bam/{cell_id}-R2.trimmed_bismark_bt2_SE_report.txt")
-    threads:
-        3
-    resources:
-        mem_mb=14000
-    shell:
-        # map R2 with normal SE mode
-        "bismark {bismark_reference} {unmapped_param_str} --bowtie2 {input} "
-        "-o bam/ --temp_dir bam/"
+        """
+        bismark {bismark_reference} {unmapped_param_str} --bowtie2 {input} {params.mode} -o {bam_dir} --temp_dir {bam_dir}
+        """
 
 # filter bam
-rule filter_r1_bam:
+rule filter_bam:
     input:
-        "bam/{cell_id}-R1.trimmed_bismark_bt2.bam"
+        local(bam_dir+"/{cell_id}-{read_type}.trimmed_bismark_bt2.bam")
     output:
-        temp("bam/{cell_id}-R1.trimmed_bismark_bt2.filter.bam")
+        local(temp(bam_dir+"/{cell_id}-{read_type}.trimmed_bismark_bt2.filter.bam"))
     shell:
         "samtools view -b -h -q 10 -o {output} {input}"
 
-rule filter_r2_bam:
+# sort bam by position
+rule sort_bam:
     input:
-        "bam/{cell_id}-R2.trimmed_bismark_bt2.bam"
+        local(bam_dir+"/{cell_id}-{read_type}.trimmed_bismark_bt2.filter.bam")
     output:
-        temp("bam/{cell_id}-R2.trimmed_bismark_bt2.filter.bam")
-    shell:
-        "samtools view -b -h -q 10 -o {output} {input}"
-
-# sort bam
-rule sort_r1_bam:
-    input:
-        "bam/{cell_id}-R1.trimmed_bismark_bt2.filter.bam"
-    output:
-        temp("bam/{cell_id}-R1.trimmed_bismark_bt2.sorted.bam")
+        local(temp(bam_dir+"/{cell_id}-{read_type}.trimmed_bismark_bt2.sorted.bam"))
     resources:
         mem_mb=1000
     shell:
-        "samtools sort -o {output} {input}"
-
-rule sort_r2_bam:
-    input:
-        "bam/{cell_id}-R2.trimmed_bismark_bt2.filter.bam"
-    output:
-        temp("bam/{cell_id}-R2.trimmed_bismark_bt2.sorted.bam")
-    resources:
-        mem_mb=1000
-    shell:
-        "samtools sort -o {output} {input}"
+        """
+        samtools sort -o {output} {input}
+        """
 
 # remove PCR duplicates
-rule dedup_r1_bam:
+rule dedup_bam:
     input:
-        "bam/{cell_id}-R1.trimmed_bismark_bt2.sorted.bam"
+        local(bam_dir+"/{cell_id}-{read_type}.trimmed_bismark_bt2.sorted.bam")
     output:
-        bam=temp("bam/{cell_id}-R1.trimmed_bismark_bt2.deduped.bam"),
-        stats=temp("bam/{cell_id}-R1.trimmed_bismark_bt2.deduped.matrix.txt")
+        bam=local(temp(bam_dir+"/{cell_id}-{read_type}.trimmed_bismark_bt2.deduped.bam")),
+        stats=bam_dir+"/{cell_id}-{read_type}.trimmed_bismark_bt2.deduped.matrix.txt"
+    params:
+        tmp_dir="bam/temp" if not gcp else workflow.default_remote_prefix+"/bam/temp"
     resources:
         mem_mb=1000
     shell:
-        "picard MarkDuplicates I={input} O={output.bam} M={output.stats} "
-        "REMOVE_DUPLICATES=true TMP_DIR=bam/temp/"
-
-rule dedup_r2_bam:
-    input:
-        "bam/{cell_id}-R2.trimmed_bismark_bt2.sorted.bam"
-    output:
-        bam=temp("bam/{cell_id}-R2.trimmed_bismark_bt2.deduped.bam"),
-        stats=temp("bam/{cell_id}-R2.trimmed_bismark_bt2.deduped.matrix.txt")
-    resources:
-        mem_mb=1000
-    shell:
-        "picard MarkDuplicates I={input} O={output.bam} M={output.stats} "
-        "REMOVE_DUPLICATES=true TMP_DIR=bam/temp/"
+        """
+        picard MarkDuplicates -I {input} -O {output.bam} -M {output.stats} -REMOVE_DUPLICATES true -TMP_DIR {params.tmp_dir}
+        """
 
 # merge R1 and R2, get final bam
 rule merge_bam:
     input:
-        "bam/{cell_id}-R1.trimmed_bismark_bt2.deduped.bam",
-        "bam/{cell_id}-R2.trimmed_bismark_bt2.deduped.bam"
+        local(bam_dir+"/{cell_id}-R1.trimmed_bismark_bt2.deduped.bam"),
+        local(bam_dir+"/{cell_id}-R2.trimmed_bismark_bt2.deduped.bam")
     output:
         "bam/{cell_id}.final.bam"
     shell:
@@ -185,42 +151,46 @@ rule merge_bam:
 # generate ALLC
 rule allc:
     input:
-        "bam/{cell_id}.final.bam"
+        bam="bam/{cell_id}.final.bam"
     output:
         allc="allc/{cell_id}.allc.tsv.gz",
-        stats=temp("allc/{cell_id}.allc.tsv.gz.count.csv")
+        stats="allc/{cell_id}.allc.tsv.gz.count.csv"
     threads:
         2
     resources:
         mem_mb=500
     shell:
-        'allcools bam-to-allc '
-        '--bam_path {input} '
-        '--reference_fasta {reference_fasta} '
-        '--output_path {output.allc} '
-        '--cpu 1 '
-        '--num_upstr_bases {num_upstr_bases} '
-        '--num_downstr_bases {num_downstr_bases} '
-        '--compress_level {compress_level} '
-        '--save_count_df'
-
+        """
+        mkdir -p {allc_dir}
+        allcools bam-to-allc \
+                --bam_path {input.bam} \
+                --reference_fasta {reference_fasta} \
+                --output_path {output.allc} \
+                --cpu 1 \
+                --num_upstr_bases {num_upstr_bases} \
+                --num_downstr_bases {num_downstr_bases} \
+                --compress_level {compress_level} \
+                --save_count_df
+        """
 
 # CGN extraction from ALLC
 rule cgn_extraction:
     input:
-        "allc/{cell_id}.allc.tsv.gz",
+        allc="allc/{cell_id}.allc.tsv.gz",
+        tbi="allc/{cell_id}.allc.tsv.gz.tbi"
     output:
-        "allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz",
+        allc="allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz",
+        tbi="allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz.tbi",
     params:
-        prefix="allc-{mcg_context}/{cell_id}",
+        prefix=allc_mcg_dir+"/{cell_id}",
     threads:
         1
     resources:
         mem_mb=100
     shell:
-        'allcools extract-allc '
-        '--strandness merge '
-        '--allc_path  {input} '
-        '--output_prefix {params.prefix} '
-        '--mc_contexts {mcg_context} '
-        '--chrom_size_path {chrom_size_path} '
+        """
+        mkdir -p {allc_mcg_dir}
+        allcools extract-allc --strandness merge \
+--allc_path  {input.allc} --output_prefix {params.prefix} \
+--mc_contexts {mcg_context} --chrom_size_path {chrom_size_path}
+        """

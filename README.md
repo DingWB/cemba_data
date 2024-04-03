@@ -23,7 +23,7 @@ pip uninstall -y cemba_data && pip install git+https://github.com/DingWB/cemba_d
 ```
 
 # Documentation
-## 1. Run on local
+## 1. Run on local (hisat-3n)
 ### (1). Make sure create the right environment
 
 ### (2). Generate config.ini
