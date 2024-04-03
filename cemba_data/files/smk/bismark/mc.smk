@@ -27,7 +27,7 @@ bam_dir=os.path.abspath(workflow.default_remote_prefix+"/bam") if gcp else "bam"
 allc_dir=os.path.abspath(workflow.default_remote_prefix+"/allc") if gcp else "allc"
 hic_dir=os.path.abspath(workflow.default_remote_prefix+"/hic") if gcp else "hic"
 fastq_dir=os.path.abspath(workflow.default_remote_prefix+"/fastq") if gcp else "fastq"
-mcg_context = 'CGN' if int(config['num_upstr_bases']) == 0 else 'HCGN'
+mcg_context = 'CGN' if int(num_upstr_bases) == 0 else 'HCGN'
 allc_mcg_dir=os.path.abspath(workflow.default_remote_prefix+f"/allc-{mcg_context}") if gcp else f"allc-{mcg_context}"
 
 for dir in [bam_dir,allc_dir,hic_dir,allc_mcg_dir]:
