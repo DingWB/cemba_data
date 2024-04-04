@@ -72,8 +72,8 @@ def m3c_bam_unique_read_counts(bam_path, read_type_int):
 
 def m3c_count_bams(bam_dir, cell_id, read_type):
 	bam_path_dict = {
-		f'{read_type}UniqueMappedReads': bam_dir / f'{cell_id}-{read_type}.two_mapping.filter.bam',
-		f'{read_type}DeduppedReads': bam_dir / f'{cell_id}-{read_type}.two_mapping.deduped.bam',
+		f'{read_type}UniqueMappedReads': bam_dir / f'{cell_id}-{read_type}.merged.filter.bam',
+		f'{read_type}DeduppedReads': bam_dir / f'{cell_id}-{read_type}.merged.deduped.bam',
 	}
 	read_counts = {name: m3c_bam_unique_read_counts(path, 1 if read_type == 'R1' else 2)
 				   for name, path in bam_path_dict.items()}
