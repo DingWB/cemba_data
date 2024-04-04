@@ -274,7 +274,7 @@ rule feature_count:
     input:
         'bam/TotalRNAAligned.rna_reads.bam'
     output:
-        count='bam/TotalRNAAligned.rna_reads.feature_count.tsv',
+        count_tsv='bam/TotalRNAAligned.rna_reads.feature_count.tsv',
         stats='bam/TotalRNAAligned.rna_reads.feature_count.tsv.summary'
     threads:
         min(workflow.cores * 0.8, 10)
@@ -282,5 +282,5 @@ rule feature_count:
         mem_mb=1000
     shell:
         """
-        featureCounts -t {feature_type} -g {id_type} -a {gtf_path} -o {output.count} --byReadGroup -T {threads} {input}
+        featureCounts -t {feature_type} -g {id_type} -a {gtf_path} -o {output.count_tsv} --byReadGroup -T {threads} {input}
         """
