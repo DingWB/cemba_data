@@ -35,6 +35,7 @@ def mct_config_str(config):
         'hisat3n_repeat_index_type': 'no-repeat',
         'reference_fasta': 'required',
         'star_reference': 'required',
+		'chrom_size_path': 'required',
         'gtf_path': 'required',
         'feature_type': 'gene',
         'id_type': 'gene_id',
