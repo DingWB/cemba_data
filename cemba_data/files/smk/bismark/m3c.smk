@@ -51,8 +51,8 @@ rule summary:
 
         expand("fastq/{cell_id}-{read_type}.trimmed.stats.tsv",cell_id=CELL_IDS,read_type=['R1','R2']),
         expand("bam/{cell_id}-{read_type}.merged.deduped.matrix.txt",cell_id=CELL_IDS,read_type=['R1','R2']),
-        expand(bam_dir+"/{cell_id}-{read_type}.merged.filter.bam",cell_id=CELL_IDS,read_type=['R1','R2']),
-        expand(bam_dir+"/{cell_id}-{read_type}.merged.deduped.bam",cell_id=CELL_IDS,read_type=['R1','R2']),
+        local(expand(bam_dir+"/{cell_id}-{read_type}.merged.filter.bam",cell_id=CELL_IDS,read_type=['R1','R2'])),
+        local(expand(bam_dir+"/{cell_id}-{read_type}.merged.deduped.bam",cell_id=CELL_IDS,read_type=['R1','R2'])),
         expand("hic/{cell_id}.3C.contact.tsv.gz", cell_id=CELL_IDS),
         expand("hic/{cell_id}.3C.contact.tsv.counts.txt", cell_id=CELL_IDS)
     output:
@@ -153,7 +153,7 @@ rule filter_bam:
     input:
         local(bam_dir+"/{cell_id}-{read_type}.merged.bam")
     output:
-        bam=local(temp(bam_dir+"/{cell_id}-{read_type}.merged.filter.bam")),
+        bam=local(temp(bam_dir+"/{cell_id}-{read_type}.merged.filter.bam"))
     shell:
         """
         samtools view -b -h -q 10 -o {output.bam} {input}
