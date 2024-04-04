@@ -241,6 +241,8 @@ rule star:
         'bam/TotalRNALog.out',
         'bam/TotalRNALog.progress.out',
         'bam/TotalRNASJ.out.tab'
+    params:
+        prefix="bam/TotalRNA" if not gcp else workflow.default_remote_prefix+"/bam/TotalRNA"
     threads:
         workflow.cores * 0.8  # workflow.cores is user provided cores for snakemake
     resources:
@@ -264,7 +266,7 @@ rule star:
         '--alignIntronMin 20 '  # ENCODE standard options
         '--alignIntronMax 1000000 '  # ENCODE standard options
         '--alignMatesGapMax 1000000 '  # ENCODE standard options
-        '--outFileNamePrefix rna_bam/TotalRNA '
+        '--outFileNamePrefix {params.prefix} '
         '--readFilesIn {star_input_str} '
         '--readFilesCommand gzip -cd '
         '--outSAMattrRGline ID:{cell_ids_str}'
