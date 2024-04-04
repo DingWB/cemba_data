@@ -105,7 +105,7 @@ def print_default_mapping_config(mode,
 
 	config_content = config_content.replace('CHANGE_THIS_TO_YOUR_CHROM_SIZE_PATH', str(chrom_size_path))
 	config_content = config_content.replace('USE_CORRECT_BARCODE_VERSION_HERE', barcode_version)
-	if hisat3n_dna_ref is None:
+	if not hisat3n_dna_ref is None:
 		config_content = config_content.replace('CHANGE_THIS_TO_YOUR_HISAT3N_DNA_REFERENCE', str(hisat3n_dna_ref))
 	if not bismark_ref is None:
 		config_content = config_content.replace('CHANGE_THIS_TO_YOUR_BISMARK_REFERENCE_DIR', str(bismark_ref))

@@ -36,6 +36,8 @@ yap default-mapping-config --mode mc --barcode_version V2 --bismark_ref "~/Ref/m
 # pay attention to the path of reference, should be the same as on the GCP if you are going to run the pipeline on GCP.    
 
 # mct
+yap default-mapping-config --mode m3c --barcode_version V2 --bismark_ref "~/Ref/mm10/mm10_ucsc_with_chrL.bismark1" --genome "~/Ref/mm10/mm10_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/mm10/mm10_ucsc.nochrM.sizes" --hisat3n_dna_ref  "~/Ref/mm10/mm10_ucsc_with_chrL" > mct_config.ini
+
 yap default-mapping-config --mode mct --barcode_version V2 --genome "~/Projects/Remind/customized_ref/mm10_ucsc_with_chrG.fa" --chrom_size_path "~/Projects/Remind/customized_ref/mm10_ucsc_with_chrG.sizes" --hisat3n_dna_ref  "~/Projects/Remind/customized_ref/mm10_ucsc_with_chrG" --hisat3n_rna_ref "~/Projects/Remind/customized_ref/mm10_ucsc_with_chrG" --gtf "~/Projects/Remind/customized_ref/gencode.vM23.annotation_with_chrG.gtf" > mct_config.ini
 ```
 
@@ -66,6 +68,8 @@ done;
 sh mapping/snakemake/qsub/snakemake_cmd.txt
 # or
 yap-gcp run_mapping --fastq_prefix="mapping/Pool_Remind1_m3c" --gcp=False --config_path="m3c_config.ini" --aligner='hisat-3n' --n_jobs=64 --print_only=True
+# or bismark
+yap-gcp run_mapping --fastq_prefix="mapping " --gcp=False --config_path="m3c_config.ini" --aligner='bismark' --n_jobs=64
 ```
 
 ## 2 Run on GCP
