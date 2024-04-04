@@ -154,6 +154,7 @@ rule allc:
         bam="bam/{cell_id}.final.bam"
     output:
         allc="allc/{cell_id}.allc.tsv.gz",
+        tbi= "allc/{cell_id}.allc.tsv.gz.tbi",
         stats="allc/{cell_id}.allc.tsv.gz.count.csv"
     threads:
         2
