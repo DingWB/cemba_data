@@ -200,6 +200,27 @@ rule allc:
                 --save_count_df
         """
 
+# CGN extraction from ALLC
+rule cgn_extraction:
+    input:
+        allc="allc/{cell_id}.allc.tsv.gz",
+        tbi="allc/{cell_id}.allc.tsv.gz.tbi"
+    output:
+        allc="allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz",
+        tbi="allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz.tbi",
+    params:
+        prefix=allc_mcg_dir+"/{cell_id}",
+    threads:
+        1
+    resources:
+        mem_mb=100
+    shell:
+        """
+        mkdir -p {allc_mcg_dir}
+        allcools extract-allc --strandness merge \
+--allc_path  {input.allc} --output_prefix {params.prefix} \
+--mc_contexts {mcg_context} --chrom_size_path {chrom_size_path}
+        """
 
 # RNA mapping, also start from trimmed fastq
 cell_ids_str = ' , ID:'.join(CELL_IDS)
