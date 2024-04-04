@@ -1,3 +1,4 @@
+import os
 import pathlib
 import subprocess
 import pysam
@@ -399,6 +400,7 @@ def mapping_stats(output_dir=None,fastq_dir=None,mode='m3c',barcode_version='V2'
 				mc_stat_feature='CHN CGN CCC',mc_stat_alias='mCH mCG mCCC',num_upstr_bases=0,
 				mc_rate_max_threshold=0.5,dna_cov_min_threshold=3):
 	"""This is UID level mapping summary, the config file is in parent dir"""
+	print("CWD:",os.getcwd())
 	output_dir = pathlib.Path(output_dir).absolute()
 	if fastq_dir is None:
 		fastq_dir = output_dir / 'fastq'

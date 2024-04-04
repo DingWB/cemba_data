@@ -36,9 +36,11 @@ yap default-mapping-config --mode mc --barcode_version V2 --bismark_ref "~/Ref/m
 # pay attention to the path of reference, should be the same as on the GCP if you are going to run the pipeline on GCP.    
 
 # mct
-yap default-mapping-config --mode m3c --barcode_version V2 --bismark_ref "~/Ref/mm10/mm10_ucsc_with_chrL.bismark1" --genome "~/Ref/mm10/mm10_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/mm10/mm10_ucsc.nochrM.sizes" --hisat3n_dna_ref  "~/Ref/mm10/mm10_ucsc_with_chrL" > mct_config.ini
+# bismark & STAR for mct (bowtie2)
+yap default-mapping-config --mode mct --barcode_version V2 --bismark_ref "~/Ref/mm10/mm10_ucsc_with_chrL.bismark2" --genome "~/Ref/mm10/mm10_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/mm10/mm10_ucsc.nochrM.sizes" --gtf "~/Ref/mm10/annotations/gencode.vM23.annotation.gtf" --star_ref "~/Ref/mm10/star_ref" > mct_config.ini
 
-yap default-mapping-config --mode mct --barcode_version V2 --genome "~/Projects/Remind/customized_ref/mm10_ucsc_with_chrG.fa" --chrom_size_path "~/Projects/Remind/customized_ref/mm10_ucsc_with_chrG.sizes" --hisat3n_dna_ref  "~/Projects/Remind/customized_ref/mm10_ucsc_with_chrG" --hisat3n_rna_ref "~/Projects/Remind/customized_ref/mm10_ucsc_with_chrG" --gtf "~/Projects/Remind/customized_ref/gencode.vM23.annotation_with_chrG.gtf" > mct_config.ini
+# hisat-3n for mct    
+yap default-mapping-config --mode mct --barcode_version V2 --hisat3n_dna_ref "~/Ref/mm10/mm10_ucsc_with_chrL" --hisat3n_rna_ref "~/Ref/mm10/mm10_ucsc_with_chrL" --genome "~/Ref/mm10/mm10_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/mm10/mm10_ucsc.nochrM.sizes" --gtf "~/Ref/mm10/annotations/gencode.vM23.annotation.gtf" > mct_config.ini
 ```
 
 ### (3). Demultiplex
