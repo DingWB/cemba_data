@@ -247,7 +247,7 @@ rule star:
         '--readFilesCommand gzip -cd '
         '--outSAMattrRGline ID:{cell_ids_str}'
 
-rule filter_bam:
+rule filter_rna_bam:
     input:
         local(bam_dir+'/TotalRNAAligned.out.bam')
     output:
