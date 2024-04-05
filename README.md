@@ -78,7 +78,8 @@ yap-gcp run_mapping --fastq_prefix="mapping " --gcp=False --config_path="m3c_con
 ```shell
 # generate config.ini; bismark
 yap default-mapping-config --mode m3c --barcode_version V2 --bismark_ref "~/Ref/hg38/hg38_ucsc_with_chrL.bismark1" --genome " ~/Ref/hg38/hg38_ucsc_with_chrL.fa" --chrom_size_path " ~/Ref/hg38/hg38_ucsc.nochrM.sizes" > m3c_config.ini
-yap default-mapping-config --mode m3c --barcode_version V2 --hisat3n_dna_ref  "~/Ref/mm10/mm10_ucsc_with_chrL" --genome " ~/Ref/hg38/hg38_ucsc_with_chrL.fa" --chrom_size_path " ~/Ref/hg38/hg38_ucsc.nochrM.sizes" > m3c_hisat3n_config.ini
+# hisat3n
+yap default-mapping-config --mode m3c --barcode_version V2 --hisat3n_dna_ref  "~/Ref/hg38/hg38_ucsc_with_chrL" --genome " ~/Ref/hg38/hg38_ucsc_with_chrL.fa" --chrom_size_path " ~/Ref/hg38/hg38_ucsc.nochrM.sizes" > m3c_hisat3n_config.ini
 
 # (1). old yap pipeline
 ## demultiplex
@@ -89,9 +90,10 @@ sh mapping/snakemake/qsub/snakemake_cmd.txt
 # /usr/bin/time -f "%e\t%M\t%P" UWA7648_CX2324_THM1_3_P12-2-N8 ; run one uid, 16 cpus; 4514.82 3393988 367%
 
 # (2). new yap-gcp pipeline, run on local HPC (faster)
-yap-gcp run_demultiplex --fq_dir=" /gale/raidix/rdx-2/illumina_runs/240322_M00412_0796_000000000-GK7K5_240325081847048305907-1/SALK054/" --outdir="mapping" --gcp=False --n_jobs=16  
+yap-gcp run_demultiplex --fq_dir=" /gale/raidix/rdx-2/illumina_runs/240322_M00412_0796_000000000-GK7K5_240325081847048305907-1/SALK054/" --outdir="mapping" --gcp=False --n_jobs=16
 # time and memory usage: 69.52   282008  754%; 30X faster
-yap-gcp run_mapping --fastq_prefix="mapping " --gcp=False --config_path="m3c_config.ini" --aligner='bismark' --n_jobs=64
+yap-gcp run_mapping --fastq_prefix="mapping" --gcp=False --config_path="m3c_config.ini" --aligner='bismark' --n_jobs=64 --print_only=True
+sh mapping/snakemake/qsub/snakemake_cmd.txt
 ```
 
 ## 2 Run on GCP
