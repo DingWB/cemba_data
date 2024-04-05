@@ -290,8 +290,7 @@ rule select_rna:
     shell:
         """
         yap-internal select-rna-reads  --input_bam {input}  --output_bam {output.bam}  \
-        --mc_rate_min_threshold {mc_rate_min_threshold} --cov_min_threshold {rna_cov_min_threshold} \ 
-        {nome_flag_str} --assay_type mc
+--mc_rate_min_threshold {mc_rate_min_threshold} --cov_min_threshold {rna_cov_min_threshold} {nome_flag_str} --assay_type mc
         """
 
 rule feature_count:
