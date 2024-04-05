@@ -8,6 +8,7 @@ from snakemake.io import glob_wildcards
 PACKAGE_DIR=cemba_data.__path__[0]
 from cemba_data.demultiplex.fastq_dataframe import _parse_v2_fastq_path
 from cemba_data.demultiplex import _parse_index_fasta
+from cemba_data.mapping.pipelines import prepare_run
 from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
 import json
 try: #gcp
@@ -449,7 +450,8 @@ def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 		cmd=f"snakemake -s {output_dir}/{uid}/Snakefile {common_str} {cmd_str}"
 		# workdir should be current, not {output_dir}/{uid}
 		cmds.append(cmd)
-
+	if not gcp:
+		prepare_run(pathlib.Path(output_dir).absolute())
 	for cmd in cmds:
 		print(f"{cmd}")
 		if print_only:
