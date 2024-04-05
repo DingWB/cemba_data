@@ -39,7 +39,9 @@ def mct_config_str(config):
         'gtf_path': 'required',
         'feature_type': 'gene',
         'id_type': 'gene_id',
-        'nome_flag_str': 'required'
+        'nome_flag_str': 'required',
+		'mc_stat_feature': 'CHN CGN CCC',
+		'mc_stat_alias': 'mCH mCG mCCC',
     }
     if 'hisat3n_dna_reference' in config and config["hisat3n_dna_reference"]!="CHANGE_THIS_TO_YOUR_HISAT3N_DNA_REFERENCE":
         del str_parameters['bismark_reference']

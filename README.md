@@ -76,16 +76,17 @@ yap-gcp run_mapping --fastq_prefix="mapping " --gcp=False --config_path="m3c_con
 
 ### (5) yap vs yap-gcp: example on m3c
 ```shell
-# generate config.ini
+# generate config.ini; bismark
 yap default-mapping-config --mode m3c --barcode_version V2 --bismark_ref "~/Ref/hg38/hg38_ucsc_with_chrL.bismark1" --genome " ~/Ref/hg38/hg38_ucsc_with_chrL.fa" --chrom_size_path " ~/Ref/hg38/hg38_ucsc.nochrM.sizes" > m3c_config.ini
+yap default-mapping-config --mode m3c --barcode_version V2 --hisat3n_dna_ref  "~/Ref/mm10/mm10_ucsc_with_chrL" --genome " ~/Ref/hg38/hg38_ucsc_with_chrL.fa" --chrom_size_path " ~/Ref/hg38/hg38_ucsc.nochrM.sizes" > m3c_hisat3n_config.ini
 
 # (1). old yap pipeline
 ## demultiplex
 yap demultiplex --fastq_pattern "/gale/raidix/rdx-2/illumina_runs/240322_M00412_0796_000000000-GK7K5_240325081847048305907-1/SALK054/*.fastq.gz" -o mapping -j 16 --aligner bismark --config_path m3c_config.ini #/usr/bin/time -f "%e\t%M\t%P" ;  2125.33 500364  195%
+# elapsed real time (wall clock) in seconds; maximum resident set size in KB;  percent of CPU this job got
 ## mapping
 sh mapping/snakemake/qsub/snakemake_cmd.txt
-# /usr/bin/time -f "%e\t%M\t%P" snakemake -d /gale/netapp/home2/wding/test_pipeline/mapping/UWA7648_CX2324_THM1_3_P12-2-N8 --snakefile /gale/netapp/home2/wding/test_pipeline/mapping/UWA7648_CX2324_THM1_3_P12-2-N8/Snakefile -j 16 --rerun-incomplete --default-resources mem_mb=100 --resources mem_mb=50000
-# add /usr/bin/time -f "%e\t%M\t%P" to measure the time and memory usage
+# /usr/bin/time -f "%e\t%M\t%P" UWA7648_CX2324_THM1_3_P12-2-N8 ; run one uid, 16 cpus; 4514.82 3393988 367%
 
 # (2). new yap-gcp pipeline, run on local HPC (faster)
 yap-gcp run_demultiplex --fq_dir=" /gale/raidix/rdx-2/illumina_runs/240322_M00412_0796_000000000-GK7K5_240325081847048305907-1/SALK054/" --outdir="mapping" --gcp=False --n_jobs=16 
