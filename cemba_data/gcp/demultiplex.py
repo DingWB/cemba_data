@@ -11,6 +11,7 @@ from cemba_data.demultiplex import _parse_index_fasta
 from cemba_data.mapping.pipelines import prepare_run
 from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
 import json
+import pathlib
 try: #gcp
 	os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.expanduser(
 			'~/.config/gcloud/application_default_credentials.json')
