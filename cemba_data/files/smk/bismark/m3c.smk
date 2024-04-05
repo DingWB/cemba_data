@@ -34,7 +34,7 @@ for dir in [bam_dir,allc_dir,hic_dir,allc_mcg_dir]:
     if not os.path.exists(dir):
         os.mkdir(dir)
 
-if not local_fastq or config['gcp']:
+if not local_fastq or gcp:
     from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
     GS = GSRemoteProvider()
     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
