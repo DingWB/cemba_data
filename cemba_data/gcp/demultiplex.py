@@ -451,6 +451,7 @@ def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 		cmd=f"snakemake -s {output_dir}/{uid}/Snakefile {common_str} {cmd_str}"
 		# workdir should be current, not {output_dir}/{uid}
 		cmds.append(cmd)
+	print(f"GCP: {gcp}; print_only: {print_only}")
 	if not gcp and print_only:
 		prepare_run(output_dir=pathlib.Path(output_dir).absolute(),
 					cores_per_job=n_jobs)
