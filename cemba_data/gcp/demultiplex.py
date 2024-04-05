@@ -451,15 +451,17 @@ def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 		cmd=f"snakemake -s {output_dir}/{uid}/Snakefile {common_str} {cmd_str}"
 		# workdir should be current, not {output_dir}/{uid}
 		cmds.append(cmd)
-	if not gcp:
-		prepare_run(pathlib.Path(output_dir).absolute())
-	for cmd in cmds:
-		print(f"{cmd}")
-		if print_only:
-			continue
-		with open(log_path, 'a') as f:
-			f.write(cmd + '\n')
-		os.system(cmd)
+	if not gcp and print_only:
+		prepare_run(output_dir=pathlib.Path(output_dir).absolute(),
+					cores_per_job=n_jobs)
+	else:
+		for cmd in cmds:
+			print(f"{cmd}")
+			if print_only:
+				continue
+			with open(log_path, 'a') as f:
+				f.write(cmd + '\n')
+			os.system(cmd)
 
 def yap_pipeline(
 	fq_dir="gs://mapping_example/fastq/salk10_test",
