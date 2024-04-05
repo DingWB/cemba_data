@@ -489,5 +489,5 @@ def update_snakemake(output_dir):
 		make_snakefile_hisat3n(output_dir=output_dir)
 	else:
 		make_snakefile(output_dir)
-		prepare_run(output_dir)
+	prepare_run(output_dir)
 	return
