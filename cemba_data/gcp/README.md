@@ -61,3 +61,96 @@ snakemake -s merge_lanes.smk \
 snakemake -s merge_lanes.smk --use-conda \
                   --config outdir="test2" -j 8
 ```
+
+
+## 2 Run on GCP
+```shell
+yap-gcp yap_pipeline --fq_dir="gs://mapping_example/fastq/novaseq_fastq" \
+--remote_prefix='mapping_example' --outdir='novaseq_mapping' --env_name='yap' \
+--n_jobs1=16 --n_jobs2=60 \
+--image="bican" --n_node 1 --disk_size1 300 --disk_size2 300 \
+--demultiplex_template="~/Projects/BICAN/yaml/demultiplex.yaml" \
+--mapping_template="~/Projects/BICAN/yaml/mapping.yaml" \
+--genome="~/Ref/hg38/hg38_ucsc_with_chrL.fa" \
+--hisat3n_dna_ref="~/Ref/hg38/hg38_ucsc_with_chrL" \
+--mode='m3c' --bismark_ref='~/Ref/hg38/hg38_ucsc_with_chrL.bismark1' \
+--chrom_size_path='~/Ref/hg38/hg38_ucsc.main.chrom.sizes' \
+--aligner='hisat-3n' > run.sh
+source run.sh
+
+# demultiplex 
+yap-gcp run_mapping --fastq_prefix="mapping/mCT" --gcp=False --config_path="mct_config.ini" --aligner='hisat-3n' --n_jobs=64 --print_only True | grep "^snakemake" > run_mct_mapping.sh
+yap sbatch --project_name mapping --command_file_path run_mct_mapping.sh --queue shared --max_jobs 4 --dry_run --working_dir ./ --time_str 1
+# or
+split -n l/8 -d run_mct_mapping.sh run_mct_mapping.
+for i in {0..7}; do 
+  echo "run_mct_mapping.0${i}"
+  Pbsgen -name mapping_${i} -c 64 -d 2 -m 90 -p shared -submit sh run_mct_mapping.0${i}
+#  Pbsgen -name mapping_${i} -c 64 -d 2 -m 90 -p shared sh run_mct_mapping.0${i}
+done;
+```
+
+# Testing pipeline
+## 1.1. Make example fastq files
+Randomly sampling 1000000 reads from 4 big fastq files
+
+```shell
+seqtk sample -s100 download/UWA7648_CX182024_Idg_1_P1-1-K15_22HC72LT3_S1_L001_R1_001.fastq.gz 1000000 | gzip > novaseq_fastq/UWA7648_CX182024_Idg_1_P1-1-K15_22HC72LT3_S1_L001_R1_001.fastq.gz
+# | paste - - - - | sort -k1,1 -t " " | tr "\t" "\n" |
+```
+
+
+## 2.1 Run pipeline on GCP
+```shell
+yap-gcp get_demultiplex_skypilot_yaml > demultiplex.yaml # vim
+# demultiplex: n1-highcpu-16
+yap-gcp yap_pipeline --fq_dir="gs://mapping_example/fastq/novaseq_fastq" \
+--remote_prefix='mapping_example' --outdir='novaseq_mapping' --env_name='yap' \
+--n_jobs1=16 --n_jobs2=16 \
+--image="bican" --n_node 1 --disk_size1 300 --disk_size2 300 \
+--demultiplex_template="~/Projects/BICAN/yaml/demultiplex.yaml" \
+--mapping_template="~/Projects/BICAN/yaml/mapping.yaml" \
+--genome="~/Ref/hg38_Broad/hg38.fa" \
+--hisat3n_dna_ref="~/Ref/hg38_Broad/hg38" \
+--mode='m3c' --bismark_ref='~/Ref/hg38/hg38_ucsc_with_chrL.bismark1' \
+--chrom_size_path='~/Ref/hg38_Broad/hg38.chrom.sizes' \
+--aligner='hisat-3n' > run.sh
+source run.sh
+```
+
+
+# Run Salk010 for test (comparing cost with Broad)
+```shell
+# salk10_test
+## 1.1 Run demultiplex on GCP
+yap-gcp get_demultiplex_skypilot_yaml > demultiplex.yaml # vim
+# demultiplex: n1-highcpu-64
+yap-gcp yap_pipeline --fq_dir="gs://mapping_example/fastq/salk10_test" \
+--remote_prefix='bican' --outdir='salk010_test' --env_name='yap' \
+--n_jobs1=16 --n_jobs2=64 \
+--image="bican" --disk_size1 300 --disk_size2 500 \
+--demultiplex_template="demultiplex.yaml" \
+--mapping_template="mapping.yaml" \
+--genome="~/Ref/hg38_Broad/hg38.fa" \
+--hisat3n_dna_ref="~/Ref/hg38_Broad/hg38" \
+--mode='m3c' --bismark_ref='~/Ref/hg38/hg38_ucsc_with_chrL.bismark1' \
+--chrom_size_path='~/Ref/hg38_Broad/hg38.chrom.sizes' \
+--aligner='hisat-3n' --n_node=2 > run.sh
+	
+source run.sh
+  
+# salk10
+# if n2-highcpu-64, use 60 jobs
+yap-gcp yap_pipeline --fq_dir="gs://nemo-tmp-4mxgixf-salk010/raw" \
+--remote_prefix='bican' --outdir='salk010' --env_name='yap' \
+--image="bican" --disk_size1 4096 --disk_size2 260 \
+--n_jobs1 16 --n_jobs2 60 \
+--demultiplex_template="~/Projects/BICAN/yaml/demultiplex.yaml" \
+--mapping_template="~/Projects/BICAN/yaml/mapping.yaml" \
+--genome="~/Ref/hg38_Broad/hg38.fa" \
+--hisat3n_dna_ref="~/Ref/hg38_Broad/hg38" \
+--mode='m3c' --bismark_ref='~/Ref/hg38/hg38_ucsc_with_chrL.bismark1' \
+--chrom_size_path='~/Ref/hg38_Broad/hg38.chrom.sizes' \
+--aligner='hisat-3n' --n_node 16 > run.sh
+# source run.sh
+```

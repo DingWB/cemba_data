@@ -1,29 +1,35 @@
-
+import os,sys
 # Snakemake rules below
 # suitable for sn4m-seq
 
 # use diff mcg_context for normal mC or NOMe
 mcg_context = 'CGN' if num_upstr_bases == 0 else 'HCGN'
 
-
 if "gcp" in config:
     gcp=config["gcp"] # if the fastq files stored in GCP cloud, set gcp=True in snakemake: --config gcp=True
 else:
     gcp=False
 
-if gcp:
+if "local_fastq" in config and gcp:
+    local_fastq=config["local_fastq"] # if the fastq files stored in GCP cloud, set local_fastq=False in snakemake: --config local_fastq=False
+else:
+    local_fastq=True
+
+if not local_fastq or gcp:
     from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
     GS = GSRemoteProvider()
     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
-    bam_dir=workflow.default_remote_prefix+"/bam"
-    allc_dir=workflow.default_remote_prefix+"/allc"
-    hic_dir=workflow.default_remote_prefix+"/hic"
-else:
-    bam_dir="bam"
-    allc_dir="allc"
-    hic_dir="hic"
 
-fastq_dir=os.path.abspath("fastq")
+bam_dir=os.path.abspath(workflow.default_remote_prefix+"/bam") if gcp else "bam"
+rna_bam_dir=os.path.abspath(workflow.default_remote_prefix+"/rna_bam") if gcp else "rna_bam"
+hic_dir=os.path.abspath(workflow.default_remote_prefix+"/hic") if gcp else "hic"
+allc_dir=os.path.abspath(workflow.default_remote_prefix+"/allc") if gcp else "allc"
+fastq_dir=os.path.abspath(workflow.default_remote_prefix+"/fastq") if gcp else "fastq"
+mcg_context = 'CGN' if int(num_upstr_bases) == 0 else 'HCGN'
+allc_mcg_dir=os.path.abspath(workflow.default_remote_prefix+f"/allc-{mcg_context}") if gcp else f"allc-{mcg_context}"
+for dir in [bam_dir,rna_bam_dir,allc_dir,hic_dir,allc_mcg_dir]:
+    if not os.path.exists(dir):
+        os.mkdir(dir)
 
 # the summary rule is the final target
 rule summary:
@@ -401,12 +407,14 @@ rule star:
         expand("fastq/{cell_id}-R1.trimmed.fq.gz", cell_id = CELL_IDS)
     output:
         'rna_bam/TotalRNAAligned.out.bam',
-        temp('rna_bam/TotalRNALog.final.out'),
-        temp('rna_bam/TotalRNALog.out'),
-        temp('rna_bam/TotalRNALog.progress.out'),
-        temp('rna_bam/TotalRNASJ.out.tab')
+        'rna_bam/TotalRNALog.final.out',
+        'rna_bam/TotalRNALog.out',
+        'rna_bam/TotalRNALog.progress.out',
+        'rna_bam/TotalRNASJ.out.tab'
     threads:
         workflow.cores * 0.8  # workflow.cores is user provided cores for snakemake
+    params:
+        prefix = "rna_bam/TotalRNA" if not gcp else workflow.default_remote_prefix + "/rna_bam/TotalRNA"
     resources:
         mem_mb=48000
     shell:
@@ -428,7 +436,7 @@ rule star:
         '--alignIntronMin 20 '  # ENCODE standard options
         '--alignIntronMax 1000000 '  # ENCODE standard options
         '--alignMatesGapMax 1000000 '  # ENCODE standard options
-        '--outFileNamePrefix rna_bam/TotalRNA '
+        '--outFileNamePrefix {params.prefix} '
         '--readFilesIn {star_input_str} '
         '--readFilesCommand gzip -cd '
         '--outSAMattrRGline ID:{cell_ids_str}'
@@ -474,7 +482,7 @@ rule feature_count:
         'rna_bam/TotalRNAAligned.rna_reads.bam'
     output:
         count='rna_bam/TotalRNAAligned.rna_reads.feature_count.tsv',
-        stats=temp('rna_bam/TotalRNAAligned.rna_reads.feature_count.tsv.summary')
+        stats='rna_bam/TotalRNAAligned.rna_reads.feature_count.tsv.summary'
     threads:
         min(workflow.cores * 0.8, 10)
     resources:
