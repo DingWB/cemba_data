@@ -24,12 +24,15 @@ if not local_fastq or gcp:
     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
 
 bam_dir=os.path.abspath(workflow.default_remote_prefix+"/bam") if gcp else "bam"
+rna_bam_dir=os.path.abspath(workflow.default_remote_prefix+"/rna_bam") if gcp else "rna_bam"
 allc_dir=os.path.abspath(workflow.default_remote_prefix+"/allc") if gcp else "allc"
-hic_dir=os.path.abspath(workflow.default_remote_prefix+"/hic") if gcp else "hic"
 fastq_dir=os.path.abspath(workflow.default_remote_prefix+"/fastq") if gcp else "fastq"
 mcg_context = 'CGN' if int(num_upstr_bases) == 0 else 'HCGN'
 allc_mcg_dir=os.path.abspath(workflow.default_remote_prefix+f"/allc-{mcg_context}") if gcp else f"allc-{mcg_context}"
 
+for dir in [bam_dir,rna_bam_dir,allc_dir,allc_mcg_dir]:
+    if not os.path.exists(dir):
+        os.mkdir(dir)
 # the summary rule is the final target
 rule summary:
     input:
@@ -44,14 +47,14 @@ rule summary:
         expand("bam/{cell_id}-{read_type}.trimmed_bismark_bt2.deduped.matrix.txt", cell_id=CELL_IDS,read_type=['R1','R2']),
         expand("bam/{cell_id}-{read_type}.trimmed_bismark_bt2_SE_report.txt", cell_id=CELL_IDS,read_type=['R1','R2']),
         expand("bam/{cell_id}.dna_reads.bam.reads_profile.csv", cell_id=CELL_IDS),
-        'bam/TotalRNAAligned.filtered.bam',  # needed for count star mapped reads by RG
-        'bam/TotalRNALog.final.out',
-        'bam/TotalRNALog.out',
-        'bam/TotalRNALog.progress.out',
-        # 'bam/TotalRNAAligned.rna_reads.bam',
-        'bam/TotalRNAAligned.rna_reads.bam.reads_profile.csv',
-        'bam/TotalRNAAligned.rna_reads.feature_count.tsv',
-        'bam/TotalRNAAligned.rna_reads.feature_count.tsv.summary'
+        'rna_bam/TotalRNAAligned.filtered.bam',  # needed for count star mapped reads by RG
+        'rna_bam/TotalRNALog.final.out',
+        'rna_bam/TotalRNALog.out',
+        'rna_bam/TotalRNALog.progress.out',
+        # 'rna_bam/TotalRNAAligned.rna_reads.bam',
+        'rna_bam/TotalRNAAligned.rna_reads.bam.reads_profile.csv',
+        'rna_bam/TotalRNAAligned.rna_reads.feature_count.tsv',
+        'rna_bam/TotalRNAAligned.rna_reads.feature_count.tsv.summary'
     output:
         "MappingSummary.csv.gz"
     params:
@@ -236,13 +239,13 @@ rule star:
         # each cell will have a different @RG tag
         local(expand("fastq/{cell_id}-R1.trimmed.fq.gz", cell_id = CELL_IDS))
     output:
-        'bam/TotalRNAAligned.out.bam',
-        'bam/TotalRNALog.final.out',
-        'bam/TotalRNALog.out',
-        'bam/TotalRNALog.progress.out',
-        'bam/TotalRNASJ.out.tab'
+        'rna_bam/TotalRNAAligned.out.bam',
+        'rna_bam/TotalRNALog.final.out',
+        'rna_bam/TotalRNALog.out',
+        'rna_bam/TotalRNALog.progress.out',
+        'rna_bam/TotalRNASJ.out.tab'
     params:
-        prefix="bam/TotalRNA" if not gcp else workflow.default_remote_prefix+"/bam/TotalRNA"
+        prefix="rna_bam/TotalRNA" if not gcp else workflow.default_remote_prefix+"/rna_bam/TotalRNA"
     threads:
         workflow.cores * 0.8  # workflow.cores is user provided cores for snakemake
     resources:
@@ -273,9 +276,9 @@ rule star:
 
 rule filter_rna_bam:
     input:
-        local(bam_dir+'/TotalRNAAligned.out.bam')
+        'rna_bam/TotalRNAAligned.out.bam'
     output:
-        'bam/TotalRNAAligned.filtered.bam'
+        'rna_bam/TotalRNAAligned.filtered.bam'
     threads:
         min(workflow.cores * 0.8, 10)
     shell:
@@ -283,10 +286,10 @@ rule filter_rna_bam:
 
 rule select_rna:
     input:
-        'bam/TotalRNAAligned.filtered.bam'
+        'rna_bam/TotalRNAAligned.filtered.bam'
     output:
-        bam='bam/TotalRNAAligned.rna_reads.bam',
-        stats='bam/TotalRNAAligned.rna_reads.bam.reads_profile.csv'
+        bam='rna_bam/TotalRNAAligned.rna_reads.bam',
+        stats='rna_bam/TotalRNAAligned.rna_reads.bam.reads_profile.csv'
     shell:
         """
         yap-internal select-rna-reads  --input_bam {input}  --output_bam {output.bam}  \
@@ -295,10 +298,10 @@ rule select_rna:
 
 rule feature_count:
     input:
-        'bam/TotalRNAAligned.rna_reads.bam'
+        'rna_bam/TotalRNAAligned.rna_reads.bam'
     output:
-        count_tsv='bam/TotalRNAAligned.rna_reads.feature_count.tsv',
-        stats='bam/TotalRNAAligned.rna_reads.feature_count.tsv.summary'
+        count_tsv='rna_bam/TotalRNAAligned.rna_reads.feature_count.tsv',
+        stats='rna_bam/TotalRNAAligned.rna_reads.feature_count.tsv.summary'
     threads:
         min(workflow.cores * 0.8, 10)
     resources:

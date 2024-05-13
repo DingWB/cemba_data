@@ -176,10 +176,10 @@ def summary_rna_mapping(output_dir):
 	output_dir = pathlib.Path(output_dir)
 
 	# summarize read counts for each cell before filter by mC rate
-	total_star_mapped_reads = _count_reads_by_rg_in_star_bam(output_dir / 'bam/TotalRNAAligned.filtered.bam')
+	total_star_mapped_reads = _count_reads_by_rg_in_star_bam(output_dir / 'rna_bam/TotalRNAAligned.filtered.bam')
 
 	# feature count summary
-	total_counts = pd.read_csv(output_dir / 'bam/TotalRNAAligned.rna_reads.feature_count.tsv.summary',
+	total_counts = pd.read_csv(output_dir / 'rna_bam/TotalRNAAligned.rna_reads.feature_count.tsv.summary',
 							   sep='\t', index_col=0).T
 	total_counts.index = total_counts.index.map(lambda i: i.split(':')[-1])
 	feature_count_summary = total_counts[['Assigned']].copy()
@@ -240,7 +240,7 @@ def aggregate_feature_counts(output_dir):
 	output_dir = pathlib.Path(output_dir)
 	cell_data = []
 
-	count_paths = list(output_dir.glob('*/bam/*.feature_count.tsv'))
+	count_paths = list(output_dir.glob('*/rna_bam/*.feature_count.tsv'))
 	if len(count_paths) == 0:
 		return
 
