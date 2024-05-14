@@ -428,7 +428,8 @@ def mapping_stats(output_dir=None,fastq_dir=None,mode='m3c',barcode_version='V2'
 	return
 
 
-def final_summary(output_dir, cleanup=True, notebook=None,mode='m3c'):
+def final_summary(output_dir, cleanup=True, notebook=None,
+				  mode='m3c',kernel_name='python3'):
 	output_dir = pathlib.Path(output_dir).absolute()
 	path_to_remove = []
 
@@ -509,7 +510,8 @@ def final_summary(output_dir, cleanup=True, notebook=None,mode='m3c'):
 			execute_notebook(
 				input_path=str(template_notebook),
 				output_path=str(nb_path),
-				parameters=dict(output_dir=str(output_dir))
+				parameters=dict(output_dir=str(output_dir)),
+				kernel_name=kernel_name,
 			)
 			print('Summary notebook successfully executed. Exporting HTML...')
 			subprocess.run(['jupyter', 'nbconvert', '--to', 'html', str(nb_path)])
