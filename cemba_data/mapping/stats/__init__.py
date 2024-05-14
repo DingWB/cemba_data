@@ -506,7 +506,7 @@ def final_summary(output_dir, cleanup=True, notebook=None,
 			else:
 				template_notebook = str(notebook)
 			print(f'Using notebook template from {template_notebook}')
-			print('Executing summary plotting notebook...')
+			print(f'Executing summary plotting notebook using kernel {kernel_name}')
 			execute_notebook(
 				input_path=str(template_notebook),
 				output_path=str(nb_path),
