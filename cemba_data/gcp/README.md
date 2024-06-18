@@ -154,3 +154,17 @@ yap-gcp yap_pipeline --fq_dir="gs://nemo-tmp-4mxgixf-salk010/raw" \
 --aligner='hisat-3n' --n_node 16 > run.sh
 # source run.sh
 ```
+
+
+## Add mhap
+```shell
+ava -jar ~/Software/mHapSuite-2.0-alpha/target/mHapSuite-2.0-jar-with-dependencies.jar convert -cpgPath ~/Ref/mm10/annotations/mm10_CpG.gz -inputFile 1.bam -outPutFile 1.mhap.gz
+```
+
+# run mapping from fastq
+```shell
+yap default-mapping-config --mode m3c --barcode_version V2 --genome "/anvil/projects/x-mcb130189/wenliang/hg38/hisat-3N/GRCh38.primary_assembly.genome_withchrL.fa" --chrom_size_path "/anvil/projects/x-mcb130189/wenliang/hg38/GRCh38.primary_withchrL_chrom_sizes" --hisat3n_dna_ref  "/anvil/projects/x-mcb130189/wenliang/hg38/hisat-3N/hg38" > m3c_config.ini
+
+yap-gcp run_mapping --fastq_prefix="mapping" --gcp=False --config_path="m3c_config.ini" --aligner='hisat-3n' --n_jobs=4 --print_only=True
+
+```

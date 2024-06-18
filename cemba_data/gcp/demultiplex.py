@@ -406,7 +406,8 @@ def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 				gcp=True,region='us-west1',keep_remote=False,
 				config_path="mapping_config.ini",aligner='hisat-3n',
-				n_jobs=64,node_rank=0,print_only=False):
+				n_jobs=64,node_rank=0,print_only=False,
+				snakemake_template=None):
 	if gcp:
 		output_dir=fastq_prefix.replace("gs://","")
 	else: #local
@@ -433,7 +434,7 @@ def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 		if keep_remote:
 			common_str += "--keep-remote "
 	else:
-		all_uids,all_cell_ids=glob_wildcards(os.path.join(output_dir,"{uid}/fastq/{cell_id}-R1.fq.gz"))
+		all_uids,all_cell_ids=glob_wildcards(os.path.join(output_dir,"{uid}/fastq/{cell_id}-R1.fq.gz"),followlinks=True)
 		uids=list(set(all_uids))
 		common_str = f'--default-resources mem_mb=100 --resources mem_mb=50000 --printshellcmds --scheduler greedy --rerun-incomplete --config gcp=False local_fastq=True -j {n_jobs}  '
 		log_path = os.path.join(output_dir, f"logs.txt")
@@ -444,7 +445,7 @@ def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 		# 	make_all_snakefile(output_dir,uid,aligner=aligner) #
 		# else:
 		# 	make_snakefile(output_dir=output_dir,aligner=aligner)
-		make_all_snakefile(output_dir, uid, aligner=aligner, gcp=gcp)
+		make_all_snakefile(output_dir, uid, aligner=aligner, gcp=gcp,snakemake_template=snakemake_template)
 		# mapping_config.ini need to be under local_output_dir
 		cmd_str=f"--default-remote-prefix {output_dir}/{uid}" if gcp else f"-d {output_dir}/{uid}"
 		# there should be fastq dir under default-remote-prefix

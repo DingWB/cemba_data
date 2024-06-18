@@ -89,7 +89,8 @@ def make_snakefile(output_dir,aligner="bismark"):
 									  snake_template=snake_template)
 	return
 
-def make_all_snakefile(output_dir, subdir, aligner="hisat-3n", gcp=True):
+def make_all_snakefile(output_dir, subdir, aligner="hisat-3n", gcp=True,
+					   snakemake_template=None):
 	if gcp:
 		from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
 		import json
@@ -126,12 +127,15 @@ def make_all_snakefile(output_dir, subdir, aligner="hisat-3n", gcp=True):
 	print('Making Snakefile based on mapping config INI file. The parameters are:')
 	print(config_str)
 
-	if aligner.lower() == "bismark":
-		snakefile_path = os.path.join(PACKAGE_DIR, f'files/smk/bismark/{mode.lower()}.smk')
-	elif aligner.lower() in ['hisat3n', 'hisat-3n', 'hisat_3n', 'hisat']:
-		snakefile_path = os.path.join(PACKAGE_DIR, f'files/smk/hisat3n/{mode.lower()}.smk')
+	if not snakemake_template is None:
+		snakefile_path=os.path.expanduser(snakemake_template)
 	else:
-		raise ValueError(f"Unknown aligner: {aligner}")
+		if aligner.lower() == "bismark":
+			snakefile_path = os.path.join(PACKAGE_DIR, f'files/smk/bismark/{mode.lower()}.smk')
+		elif aligner.lower() in ['hisat3n', 'hisat-3n', 'hisat_3n', 'hisat']:
+			snakefile_path = os.path.join(PACKAGE_DIR, f'files/smk/hisat3n/{mode.lower()}.smk')
+		else:
+			raise ValueError(f"Unknown aligner: {aligner}")
 
 	with open(snakefile_path) as f:
 		snake_template = f.read()
