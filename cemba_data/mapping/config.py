@@ -16,7 +16,8 @@ def print_default_mapping_config(mode,
 								 star_ref=None,
 								 gtf=None,
 								 nome=False,
-								 chrom_size_path=None):
+								 chrom_size_path=None,
+								 **kwargs):
 	mode = mode.lower()
 	if mode not in MAPPING_MODE_CHOICES:
 		raise ValueError(f'Unknown mode {mode}')
@@ -111,4 +112,6 @@ def print_default_mapping_config(mode,
 		config_content = config_content.replace('CHANGE_THIS_TO_YOUR_BISMARK_REFERENCE_DIR', str(bismark_ref))
 	config_content = config_content.replace('CHANGE_THIS_TO_YOUR_REFERENCE_FASTA', str(genome_fasta))
 	print(config_content)
+	for key in kwargs:
+		print(f"{key} = {kwargs[key]}")
 	return

@@ -96,7 +96,7 @@ def _parse_bam(bam_path, output_path):
 			elif line[0][-2:] == '-m':
 				split_st += '-3'
 			if read.flag & 16:
-				if split_st.split('-')[0] == '1':
+				if split_st.split('-')[0] == '1': #R1?
 					strand = 0
 				else:
 					strand = 1

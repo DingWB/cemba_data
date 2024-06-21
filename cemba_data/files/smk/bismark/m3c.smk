@@ -228,6 +228,27 @@ rule allc:
 --save_count_df
         """
 
+# Convert bam to mhap
+rule bam2mhap:
+    input: #sorted bam
+        bam=local(bam_dir + "/{cell_id}.mC.bam"),
+        bai=local(bam_dir + "/{cell_id}.mC.bam.bai")
+    output:
+        mhap="allc/{cell_id}.mhap.gz",
+        tbi="allc/{cell_id}.mhap.gz.tbi"
+    params:
+        mHapSuite = os.path.expanduser(config['mHapSuite']), #os.path.expanduser("~/Software/mHapSuite-2.0-alpha/target/mHapSuite-2.0-jar-with-dependencies.jar"),
+        cpgPath=os.path.expanduser(config['cpgPath']),
+    resources:
+        mem_mb=500
+    shell:
+        """
+        java -jar {params.mHapSuite} convert --inputFile {input.bam} --cpgPath {params.cpgPath} --outPutFile {output.mhap}.tmp.mhap.gz
+        zcat {output.mhap}.tmp.mhap.gz | sort -k1,1 -k2,2n | bgzip > {output.mhap}
+        rm -f {output.mhap}.tmp.mhap.gz
+        tabix -b 2 -e 3 {output.mhap}
+        """
+
 # CGN extraction from ALLC
 rule cgn_extraction:
     input:

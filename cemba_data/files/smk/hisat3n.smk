@@ -282,6 +282,26 @@ rule unique_reads_allc:
 --convert_bam_strandness
         """
 
+# Convert bam to mhap
+rule bam2mhap:
+    input:
+        bam=local(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam"),
+        bai=local(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam.bai")
+    output:
+        allc="allc/{cell_id}.allc.tsv.gz",
+        tbi="allc/{cell_id}.allc.tsv.gz.tbi",
+        stats="allc/{cell_id}.allc.tsv.gz.count.csv"
+    params:
+        mHapSuite = config['mHapSuite'], #os.path.expanduser("~/Software/mHapSuite-2.0-alpha/target/mHapSuite-2.0-jar-with-dependencies.jar"),
+        cpgPath=config['cpgPath'],
+    threads:
+        1.5
+    resources:
+        mem_mb=500
+    shell:
+        """
+        java -jar {params.mHapSuite} convert --inputFile {input.bam} --cpgPath {params.cpgPath} --outputFile <out> [--nonDirectional] [--mode mode] [--pat pat]
+        """
 
 # CGN extraction from ALLC
 rule unique_reads_cgn_extraction:
