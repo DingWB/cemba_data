@@ -350,7 +350,7 @@ def print_default_config_register_subparser(subparser):
 		"--mode",
 		type=str,
 		required=True,
-		choices=MAPPING_MODE_CHOICES,
+		# choices=MAPPING_MODE_CHOICES,
 		help="Library mode"
 	)
 
