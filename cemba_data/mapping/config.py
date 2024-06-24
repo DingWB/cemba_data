@@ -100,6 +100,7 @@ def print_default_mapping_config(mode,
 	else:
 		raise
 
+	config_content = config_content.replace('CHANGE_THIS_TO_YOUR_MODE', mode)
 	config_content = config_content.replace('CHANGE_THIS_TO_YOUR_CHROM_SIZE_PATH', str(chrom_size_path))
 	config_content = config_content.replace('USE_CORRECT_BARCODE_VERSION_HERE', barcode_version)
 	if not hisat3n_dna_ref is None:
