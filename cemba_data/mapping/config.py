@@ -19,7 +19,7 @@ def print_default_mapping_config(mode,
 								 chrom_size_path=None,
 								 **kwargs):
 	mode = mode.lower()
-	if mode not in MAPPING_MODE_CHOICES:
+	if mode.split('-')[0] not in MAPPING_MODE_CHOICES:
 		raise ValueError(f'Unknown mode {mode}')
 
 	barcode_version = barcode_version.upper()
@@ -33,7 +33,7 @@ def print_default_mapping_config(mode,
 	if not hisat3n_dna_ref is None:
 		hisat3n_dna_ref = hisat3n_dna_ref #pathlib.Path(hisat3n_dna_ref).absolute()
 
-	if mode == 'mct':
+	if mode.split('-')[0] == 'mct':
 		if star_ref is None:
 			if hisat3n_rna_ref is None:
 				raise ValueError('star_ref or hisat3n_rna_ref is required if mode is mct.')
@@ -47,10 +47,10 @@ def print_default_mapping_config(mode,
 		raise ValueError('chrom_size_path must be provided.')
 	chrom_size_path = chrom_size_path #pathlib.Path(chrom_size_path).absolute()
 
-	if mode.startswith('m3c'): #m3c or m3c-multi
+	if mode.split('-')[0] == 'm3c': #m3c or m3c-multi
 		pass
 
-	if mode == '4m':
+	if mode.split('-')[0] == '4m':
 		if (star_ref is None) and (hisat3n_rna_ref is None):
 			raise ValueError('star_ref or hisat3n_rna_ref is required if mode is mct.')
 		star_ref = star_ref #pathlib.Path(star_ref).absolute()
@@ -61,14 +61,14 @@ def print_default_mapping_config(mode,
 
 	genome_fasta = genome_fasta #pathlib.Path(genome_fasta).absolute()
 
-	if mode == 'mc':
+	if mode.split('-')[0] == 'mc':
 		if nome:
 			config_path = PACKAGE_DIR / 'files/default_config/mapping_config_nome.ini'
 		else:
 			config_path = PACKAGE_DIR / 'files/default_config/mapping_config_mc.ini'
 		with open(config_path) as f:
 			config_content = f.read()
-	elif mode == 'mct':
+	elif mode.split('-')[0] == 'mct':
 		if nome:
 			config_path = PACKAGE_DIR / 'files/default_config/mapping_config_mct-nome.ini'
 		else:
@@ -82,15 +82,11 @@ def print_default_mapping_config(mode,
 			config_content = config_content.replace('CHANGE_THIS_TO_YOUR_STAR_REFERENCE_DIR', str(star_ref))
 		if not gtf is None:
 			config_content = config_content.replace('CHANGE_THIS_TO_YOUR_GENE_ANNOTATION_GTF', str(gtf))
-	elif mode =='m3c':
+	elif mode.split('-')[0] =='m3c':
 		config_path = PACKAGE_DIR / 'files/default_config/mapping_config_m3c.ini'
 		with open(config_path) as f:
 			config_content = f.read()
-	elif mode =='m3c-multi':
-			config_path = PACKAGE_DIR / 'files/default_config/mapping_config_m3c_multi.ini'
-			with open(config_path) as f:
-				config_content = f.read()
-	elif mode == '4m':
+	elif mode.split('-')[0] == '4m':
 		config_path = PACKAGE_DIR / 'files/default_config/mapping_config_4m.ini'
 		with open(config_path) as f:
 			config_content = f.read()
