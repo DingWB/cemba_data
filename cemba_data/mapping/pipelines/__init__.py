@@ -359,17 +359,17 @@ def prepare_sbatch(name, snakemake_dir, queue):
 	if queue == 'skx-normal':
 		sbatch_cores_per_job = 96
 		if mode.split('-')[0] == 'm3c':
-			time_str = "7:00:00"
-			total_mem_mb = 160000
+			time_str = "48:00:00"
+			total_mem_mb = 204800
 		elif mode.split('-')[0] == '4m':
-			time_str = "7:00:00"
-			total_mem_mb = 160000
+			time_str = "48:00:00"
+			total_mem_mb = 204800
 		elif mode.split('-')[0] == 'mc':
-			time_str = "6:00:00"
-			total_mem_mb = 192000
+			time_str = "48:00:00"
+			total_mem_mb = 204800
 		elif mode.split('-')[0] == 'mct':
-			time_str = "6:00:00"
-			total_mem_mb = 192000
+			time_str = "48:00:00"
+			total_mem_mb = 204800
 		else:
 			raise KeyError(f'Unknown mode {mode}')
 	elif queue == 'normal':
@@ -392,16 +392,16 @@ def prepare_sbatch(name, snakemake_dir, queue):
 		sbatch_cores_per_job = 64
 		if mode.split('-')[0] == 'm3c':
 			time_str = "48:00:00"
-			total_mem_mb = 90000
+			total_mem_mb = 102400
 		elif mode.split('-')[0] == '4m':
 			time_str = "48:00:00"
-			total_mem_mb = 90000
+			total_mem_mb = 102400
 		elif mode.split('-')[0] == 'mc':
 			time_str = "48:00:00"
-			total_mem_mb = 112000
+			total_mem_mb = 102400
 		elif mode.split('-')[0] == 'mct':
 			time_str = "48:00:00"
-			total_mem_mb = 112000
+			total_mem_mb = 102400
 		else:
 			raise KeyError(f'Unknown mode {mode}')
 	# else:
