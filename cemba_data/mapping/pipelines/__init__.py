@@ -36,13 +36,13 @@ def validate_mapping_config(output_dir):
 	except KeyError:
 		raise KeyError('mode not found in the config file.')
 
-	if mode == 'mc':
+	if mode.split('-')[0] == 'mc':
 		config_str = mc_config_str(config)
-	elif mode == 'mct':
+	elif mode.split('-')[0] == 'mct':
 		config_str = mct_config_str(config)
-	elif mode == 'm3c':
+	elif mode.split('-')[0] == 'm3c':
 		config_str = m3c_config_str(config)
-	elif mode == '4m':
+	elif mode.split('-')[0] == '4m':
 		config_str = _4m_config_str(config)
 	else:
 		raise ValueError(f'Unknown mode {mode}')
@@ -59,13 +59,13 @@ def make_snakefile(output_dir,aligner="bismark"):
 	except KeyError:
 		raise KeyError('mode not found in the config file.')
 
-	if mode == 'mc':
+	if mode.split('-')[0] == 'mc':
 		config_str = mc_config_str(config)
-	elif mode == 'mct':
+	elif mode.split('-')[0] == 'mct':
 		config_str = mct_config_str(config)
-	elif mode == 'm3c':
+	elif mode.split('-')[0] == 'm3c':
 		config_str = m3c_config_str(config)
-	elif mode == '4m':
+	elif mode.split('-')[0] == '4m':
 		config_str = _4m_config_str(config)
 	else:
 		raise ValueError(f'Unknown mode {mode}')
@@ -113,13 +113,13 @@ def make_all_snakefile(output_dir, subdir, aligner="hisat-3n", gcp=True,
 	except KeyError:
 		raise KeyError('mode not found in the config file.')
 
-	if mode in ['mc','mc-multi']:
+	if mode.split('-')[0] == 'mc':
 		config_str = mc_config_str(config)
-	elif mode in ['mct','mct-multi']:
+	elif mode.split('-')[0] == 'mct':
 		config_str = mct_config_str(config)
-	elif mode in ['m3c','m3c-multi']:
+	elif mode.split('-')[0] == 'm3c':
 		config_str = m3c_config_str(config)
-	elif mode =='4m':
+	elif mode.split('-')[0] =='4m':
 		config_str = _4m_config_str(config)
 	else:
 		print(mode)
@@ -358,48 +358,48 @@ def prepare_sbatch(name, snakemake_dir, queue):
 
 	if queue == 'skx-normal':
 		sbatch_cores_per_job = 96
-		if mode == 'm3c':
+		if mode.split('-')[0] == 'm3c':
 			time_str = "7:00:00"
 			total_mem_mb = 160000
-		elif mode == '4m':
+		elif mode.split('-')[0] == '4m':
 			time_str = "7:00:00"
 			total_mem_mb = 160000
-		elif mode == 'mc':
+		elif mode.split('-')[0] == 'mc':
 			time_str = "6:00:00"
 			total_mem_mb = 192000
-		elif mode == 'mct':
+		elif mode.split('-')[0] == 'mct':
 			time_str = "6:00:00"
 			total_mem_mb = 192000
 		else:
 			raise KeyError(f'Unknown mode {mode}')
 	elif queue == 'normal':
 		sbatch_cores_per_job = 64
-		if mode == 'm3c':
+		if mode.split('-')[0] == 'm3c':
 			time_str = "48:00:00"
 			total_mem_mb = 90000
-		elif mode == '4m':
+		elif mode.split('-')[0] == '4m':
 			time_str = "48:00:00"
 			total_mem_mb = 90000
-		elif mode == 'mc':
+		elif mode.split('-')[0] == 'mc':
 			time_str = "48:00:00"
 			total_mem_mb = 112000
-		elif mode == 'mct':
+		elif mode.split('-')[0] == 'mct':
 			time_str = "48:00:00"
 			total_mem_mb = 112000
 		else:
 			raise KeyError(f'Unknown mode {mode}')
 	else: # queue == 'shared':
 		sbatch_cores_per_job = 64
-		if mode == 'm3c':
+		if mode.split('-')[0] == 'm3c':
 			time_str = "48:00:00"
 			total_mem_mb = 90000
-		elif mode == '4m':
+		elif mode.split('-')[0] == '4m':
 			time_str = "48:00:00"
 			total_mem_mb = 90000
-		elif mode == 'mc':
+		elif mode.split('-')[0] == 'mc':
 			time_str = "48:00:00"
 			total_mem_mb = 112000
-		elif mode == 'mct':
+		elif mode.split('-')[0] == 'mct':
 			time_str = "48:00:00"
 			total_mem_mb = 112000
 		else:
@@ -446,9 +446,9 @@ def prepare_sbatch(name, snakemake_dir, queue):
 def prepare_run(output_dir, total_jobs=12, cores_per_job=10, memory_gb_per_core='5G', name=None):
 	config = get_configuration(output_dir / 'mapping_config.ini')
 	mode = config['mode']
-	if mode in ['mc', 'm3c'] and cores_per_job < 4:
+	if mode.split('-')[0] in ['mc', 'm3c'] and cores_per_job < 4:
 		raise ValueError(f'cores must >= 4 to run this pipeline.')
-	elif mode in ['mct', '4m'] and cores_per_job < 10:
+	elif mode.split('-')[0] in ['mct', '4m'] and cores_per_job < 10:
 		raise ValueError(f'cores must >= 10 to run this pipeline.')
 
 	output_dir = pathlib.Path(output_dir).absolute()
