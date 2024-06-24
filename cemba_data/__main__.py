@@ -457,6 +457,14 @@ def start_from_cell_fastq_register_subparser(subparser):
 		required=True,
 		help="Path pattern with wildcard to match all cell-level FASTQ files, pattern with wildcard must be quoted."
 	)
+
+	parser_req.add_argument(
+		"--aligner",
+		type=str,
+		required=True,
+		choices=['bismark', 'hisat3n'],
+		help="Choice of aligner and corresponding mapping pipelines."
+	)
 	return
 
 

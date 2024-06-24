@@ -482,7 +482,7 @@ def prepare_run(output_dir, total_jobs=12, cores_per_job=10, memory_gb_per_core=
 	print(f"Once all commands are executed successfully, use 'yap summary' to generate final mapping summary.")
 	return
 
-def start_from_cell_fastq(output_dir, fastq_pattern, config_path):
+def start_from_cell_fastq(output_dir, fastq_pattern, config_path,aligner):
 	output_dir = pathlib.Path(output_dir).absolute()
 	if output_dir.exists():
 		raise FileExistsError(f'Output dir {output_dir} already exist, please delete it or use another path.')
@@ -530,6 +530,9 @@ def start_from_cell_fastq(output_dir, fastq_pattern, config_path):
 		new_r2_path.symlink_to(r2_path)
 
 	# prepare scripts
-	make_snakefile(output_dir)
+	if aligner.lower() == 'bismark':
+		make_snakefile(output_dir)
+	else:
+		make_snakefile_hisat3n(output_dir)
 	prepare_run(output_dir)
 	return
