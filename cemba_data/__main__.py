@@ -473,6 +473,14 @@ def start_from_cell_fastq_register_subparser(subparser):
 		default=64,
 		help="How many groups to split"
 	)
+
+	parser_req.add_argument(
+		"--n_jobs",
+		type=int,
+		required=False,
+		default=64,
+		help="How many groups to split"
+	)
 	return
 
 

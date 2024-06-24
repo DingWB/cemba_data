@@ -443,7 +443,7 @@ def prepare_sbatch(name, snakemake_dir, queue):
 	print('#' * 40 + '\n')
 	return
 
-def prepare_run(output_dir, total_jobs=12, cores_per_job=10, memory_gb_per_core='5G', name=None):
+def prepare_run(output_dir, total_jobs=12, cores_per_job=10, memory_gb_per_core='2G', name=None):
 	config = get_configuration(output_dir / 'mapping_config.ini')
 	mode = config['mode']
 	if mode.split('-')[0] in ['mc', 'm3c'] and cores_per_job < 4:
@@ -482,7 +482,8 @@ def prepare_run(output_dir, total_jobs=12, cores_per_job=10, memory_gb_per_core=
 	print(f"Once all commands are executed successfully, use 'yap summary' to generate final mapping summary.")
 	return
 
-def start_from_cell_fastq(output_dir, fastq_pattern, config_path,aligner='bismark',n_group=64):
+def start_from_cell_fastq(output_dir, fastq_pattern, config_path,aligner='bismark',n_group=64,
+						  n_jobs=64):
 	output_dir = pathlib.Path(output_dir).absolute()
 	if output_dir.exists():
 		raise FileExistsError(f'Output dir {output_dir} already exist, please delete it or use another path.')
@@ -534,5 +535,5 @@ def start_from_cell_fastq(output_dir, fastq_pattern, config_path,aligner='bismar
 		make_snakefile(output_dir)
 	else:
 		make_snakefile_hisat3n(output_dir)
-	prepare_run(output_dir)
+	prepare_run(output_dir,cores_per_job=n_jobs)
 	return
