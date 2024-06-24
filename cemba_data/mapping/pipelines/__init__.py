@@ -482,7 +482,7 @@ def prepare_run(output_dir, total_jobs=12, cores_per_job=10, memory_gb_per_core=
 	print(f"Once all commands are executed successfully, use 'yap summary' to generate final mapping summary.")
 	return
 
-def start_from_cell_fastq(output_dir, fastq_pattern, config_path,aligner):
+def start_from_cell_fastq(output_dir, fastq_pattern, config_path,aligner='bismark',n_group=64):
 	output_dir = pathlib.Path(output_dir).absolute()
 	if output_dir.exists():
 		raise FileExistsError(f'Output dir {output_dir} already exist, please delete it or use another path.')
@@ -517,7 +517,7 @@ def start_from_cell_fastq(output_dir, fastq_pattern, config_path,aligner):
 
 	# make symlink of fastq files, using dir structure of demultiplex
 	# the cells are randomly grouped though, max group is 64
-	groups = min(64, fastq_df.shape[0])
+	groups = min(n_group, fastq_df.shape[0])
 	for i, (cell_id, (r1_path, r2_path)) in enumerate(fastq_df.sample(fastq_df.shape[0]).iterrows()):
 		group_id = i % groups
 		fastq_dir = output_dir / f'Group{group_id}/fastq'

@@ -461,9 +461,17 @@ def start_from_cell_fastq_register_subparser(subparser):
 	parser_req.add_argument(
 		"--aligner",
 		type=str,
-		required=True,
+		required=False,
 		choices=['bismark', 'hisat3n'],
 		help="Choice of aligner and corresponding mapping pipelines."
+	)
+
+	parser_req.add_argument(
+		"--n_group",
+		type=int,
+		required=False,
+		default=64,
+		help="How many groups to split"
 	)
 	return
 
