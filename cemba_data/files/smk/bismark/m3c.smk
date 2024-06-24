@@ -7,6 +7,7 @@ repeat index will use more memory
 import os,sys
 import yaml
 import pathlib
+from cemba_data.mapping.stats import mhap
 
 if "gcp" in config:
     gcp=config["gcp"] # if the fastq files stored in GCP cloud, set gcp=True in snakemake: --config gcp=True
@@ -237,17 +238,12 @@ rule bam2mhap:
         mhap="allc/{cell_id}.mhap.gz",
         tbi="allc/{cell_id}.mhap.gz.tbi"
     params:
-        mHapSuite = os.path.expanduser(config['mHapSuite']), #os.path.expanduser("~/Software/mHapSuite-2.0-alpha/target/mHapSuite-2.0-jar-with-dependencies.jar"),
         cpgPath=os.path.expanduser(config['cpgPath']),
     resources:
         mem_mb=500
-    shell:
-        """
-        java -jar {params.mHapSuite} convert --inputFile {input.bam} --cpgPath {params.cpgPath} --outPutFile {output.mhap}.tmp.mhap.gz
-        zcat {output.mhap}.tmp.mhap.gz | sort -k1,1 -k2,2n | bgzip > {output.mhap}
-        rm -f {output.mhap}.tmp.mhap.gz
-        tabix -b 2 -e 3 {output.mhap}
-        """
+    run:
+        outfile=output.mhap[:-3]
+        mhap(bam_path=input.bam,cpg_path=params.cpgPath,output=outfile)
 
 # CGN extraction from ALLC
 rule cgn_extraction:

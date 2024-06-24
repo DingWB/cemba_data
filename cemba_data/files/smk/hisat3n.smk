@@ -234,7 +234,7 @@ rule dedup:
     input:
         bam=local(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.pos_sort.bam")
     output:
-        bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam")),
+        bam="bam/{cell_id}.hisat3n_dna.all_reads.deduped.bam",
         stats="bam/{cell_id}.hisat3n_dna.all_reads.deduped.matrix.txt"
     resources:
         mem_mb=1000
@@ -248,9 +248,9 @@ rule dedup:
 # index the bam file
 rule index_bam:
     input:
-        bam=local(bam_dir+"/{input_name}.bam")
+        bam="{input_name}.bam"
     output:
-        bai=local(temp(bam_dir+"/{input_name}.bam.bai"))
+        bai="{input_name}.bam.bai"
     shell:
         """
         samtools index {input.bam}
@@ -261,8 +261,8 @@ rule index_bam:
 # ==================================================
 rule unique_reads_allc:
     input:
-        bam=local(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam"),
-        bai=local(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam.bai")
+        bam="bam/{cell_id}.hisat3n_dna.all_reads.deduped.bam",
+        bai="bam/{cell_id}.hisat3n_dna.all_reads.deduped.bam.bai"
     output:
         allc="allc/{cell_id}.allc.tsv.gz",
         tbi="allc/{cell_id}.allc.tsv.gz.tbi",
@@ -284,24 +284,20 @@ rule unique_reads_allc:
 
 # Convert bam to mhap
 rule bam2mhap:
-    input:
-        bam=local(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam"),
-        bai=local(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam.bai")
+    input: #sorted bam
+            bam="bam/{cell_id}.hisat3n_dna.all_reads.deduped.bam",
+            bai="bam/{cell_id}.hisat3n_dna.all_reads.deduped.bam.bai"
     output:
-        allc="allc/{cell_id}.allc.tsv.gz",
-        tbi="allc/{cell_id}.allc.tsv.gz.tbi",
-        stats="allc/{cell_id}.allc.tsv.gz.count.csv"
+        mhap="allc/{cell_id}.mhap.gz",
+        tbi="allc/{cell_id}.mhap.gz.tbi"
     params:
-        mHapSuite = config['mHapSuite'], #os.path.expanduser("~/Software/mHapSuite-2.0-alpha/target/mHapSuite-2.0-jar-with-dependencies.jar"),
-        cpgPath=config['cpgPath'],
-    threads:
-        1.5
+        cpgPath=os.path.expanduser(config['cpgPath']),
     resources:
         mem_mb=500
-    shell:
-        """
-        java -jar {params.mHapSuite} convert --inputFile {input.bam} --cpgPath {params.cpgPath} --outputFile <out> [--nonDirectional] [--mode mode] [--pat pat]
-        """
+    run:
+        from cemba_data.mapping.stats import mhap
+        outfile=output.mhap[:-3] #"allc/{cell_id}.mhap", will be bgzipped and tabix indexed in mhap
+        mhap(bam_path=input.bam,cpg_path=params.cpgPath,output=outfile)
 
 # CGN extraction from ALLC
 rule unique_reads_cgn_extraction:

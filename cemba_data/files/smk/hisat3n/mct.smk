@@ -131,7 +131,7 @@ rule dedup_unique_bam:
     input:
         bam=local(bam_dir+"/{cell_id}.hisat3n_dna.unique_align.bam")
     output:
-        bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.unique_align.deduped.bam")),
+        bam="bam/{cell_id}.hisat3n_dna.unique_align.deduped.bam",
         stats="bam/{cell_id}.hisat3n_dna.unique_align.deduped.matrix.txt"
     resources:
         mem_mb=1000
@@ -144,7 +144,7 @@ rule dedup_unique_bam:
 
 rule select_unique_bam_dna_reads:
     input:
-        bam=local(bam_dir + "/{cell_id}.hisat3n_dna.unique_align.deduped.bam")
+        bam="bam/{cell_id}.hisat3n_dna.unique_align.deduped.bam"
     output:
         bam="bam/{cell_id}.hisat3n_dna.unique_align.deduped.dna_reads.bam",
         stats="bam/{cell_id}.hisat3n_dna.unique_align.deduped.dna_reads.reads_mch_frac.csv"
