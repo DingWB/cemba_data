@@ -220,7 +220,7 @@ def write_qsub_commands(output_dir, cores_per_job, memory_gb_per_core, script_di
 			  f'-j {cores_per_job} --rerun-incomplete ' \
 			  f'--default-resources mem_mb=100 ' \
 			  f'--resources mem_mb={int(cores_per_job * memory_per_core)} '
-		cmds[uid] = cmd
+		cmds[uid] = cmd #--resources mem_mb is the limitation.
 	script_path = script_dir / 'snakemake_cmd.txt'
 	with open(script_path, 'w') as f:
 		try:
