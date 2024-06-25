@@ -422,6 +422,13 @@ def print_default_config_register_subparser(subparser):
 		action='store_true',
 		help='Does this library have NOMe treatment?'
 	)
+
+	parser.add_argument(
+		"--cpgPath",
+		type=str,
+		required=False,
+		help="[-mhap only] Path to the cpg.gz"
+	)
 	parser.set_defaults(nome=False)
 	return
 
