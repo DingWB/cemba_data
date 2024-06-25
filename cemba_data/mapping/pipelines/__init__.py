@@ -209,7 +209,7 @@ def make_snakefile_hisat3n(output_dir,aligner='hisat-3n'):
 	return
 
 def write_qsub_commands(output_dir, cores_per_job, memory_gb_per_core, script_dir):
-	memory_per_core = int(memory_gb_per_core[:-1]) * 1000
+	memory_per_core = int(memory_gb_per_core[:-1]) * 1024
 	cmds = {}
 	snake_files = list(output_dir.glob('*/Snakefile'))
 	for snake_file in snake_files:
@@ -443,7 +443,7 @@ def prepare_sbatch(name, snakemake_dir, queue):
 	print('#' * 40 + '\n')
 	return
 
-def prepare_run(output_dir, total_jobs=12, cores_per_job=10, memory_gb_per_core='2G', name=None):
+def prepare_run(output_dir, total_jobs=12, cores_per_job=10, memory_gb_per_core='5G', name=None):
 	config = get_configuration(output_dir / 'mapping_config.ini')
 	mode = config['mode']
 	if mode.split('-')[0] in ['mc', 'm3c'] and cores_per_job < 4:
