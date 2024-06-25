@@ -291,7 +291,7 @@ rule bam2mhap:
         mhap="allc/{cell_id}.mhap.gz",
         tbi="allc/{cell_id}.mhap.gz.tbi"
     params:
-        cpgPath=os.path.expanduser(config['cpgPath']),
+        cpgPath=os.path.expanduser(config['cpg_path']),
     resources:
         mem_mb=500
     run:

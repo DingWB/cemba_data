@@ -424,7 +424,7 @@ def print_default_config_register_subparser(subparser):
 	)
 
 	parser.add_argument(
-		"--cpgPath",
+		"--cpg_path",
 		type=str,
 		required=False,
 		help="[-mhap only] Path to the cpg.gz"
