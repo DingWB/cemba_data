@@ -480,8 +480,10 @@ def mhap(bam_path=None,cpg_path="~/Ref/hg38/annotations/hg38_CpG.gz",
 			df.to_csv(output, sep='\t', header=False, index=False, mode='a')
 
 	output=os.path.expanduser(output)
-	if os.path.exists(output):
-		os.remove(output)
+	for file in [output,f"{output}.gz",f"{output}.gz.tbi"]:
+		if os.path.exists(file):
+			print(f"Deleting existed file: {file}")
+			os.remove(file)
 	if method is None:
 		method=determine_method(bam_path)
 	if method.lower() in ['hisat3n','hisat-3n','hisat3']:
@@ -492,55 +494,44 @@ def mhap(bam_path=None,cpg_path="~/Ref/hg38/annotations/hg38_CpG.gz",
 		ct_read_func = _is_forward_read
 	fbam = pysam.AlignmentFile(os.path.expanduser(bam_path), 'rb')
 	cpg = pysam.TabixFile(os.path.expanduser(cpg_path)) # positions is 1-based
-	R=[]
-	chrom=None
-	for read in fbam:
-		if read.reference_name not in cpg.contigs:
+	for chrom in cpg.contigs:
+		cytosine_positions = set(
+			[int(line.split('\t')[1]) for line in cpg.fetch(chrom)])  # 1-based
+		if len(cytosine_positions) == 0:  # cytosine_positions is 1-based, pos of C
 			continue
-		if read.is_secondary: #not read.is_proper_pair:
-			continue
-		if read.reference_name!=chrom:
-			chrom=read.reference_name
-			if len(R)>0:
-				print(chrom)
-				write_mhap(R,output)
-				R=[]
-		ct_read=ct_read_func(read)
-		# read.pos is 0-based and read.aend is 1-based
-		# read.aend = read.pos+1 + cigar length - 1 # 1-based
-		seq=read.seq #if ct_read else read.seq+'G'
-		# positions = [int(line.split('\t')[1]) for line in cpg.fetch(read.reference_name, read.pos + 1, read.aend)]
-		# cytosine = ''.join([seq[i - start] for i in positions])
-		# cytosine = ''.join([seq[i - start - 1] for i in positions])
-		for cigar in read.cigar:
-			if cigar[0]!=0: # not equal to M, not matched
-				seq = seq[cigar[1]:]
-				continue
-			else: #start pos in bam file is the start pos of the first matched 'M' base, skipping unmatched base
-				start = read.pos  # 0-based, start pos is the start of matched sequence (cigar=M), if there is 'S' or 'D' in the beginning, should be skipped.
-			end = start + cigar[1]  if ct_read else start + cigar[1]-1 # 1-based for end, for G/A reads, if the last base was C of (CG), this cpg position should be excluded
-			positions = [int(line.split('\t')[1]) for line in cpg.fetch(read.reference_name, start + 1, end)]  # 1-based, consistent with samtools faidx
-			if len(positions)==0:
-				continue
-			if not ct_read:  # CTOB,OB,R1?
-				cytosine = ''.join([seq[i - start] for i in positions])  # read.pos is 0-based, pos of C
-			else:  # CTOT,OT,R2? i-start is 0-based: position of G/A, i-start-1 is pos of C/T
-				cytosine = ''.join([seq[i - start - 1] for i in positions])  # CG, position of G
-			if cytosine == '':
-				continue
-			if ct_read:
-				# vector=cytosine.replace('C','1').replace('T','0')
-				# sometimes, ref=C but read is not C or T, is A (SNP?)
-				vector=''.join(['1' if c=='C' else '0' for c in cytosine])
-			else: # 1 for methylated, 0 for unmethylated
-				vector = ''.join(['1' if c == 'G' else '0' for c in cytosine])
-			strand='+' if read.is_forward else '-'
-			# R.append([read.reference_name,positions[0],positions[-1],vector,1,strand,read.qname])
-			R.append([read.reference_name, positions[0], positions[-1], vector, 1, strand])
-	# df=pd.DataFrame(R,columns=['chrom','start','end','vector','count','strand','read_name'])
-	if len(R) > 0:
-		write_mhap(R, output)
+		print(chrom)
+		R = []
+		for read in fbam.fetch(chrom):
+			# if read.is_secondary: #not read.is_proper_pair:
+			# 	continue
+			# read.pos is 0-based, read.aend = read.pos+1 + cigar length - 1 # 1-based
+			# cytosine_positions = set([int(line.split('\t')[1]) for line in cpg.fetch(read.reference_name, read.pos + 1, read.aend)])  # 1-based
+			i=0
+			for cigar in read.cigar:
+				if cigar[0]!=0: # not equal to M, not matched
+					continue #start pos in bam file is the start pos of the first matched 'M' base, skipping unmatched base
+				ct_read = ct_read_func(read)
+				if ct_read: # C/T read, C could be the last base pair
+					positions=read.positions[i:i+cigar[1]] #0-based
+				else: # G/A read, C must be not in the last base pair
+					positions = read.positions[i:i + cigar[1]][:-1] #exclude the potential C in the last base pair
+				overlapped_cytosine_idx = [idx for idx,pos in enumerate(positions) if pos+1 in cytosine_positions] #set(positions).intersection(set(cytosine_positions))
+				# overlapped_cytosine_idx is the index for C
+				if len(overlapped_cytosine_idx) > 0:
+					seq=read.seq[i:i+cigar[1]]
+					if ct_read: #CT read, posision of C
+						vector = ''.join(['1' if seq[idx]=='C' else '0' for idx in overlapped_cytosine_idx]) #1 for methylated, 0 for unmethylated
+					else: # G/A read, postion of G (next of C)
+						vector = ''.join(['1' if seq[idx+1]=='G' else '0' for idx in overlapped_cytosine_idx])
+					strand='+' if read.is_forward else '-'
+					R.append([read.reference_name, positions[overlapped_cytosine_idx[0]]+1,
+							  positions[overlapped_cytosine_idx[-1]]+1, vector, 1, strand])
+				i += cigar[1]
+		if len(R) > 0:
+			write_mhap(R, output)
 	os.system(f"bgzip {output} && tabix -b 2 -e 3 {output}.gz")
+	fbam.close()
+	cpg.close()
 
 def final_summary(output_dir, cleanup=True, notebook=None,
 				  mode='m3c',kernel_name='python3'):
