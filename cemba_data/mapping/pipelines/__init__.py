@@ -219,7 +219,7 @@ def write_qsub_commands(output_dir, cores_per_job, memory_gb_per_core, script_di
 			  f'--snakefile {snake_file} ' \
 			  f'-j {cores_per_job} --rerun-incomplete ' \
 			  f'--default-resources mem_mb=100 ' \
-			  f'--resources mem_mb={int(cores_per_job * memory_per_core)} '
+			  f'--resources mem_mb={int(cores_per_job * memory_per_core)} && rm -rf {snake_file.parent}/.snakemake '
 		cmds[uid] = cmd #--resources mem_mb is the limitation.
 	script_path = script_dir / 'snakemake_cmd.txt'
 	with open(script_path, 'w') as f:
@@ -286,7 +286,7 @@ def write_sbatch_commands(output_dir, cores_per_job, script_dir, total_mem_mb, q
 			  f'--default-resources mem_mb=100 --rerun-incomplete ' \
 			  f'--resources mem_mb={total_mem_mb} ' \
 			  f'--rerun-incomplete ' \
-			  f'&& test -f "{outdir}/{snake_file.parent.name}/MappingSummary.csv.gz"'
+			  f'&& test -f "{outdir}/{snake_file.parent.name}/MappingSummary.csv.gz && && rm -rf {outdir}/{snake_file.parent.name}/.snakemake"'
 		cmds[uid] = cmd
 	script_path = script_dir / f'snakemake_{queue}_cmd.txt'
 	with open(script_path, 'w') as f:
