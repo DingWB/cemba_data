@@ -488,6 +488,14 @@ def start_from_cell_fastq_register_subparser(subparser):
 		default=64,
 		help="How many groups to split"
 	)
+
+	parser_req.add_argument(
+		"--total_memory_gb",
+		type=int,
+		required=False,
+		default=128,
+		help="How many GB memory the computer has in total"
+	)
 	return
 
 

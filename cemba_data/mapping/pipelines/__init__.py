@@ -208,8 +208,9 @@ def make_snakefile_hisat3n(output_dir,aligner='hisat-3n'):
 	subprocess.run(['touch', f'{output_dir}/snakemake/hisat3n'], check=True)
 	return
 
-def write_qsub_commands(output_dir, cores_per_job, memory_gb_per_core, script_dir):
-	memory_per_core = int(memory_gb_per_core[:-1]) * 1024
+def write_qsub_commands(output_dir, cores_per_job, total_memory_gb=None, script_dir=None):
+	if total_memory_gb is None:
+		total_memory_gb=2*cores_per_job
 	cmds = {}
 	snake_files = list(output_dir.glob('*/Snakefile'))
 	for snake_file in snake_files:
@@ -219,7 +220,7 @@ def write_qsub_commands(output_dir, cores_per_job, memory_gb_per_core, script_di
 			  f'--snakefile {snake_file} ' \
 			  f'-j {cores_per_job} --rerun-incomplete ' \
 			  f'--default-resources mem_mb=100 ' \
-			  f'--resources mem_mb={int(cores_per_job * memory_per_core)} && rm -rf {snake_file.parent}/.snakemake '
+			  f'--resources mem_mb={int(1024 * total_memory_gb)} && rm -rf {snake_file.parent}/.snakemake '
 		cmds[uid] = cmd #--resources mem_mb is the limitation.
 	script_path = script_dir / 'snakemake_cmd.txt'
 	with open(script_path, 'w') as f:
@@ -309,11 +310,12 @@ def write_sbatch_commands(output_dir, cores_per_job, script_dir, total_mem_mb, q
 				f.write(cmd + '\n')
 	return f'{outdir}/snakemake/sbatch/snakemake_{queue}_cmd.txt'
 
-def prepare_qsub(name, snakemake_dir, total_jobs, cores_per_job, memory_gb_per_core):
+def prepare_qsub(name, snakemake_dir, total_jobs, cores_per_job, total_memory_gb):
+	memory_gb_per_core = total_memory_gb / cores_per_job
 	output_dir = snakemake_dir.parent
 	qsub_dir = snakemake_dir / 'qsub'
 	qsub_dir.mkdir(exist_ok=True)
-	script_path = write_qsub_commands(output_dir, cores_per_job, memory_gb_per_core, script_dir=qsub_dir)
+	script_path = write_qsub_commands(output_dir, cores_per_job, total_memory_gb, script_dir=qsub_dir)
 	qsub_str = f"""
 #!/bin/bash
 #$ -N yap{name}
@@ -350,7 +352,8 @@ yap qsub \
 	print('#' * 60 + '\n')
 	return
 
-def prepare_sbatch(name, snakemake_dir, queue):
+def prepare_sbatch(name, snakemake_dir, queue,total_memory_gb=None):
+	input_total_mem_mb = total_memory_gb * 1024 if not total_memory_gb is None else None
 	output_dir = snakemake_dir.parent
 	output_dir_name = output_dir.name
 	outdir=str(output_dir.absolute())
@@ -360,48 +363,48 @@ def prepare_sbatch(name, snakemake_dir, queue):
 		sbatch_cores_per_job = 96
 		if mode.split('-')[0] == 'm3c':
 			time_str = "48:00:00"
-			total_mem_mb = 204800
+			total_mem_mb = input_total_mem_mb if not input_total_mem_mb is None else 204800
 		elif mode.split('-')[0] == '4m':
 			time_str = "48:00:00"
-			total_mem_mb = 204800
+			total_mem_mb = input_total_mem_mb if not input_total_mem_mb is None else 204800
 		elif mode.split('-')[0] == 'mc':
 			time_str = "48:00:00"
-			total_mem_mb = 204800
+			total_mem_mb = input_total_mem_mb if not input_total_mem_mb is None else 204800
 		elif mode.split('-')[0] == 'mct':
 			time_str = "48:00:00"
-			total_mem_mb = 204800
+			total_mem_mb = input_total_mem_mb if not input_total_mem_mb is None else 204800
 		else:
 			raise KeyError(f'Unknown mode {mode}')
 	elif queue == 'normal':
 		sbatch_cores_per_job = 64
 		if mode.split('-')[0] == 'm3c':
 			time_str = "48:00:00"
-			total_mem_mb = 90000
+			total_mem_mb = input_total_mem_mb if not input_total_mem_mb is None else 64*2*1024
 		elif mode.split('-')[0] == '4m':
 			time_str = "48:00:00"
-			total_mem_mb = 90000
+			total_mem_mb = input_total_mem_mb if not input_total_mem_mb is None else 64*2*1024
 		elif mode.split('-')[0] == 'mc':
 			time_str = "48:00:00"
-			total_mem_mb = 112000
+			total_mem_mb = input_total_mem_mb if not input_total_mem_mb is None else 64*2*1024
 		elif mode.split('-')[0] == 'mct':
 			time_str = "48:00:00"
-			total_mem_mb = 112000
+			total_mem_mb = input_total_mem_mb if not input_total_mem_mb is None else 64*2*1024
 		else:
 			raise KeyError(f'Unknown mode {mode}')
 	else: # queue == 'shared':
 		sbatch_cores_per_job = 64
 		if mode.split('-')[0] == 'm3c':
 			time_str = "48:00:00"
-			total_mem_mb = 102400
+			total_mem_mb = input_total_mem_mb if not input_total_mem_mb is None else 64*2*1024
 		elif mode.split('-')[0] == '4m':
 			time_str = "48:00:00"
-			total_mem_mb = 102400
+			total_mem_mb = input_total_mem_mb if not input_total_mem_mb is None else 64*2*1024
 		elif mode.split('-')[0] == 'mc':
 			time_str = "48:00:00"
-			total_mem_mb = 102400
+			total_mem_mb = input_total_mem_mb if not input_total_mem_mb is None else 64*2*1024
 		elif mode.split('-')[0] == 'mct':
 			time_str = "48:00:00"
-			total_mem_mb = 102400
+			total_mem_mb = input_total_mem_mb if not input_total_mem_mb is None else 64*2*1024
 		else:
 			raise KeyError(f'Unknown mode {mode}')
 	# else:
@@ -443,7 +446,7 @@ def prepare_sbatch(name, snakemake_dir, queue):
 	print('#' * 40 + '\n')
 	return
 
-def prepare_run(output_dir, total_jobs=12, cores_per_job=10, memory_gb_per_core='5G', name=None):
+def prepare_run(output_dir, total_jobs=1, cores_per_job=10, total_memory_gb=None, name=None):
 	config = get_configuration(output_dir / 'mapping_config.ini')
 	mode = config['mode']
 	if mode.split('-')[0] in ['mc', 'm3c'] and cores_per_job < 4:
@@ -469,10 +472,10 @@ def prepare_run(output_dir, total_jobs=12, cores_per_job=10, memory_gb_per_core=
 					snakemake_dir=snakemake_dir,
 					total_jobs=total_jobs,
 					cores_per_job=cores_per_job,
-					memory_gb_per_core=memory_gb_per_core)
-	prepare_sbatch(name=name, snakemake_dir=snakemake_dir, queue='normal')
-	prepare_sbatch(name=name, snakemake_dir=snakemake_dir, queue='skx-normal')
-	prepare_sbatch(name=name, snakemake_dir=snakemake_dir, queue='shared')
+					total_memory_gb=total_memory_gb)
+	prepare_sbatch(name=name, snakemake_dir=snakemake_dir, queue='normal',total_memory_gb=total_memory_gb)
+	prepare_sbatch(name=name, snakemake_dir=snakemake_dir, queue='skx-normal',total_memory_gb=total_memory_gb)
+	prepare_sbatch(name=name, snakemake_dir=snakemake_dir, queue='shared',total_memory_gb=total_memory_gb)
 	# else:
 	#     script_path = write_qsub_commands(output_dir, cores_per_job, memory_gb_per_core, script_dir=snakemake_dir)
 	#     print(f"All snakemake commands need to be executed were summarized in {script_path}")
@@ -483,7 +486,7 @@ def prepare_run(output_dir, total_jobs=12, cores_per_job=10, memory_gb_per_core=
 	return
 
 def start_from_cell_fastq(output_dir, fastq_pattern, config_path,aligner='bismark',n_group=64,
-						  n_jobs=64):
+						  n_jobs=64,total_memory_gb=128):
 	output_dir = pathlib.Path(output_dir).absolute()
 	if output_dir.exists():
 		raise FileExistsError(f'Output dir {output_dir} already exist, please delete it or use another path.')
@@ -535,5 +538,5 @@ def start_from_cell_fastq(output_dir, fastq_pattern, config_path,aligner='bismar
 		make_snakefile(output_dir)
 	else:
 		make_snakefile_hisat3n(output_dir)
-	prepare_run(output_dir,cores_per_job=n_jobs)
+	prepare_run(output_dir,cores_per_job=n_jobs,total_memory_gb=total_memory_gb)
 	return
