@@ -45,6 +45,8 @@ rule summary:
         expand("allc/{cell_id}.allc.tsv.gz", cell_id=CELL_IDS),
         # also add all the stats path here, so they won't be deleted until summary is generated
         expand("allc/{cell_id}.allc.tsv.gz.count.csv", cell_id=CELL_IDS),
+        expand("allc/{cell_id}.mhap.gz", cell_id=CELL_IDS),
+        expand("allc/{cell_id}.mhap.gz.tbi",cell_id=CELL_IDS),
         # allc-CGN
         expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz.tbi",cell_id=CELL_IDS,mcg_context=mcg_context),
         expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz",cell_id=CELL_IDS,mcg_context=mcg_context),
@@ -227,6 +229,23 @@ rule allc:
 --compress_level {compress_level} \
 --save_count_df
         """
+
+# Convert bam to mhap
+rule bam_to_mhap:
+    input: #sorted bam
+        bam="bam/{cell_id}.mC.bam",
+        bai="bam/{cell_id}.mC.bam.bai"
+    output:
+        mhap="allc/{cell_id}.mhap.gz",
+        tbi="allc/{cell_id}.mhap.gz.tbi"
+    params:
+        cpgPath=os.path.expanduser(config['cpgPath']),
+    resources:
+        mem_mb=500
+    run:
+        from pym3c import bam2mhap
+        outfile=output.mhap[:-3]
+        bam2mhap(bam_path=input.bam,cpg_path=params.cpgPath,output=outfile)
 
 # CGN extraction from ALLC
 rule cgn_extraction:

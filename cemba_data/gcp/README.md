@@ -258,3 +258,6 @@ print(mbs(vectors1,[1]*len(vectors1)))
 print(mbs(vectors2,[1]*len(vectors2)))
 ```
 - R2: 
+
+HBA_211015_H1930004_CB63_V1C_3C_1_P5-6-K9-G24.hisat3n_dna.all_reads.deduped.bam
+chr1:10631 1111101101111111101110001011

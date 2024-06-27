@@ -76,7 +76,7 @@ def _parse_bam(bam_path, output_path):
 	tot1, tot2 = 0, 0
 	for read in dfh:
 		line = str(read).split()
-		if '_' in line[0]:
+		if '_' in line[0]: # _ separate the read name and other info in bismark pipeline
 			_id = line[0].split('_')[0]
 			suffix=line[0].split('_')[1]
 			if ':' in suffix:
@@ -95,12 +95,12 @@ def _parse_bam(bam_path, output_path):
 				split_st += '-2'
 			elif line[0][-2:] == '-m':
 				split_st += '-3'
-			if read.flag & 16:
+			if read.flag & 16: # equal to read.is_reverse; reverse, G/A reads?
 				if split_st.split('-')[0] == '1': #R1?
 					strand = 0
 				else:
 					strand = 1
-			else:
+			else: #read.is_forward
 				if split_st.split('-')[0] == '1':
 					strand = 1
 				else:
@@ -109,14 +109,10 @@ def _parse_bam(bam_path, output_path):
 				tot1, tot2 = _output(rfh, tot1, tot2, pre_id, locs)
 				pre_id = _id
 				locs = ['' for _ in range(len(splits))]
-			if strand == 1:
-				locs[split_dict[split_st]] = f'1:' \
-											 f'{dfh.get_reference_name(read.reference_id)}:' \
-											 f'{str(read.pos + 1)}'
-			if strand == 0:
-				locs[split_dict[split_st]] = f'0:' \
-											 f'{dfh.get_reference_name(read.reference_id)}:' \
-											 f'{str(read.pos + len(line[9]))}'
+			if strand == 1: # reverse & R2 or forward & R1: map to G/A reads
+				locs[split_dict[split_st]] = f'1:{read.reference_name}:{str(read.pos + 1)}'
+			if strand == 0: ## reverse & R1 or forward & R2; map to C/T reads
+				locs[split_dict[split_st]] = f'0:{read.reference_name}:{str(read.pos + len(line[9]))}'
 	_output(rfh, tot1, tot2, pre_id, locs)
 	rfh.close()
 

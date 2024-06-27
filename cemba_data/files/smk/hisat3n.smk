@@ -282,23 +282,6 @@ rule unique_reads_allc:
 --convert_bam_strandness
         """
 
-# Convert bam to mhap
-rule bam2mhap:
-    input: #sorted bam
-            bam="bam/{cell_id}.hisat3n_dna.all_reads.deduped.bam",
-            bai="bam/{cell_id}.hisat3n_dna.all_reads.deduped.bam.bai"
-    output:
-        mhap="allc/{cell_id}.mhap.gz",
-        tbi="allc/{cell_id}.mhap.gz.tbi"
-    params:
-        cpgPath=os.path.expanduser(config['cpg_path']),
-    resources:
-        mem_mb=500
-    run:
-        from cemba_data.mapping.stats import mhap
-        outfile=output.mhap[:-3] #"allc/{cell_id}.mhap", will be bgzipped and tabix indexed in mhap
-        mhap(bam_path=input.bam,cpg_path=params.cpgPath,output=outfile)
-
 # CGN extraction from ALLC
 rule unique_reads_cgn_extraction:
     input:
