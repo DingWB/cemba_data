@@ -27,7 +27,7 @@ rule sort_fq:
     threads:
         1.5
     resources:
-        high_io_job=1
+        high_io_job=1 #
     shell:
         'zcat {input.fq} | paste - - - - | sort -k1,1 -t " " | tr "\t" "\n" > {output.fq} '
 
@@ -69,7 +69,9 @@ rule hisat_3n_pair_end_mapping_dna_mode:
     threads:
         config['hisat3n_threads']
     resources:
-        mem_mb=14000
+        mem_mb=14000 # lambda wc, input: max(25 * input.size_mb, 14000); Request 4 GB of memory for this rule
+    # benchmark: # https://stackoverflow.com/questions/46813371/meaning-of-the-benchmark-variables-in-snakemake
+    #         "fastq/{cell_id}.hisat_3n_pair_end_mapping_dna_mode.benchmark.txt"
     shell: # # do not filter any reads in this step
         """
         hisat-3n {config[hisat3n_dna_reference]} -q  -1 {input.R1} -2 {input.R2} \
@@ -130,6 +132,10 @@ rule hisat_3n_single_end_mapping_dna_mode:
         direction=lambda wildcards: "--directional-mapping-reverse " if wildcards.read_type=="R1" else "--directional-mapping "
     threads:
         config['hisat3n_threads']
+    resources:
+        mem_mb=14000
+    # benchmark:
+    #         "fastq/{cell_id}-{read_type}.hisat_3n_single_end_mapping_dna_mode.benchmark.txt"
     shell:
         """
         hisat-3n {config[hisat3n_dna_reference]} -q -U {input.fastq} \
@@ -222,6 +228,8 @@ rule sort_bam_by_pos:
         bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.pos_sort.bam"))
     resources:
         mem_mb=1000
+    # benchmark:
+    #         "fastq/{cell_id}.sort_bam_by_pos.benchmark.txt"
     threads:
         1
     shell:
@@ -238,6 +246,8 @@ rule dedup:
         stats="bam/{cell_id}.hisat3n_dna.all_reads.deduped.matrix.txt"
     resources:
         mem_mb=1000
+    # benchmark:
+    #         "fastq/{cell_id}.dedup.benchmark.txt"
     threads:
         2
     shell:
@@ -271,6 +281,8 @@ rule unique_reads_allc:
         1.5
     resources:
         mem_mb=500
+    # benchmark:
+    #         "fastq/{cell_id}.unique_reads_allc.benchmark.txt"
     shell:
         """
         mkdir -p {allc_dir}
