@@ -148,7 +148,7 @@ rule dedup_bam:
     params:
         tmp_dir="bam/temp" if not gcp else workflow.default_remote_prefix+"/bam/temp"
     resources:
-        mem_mb=1000
+        mem_mb=1500
     shell:
         """
         picard MarkDuplicates -I {input} -O {output.bam} -M {output.stats} -REMOVE_DUPLICATES true -TMP_DIR {params.tmp_dir}

@@ -106,7 +106,7 @@ rule mc_dedup_unique_bam:
         bam="bam/{cell_id}.hisat3n_dna.unique_align.deduped.bam",
         stats="bam/{cell_id}.hisat3n_dna.unique_align.deduped.matrix.txt"
     resources:
-        mem_mb=1000
+        mem_mb=1500
     threads:
         2
     shell:
@@ -147,7 +147,7 @@ rule dedup_multi_bam: #dedup_unique_bam is included in mc.smk
         bam="bam/{cell_id}.hisat3n_dna.multi_align.deduped.bam",
         stats="bam/{cell_id}.hisat3n_dna.multi_align.deduped.matrix.txt"
     resources:
-        mem_mb=1000
+        mem_mb=1500
     threads:
         2
     shell:
