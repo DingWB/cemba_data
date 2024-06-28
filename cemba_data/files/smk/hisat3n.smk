@@ -245,7 +245,7 @@ rule dedup:
         bam="bam/{cell_id}.hisat3n_dna.all_reads.deduped.bam",
         stats="bam/{cell_id}.hisat3n_dna.all_reads.deduped.matrix.txt"
     resources:
-        mem_mb=1500
+        mem_mb=2000
     # benchmark:
     #         "fastq/{cell_id}.dedup.benchmark.txt"
     threads:

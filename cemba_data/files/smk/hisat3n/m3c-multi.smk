@@ -82,7 +82,7 @@ rule dedup_multi_bam:
         bam="bam/{cell_id}.hisat3n_dna.multi_align.deduped.bam",
         stats="bam/{cell_id}.hisat3n_dna.multi_align.deduped.matrix.txt"
     resources:
-        mem_mb=1500
+        mem_mb=2000
     threads:
         2
     shell:
