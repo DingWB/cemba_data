@@ -18,7 +18,7 @@ def main():
 		'yap_pipeline':yap_pipeline,
 		'check_demultiplex':check_demultiplex,
 		'cell_qc':cell_qc,
-	})
+	},serialize=lambda x:print(x) if not x is None else print(""))
 
 if __name__=="_main__":
 	main()
