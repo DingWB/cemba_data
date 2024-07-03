@@ -242,7 +242,7 @@ rule dedup:
     input:
         bam=local(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.pos_sort.bam")
     output:
-        bam="bam/{cell_id}.hisat3n_dna.all_reads.deduped.bam",
+        bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam")), #to keep this bam, change to: "bam/{cell_id}.hisat3n_dna.all_reads.deduped.bam",
         stats="bam/{cell_id}.hisat3n_dna.all_reads.deduped.matrix.txt"
     resources:
         mem_mb=2000
@@ -258,21 +258,20 @@ rule dedup:
 # index the bam file
 rule index_bam:
     input:
-        bam="{input_name}.bam"
+        bam=local(bam_dir+"/{input_name}.bam")
     output:
-        bai="{input_name}.bam.bai"
+        bai=local(temp(bam_dir+"/{input_name}.bam.bai"))
     shell:
         """
         samtools index {input.bam}
         """
-
 # ==================================================
 # Generate ALLC
 # ==================================================
 rule unique_reads_allc:
     input:
-        bam="bam/{cell_id}.hisat3n_dna.all_reads.deduped.bam",
-        bai="bam/{cell_id}.hisat3n_dna.all_reads.deduped.bam.bai"
+        bam=local(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam"),
+        bai=local(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam.bai")
     output:
         allc="allc/{cell_id}.allc.tsv.gz",
         tbi="allc/{cell_id}.allc.tsv.gz.tbi",

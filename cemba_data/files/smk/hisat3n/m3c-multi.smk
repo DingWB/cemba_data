@@ -57,7 +57,7 @@ module hisat3n:
         os.path.join(PACKAGE_DIR,"files","smk",'hisat3n.smk')
     config: config
 
-use rule * from hisat3n exclude index_bam as hisat3n_*
+use rule * from hisat3n as hisat3n_*
 #=====================================================================
 # Processing multi-alignment reads and generate allc-multi
 #=====================================================================
@@ -79,7 +79,7 @@ rule dedup_multi_bam:
     input:
         bam=local(bam_dir+"/{cell_id}.hisat3n_dna_sorted.multi_align.bam")
     output:
-        bam="bam/{cell_id}.hisat3n_dna.multi_align.deduped.bam",
+        bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.multi_align.deduped.bam")), #"bam/{cell_id}.hisat3n_dna.multi_align.deduped.bam",
         stats="bam/{cell_id}.hisat3n_dna.multi_align.deduped.matrix.txt"
     resources:
         mem_mb=2000
@@ -90,21 +90,11 @@ rule dedup_multi_bam:
         picard MarkDuplicates -I {input} -O {output.bam} -M {output.stats} -REMOVE_DUPLICATES true -TMP_DIR bam/temp/
         """
 
-rule index_bam:
-    input:
-        bam="{input_name}.bam"
-    output:
-        bai="{input_name}.bam.bai"
-    shell:
-        """
-        samtools index {input.bam}
-        """
-
 # generate ALLC
 rule multi_reads_allc:
     input:
-        bam="bam/{cell_id}.hisat3n_dna.multi_align.deduped.bam",
-        bai="bam/{cell_id}.hisat3n_dna.multi_align.deduped.bam.bai"
+        bam=local(bam_dir+"/{cell_id}.hisat3n_dna.multi_align.deduped.bam"),
+        bai=local(bam_dir+"/{cell_id}.hisat3n_dna.multi_align.deduped.bam.bai")
     output:
         allc="allc-multi/{cell_id}.allc_multi.tsv.gz",
         tbi="allc-multi/{cell_id}.allc_multi.tsv.gz.tbi",

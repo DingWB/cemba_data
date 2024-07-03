@@ -143,6 +143,6 @@ rule bam_to_mhap:
     resources:
         mem_mb=500
     run:
-        from pym3c import bam2mhap
+        from cemba_data.mapping.pipelines import bam2mhap
         outfile=output.mhap[:-3] #"allc/{cell_id}.mhap", will be bgzipped and tabix indexed in mhap
         bam2mhap(bam_path=input.bam,cpg_path=params.cpgPath,output=outfile)

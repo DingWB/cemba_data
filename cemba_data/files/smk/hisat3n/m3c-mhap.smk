@@ -54,8 +54,8 @@ rule summary:
 # Convert bam to mhap
 rule bam_to_mhap:
     input: #sorted bam
-            bam="bam/{cell_id}.hisat3n_dna.all_reads.deduped.bam",
-            bai="bam/{cell_id}.hisat3n_dna.all_reads.deduped.bam.bai"
+        bam=local(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam"),
+        bai=local(bam_dir + "/{cell_id}.hisat3n_dna.all_reads.deduped.bam.bai")
     output:
         mhap="allc/{cell_id}.mhap.gz",
         tbi="allc/{cell_id}.mhap.gz.tbi"
@@ -64,6 +64,6 @@ rule bam_to_mhap:
     resources:
         mem_mb=500
     run:
-        from pym3c import bam2mhap
+        from cemba_data.mapping.pipelines import bam2mhap
         outfile=output.mhap[:-3] #"allc/{cell_id}.mhap", will be bgzipped and tabix indexed in mhap
         bam2mhap(bam_path=input.bam,cpg_path=params.cpgPath,output=outfile)
