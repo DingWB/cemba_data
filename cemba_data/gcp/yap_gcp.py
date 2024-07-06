@@ -12,6 +12,7 @@ from cemba_data.mapping.pipelines import prepare_run
 from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
 import json
 import pathlib
+import subprocess
 try: #gcp
 	os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.expanduser(
 			'~/.config/gcloud/application_default_credentials.json')
@@ -441,10 +442,6 @@ def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 
 	cmds=[]
 	for uid in uids:
-		# if gcp:
-		# 	make_all_snakefile(output_dir,uid,aligner=aligner) #
-		# else:
-		# 	make_snakefile(output_dir=output_dir,aligner=aligner)
 		make_all_snakefile(output_dir, uid, aligner=aligner, gcp=gcp,snakemake_template=snakemake_template)
 		# mapping_config.ini need to be under local_output_dir
 		cmd_str=f"--default-remote-prefix {output_dir}/{uid}" if gcp else f"-d {output_dir}/{uid}"
@@ -559,3 +556,88 @@ def cell_qc(fastq_prefix="gs://bican/salk010",
 			f.write(cmd+'\n')
 	f.close()
 
+def start_from_cel_bam(
+	indir="bam",bam_pattern="*.hisat3n_dna.all_reads.deduped.bam",
+	output_dir="gs://mapping_example/mapping",
+	gcp=True,region='us-west1',keep_remote=False,
+	config_path="mapping_config.ini",aligner='hisat-3n',
+	n_jobs=64,print_only=False,
+	snakemake_template=None,n_group=64,
+	total_memory_gb=128):
+	"""
+	start mapping pipeline from bam files.
+	Parameters
+	----------
+	indir : str
+		for gcp = False (run on local), input_bam should under this folder,
+	bam_pattern: str
+		wildcard * should be included, for example: *.hisat3n_dna.all_reads.deduped.bam
+	output_dir :path
+		if gcp = False, output_dir is a new output directory,
+		if gcp = True, output_dir is also the input dir, subfolder "bam" should
+		be present under output_dir.
+	gcp :
+	region :
+	keep_remote :
+	config_path :
+	aligner :
+	n_jobs :
+	node_rank :
+	print_only :
+	snakemake_template :
+	n_group :
+	total_memory_gb :
+	pattern: str
+		if not gcp (local), should be under the subfolder, for example:
+		pattern="bam/{cell_id}.hisat3n_dna.all_reads.deduped.bam"
+		if on gcp, pattern="{cell_id}.hisat3n_dna.all_reads.deduped.bam"
+
+	Returns
+	-------
+
+	"""
+	if gcp:
+		output_dir=output_dir.replace("gs://","")
+	else: #local
+		output_dir=os.path.expanduser(output_dir)
+	if not os.path.exists(output_dir):
+		os.makedirs(output_dir,exist_ok=True) #on loal GCP VM machine
+	os.system(f"cp {config_path} {output_dir}/mapping_config.ini")
+
+	if gcp:
+		common_str = f'--default-resources mem_mb=100 --resources mem_mb=50000 --printshellcmds --scheduler greedy --rerun-incomplete --config gcp=True local_fastq=False -j {n_jobs} --default-remote-provider GS --google-lifesciences-region {region} '
+		if keep_remote:
+			common_str += "--keep-remote "
+
+		make_all_snakefile(output_dir, subdir=None,aligner=aligner, gcp=gcp,
+						   snakemake_template=snakemake_template,
+						   pattern=f"bam/{bam_pattern}")
+		cmd_str = f"--default-remote-prefix {output_dir}"
+		cmd = f"snakemake -s {output_dir}/Snakefile {common_str} {cmd_str}"
+	else: #run on local
+		indir=os.path.abspath(os.path.expanduser(indir))
+		bam_paths = glob.glob(os.path.join(indir,bam_pattern))
+		groups = min(n_group, len(bam_paths)) #how many groups
+		for i, bam_path in enumerate(bam_paths):
+			group_id = i % groups
+			bam_dir = os.path.join(output_dir,f'Group{group_id}/bam')
+			os.makedirs(bam_dir,exist_ok=True)
+
+			# make symlinks
+			new_bam_path = os.path.join(bam_dir,os.path.basename(bam_path))
+			os.symlink(bam_path,new_bam_path)
+
+		for group_id in range(groups):
+			make_all_snakefile(output_dir, f'Group{group_id}', aligner=aligner, gcp=gcp,
+							   snakemake_template=snakemake_template,
+							   pattern=f"bam/{bam_pattern}")
+	print(f"GCP: {gcp}; print_only: {print_only}")
+	if not gcp and print_only:
+		prepare_run(output_dir,cores_per_job=n_jobs,total_memory_gb=total_memory_gb)
+	elif gcp:
+		print(cmd)
+		if print_only:
+			return None
+		os.system(cmd)
+	else:
+		pass

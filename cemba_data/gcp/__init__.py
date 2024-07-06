@@ -1,4 +1,4 @@
-from .demultiplex import *
+from .yap_gcp import *
 try:
 	import fire
 except:

@@ -90,8 +90,8 @@ def make_snakefile(output_dir,aligner="bismark"):
 									  snake_template=snake_template)
 	return
 
-def make_all_snakefile(output_dir, subdir, aligner="hisat-3n", gcp=True,
-					   snakemake_template=None):
+def make_all_snakefile(output_dir, subdir=None, aligner="hisat-3n", gcp=True,
+					   snakemake_template=None, pattern="fastq/{cell_id}-R1.fq.gz"):
 	if gcp:
 		from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
 		import json
@@ -141,14 +141,17 @@ def make_all_snakefile(output_dir, subdir, aligner="hisat-3n", gcp=True,
 	with open(snakefile_path) as f:
 		snake_template = f.read()
 
-	sub_folder=os.path.join(output_dir,subdir)
-	if not os.path.exists(sub_folder):
-		os.makedirs(sub_folder,exist_ok=True)
-	if gcp:
-		cell_ids = GS.glob_wildcards(os.path.join(sub_folder,"fastq/{cell_id}-R1.fq.gz"))[0]
-		#sub_folder can startwith gs://, if gs:// not present at the beginning, it also OK
+	if not subdir is None:
+		sub_folder=os.path.join(output_dir,subdir)
+		if not os.path.exists(sub_folder):
+			os.makedirs(sub_folder,exist_ok=True)
 	else:
-		cell_ids = glob_wildcards(os.path.join(sub_folder, "fastq/{cell_id}-R1.fq.gz"))[0]
+		sub_folder=output_dir
+	if gcp:
+		cell_ids = GS.glob_wildcards(os.path.join(sub_folder,pattern))[0]
+		#sub_folder can startwith gs://, if gs:// not present at the beginning, it is also OK
+	else:
+		cell_ids = glob_wildcards(os.path.join(sub_folder, pattern))[0]
 
 	if len(cell_ids) == 0: # length should be 64
 		raise ValueError(f"No cell fastq were identified under {sub_folder}/fastq")
