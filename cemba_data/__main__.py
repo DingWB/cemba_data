@@ -429,6 +429,21 @@ def print_default_config_register_subparser(subparser):
 		required=False,
 		help="[-mhap only] Path to the cpg.gz"
 	)
+
+	parser.add_argument(
+		"--gene_bed_path",
+		type=str,
+		required=False,
+		help="[-mhap only] Path to the gene bdy region bed path"
+	)
+
+	parser.add_argument(
+		"--promoter_bed_path",
+		type=str,
+		required=False,
+		help="[-mhap only] Path to the promoter region bed path"
+	)
+
 	parser.set_defaults(nome=False)
 	return
 
