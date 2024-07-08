@@ -6,6 +6,8 @@ include:
 
 include:
     os.path.join(PACKAGE_DIR,"files","smk",'hisat3n.smk')
+
+mhap_dir=config['mhap_dir']
 # ==================================================
 # Mapping summary
 # ==================================================
@@ -28,12 +30,16 @@ rule summary:
         expand("hic/{cell_id}.hisat3n_dna.all_reads.3C.contact.tsv.gz",cell_id=CELL_IDS),
         expand("hic/{cell_id}.hisat3n_dna.all_reads.dedup_contacts.tsv.gz",cell_id=CELL_IDS),
 
-        # allc & mhap
+        # allc
         expand("allc/{cell_id}.allc.tsv.gz.count.csv", cell_id=CELL_IDS),
         expand("allc/{cell_id}.allc.tsv.gz",cell_id=CELL_IDS),
         expand("allc/{cell_id}.allc.tsv.gz.tbi",cell_id=CELL_IDS),
-        expand("allc/{cell_id}.mhap.gz", cell_id=CELL_IDS),
-        expand("allc/{cell_id}.mhap.gz.tbi",cell_id=CELL_IDS),
+
+        # mhap
+        expand("mhap/{cell_id}.mhap.gz", cell_id=CELL_IDS),
+        expand("mhap/{cell_id}.mhap.gz.tbi",cell_id=CELL_IDS),
+        expand("mhap/{cell_id}.mhap.gene.stat.tsv.gz", cell_id=CELL_IDS),
+        expand("mhap/{cell_id}.mhap.promoter.stat.tsv.gz",cell_id=CELL_IDS),
 
         # allc-CGN
         expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz.tbi", cell_id=CELL_IDS, mcg_context=mcg_context),
@@ -57,13 +63,37 @@ rule bam_to_mhap:
         bam=local(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam"),
         bai=local(bam_dir + "/{cell_id}.hisat3n_dna.all_reads.deduped.bam.bai")
     output:
-        mhap="allc/{cell_id}.mhap.gz",
-        tbi="allc/{cell_id}.mhap.gz.tbi"
+        mhap="mhap/{cell_id}.mhap.gz",
+        tbi="mhap/{cell_id}.mhap.gz.tbi"
     params:
         cpgPath=os.path.expanduser(config['cpg_path']),
     resources:
-        mem_mb=500
+        mem_mb=400
     run:
         from cemba_data.mapping.pipelines import bam2mhap
+        if not os.path.exists(mhap_dir):
+            os.mkdir(mhap_dir)
         outfile=output.mhap[:-3] #"allc/{cell_id}.mhap", will be bgzipped and tabix indexed in mhap
         bam2mhap(bam_path=input.bam,cpg_path=params.cpgPath,output=outfile)
+
+rule stat_sorted_mhap:
+    input: #sorted .mhap.gz
+        mhap="mhap/{cell_id}.mhap.gz",
+        tbi="mhap/{cell_id}.mhap.gz.tbi"
+    output:
+        gene_stat="mhap/{cell_id}.mhap.gene.stat.tsv.gz",
+        promoter_stat="mhap/{cell_id}.mhap.promoter.stat.tsv.gz",
+    params:
+        cpgPath=os.path.expanduser(config['cpg_path']),
+        geneBedPath=os.path.expanduser(config['gene_bed_path']),
+        promoterBedPath=os.path.expanduser(config['promoter_bed_path']),
+    resources:
+        mem_mb=400
+    run:
+        from cemba_data.mapping.pipelines import stat_mhap
+        if not os.path.exists(mhap_dir):
+            os.mkdir(mhap_dir)
+        stat_mhap(mhap_path=input.mhap,cpg_path=params.cpgPath,
+                region=None,bed=params.geneBedPath,output=output.gene_stat)
+        stat_mhap(mhap_path=input.mhap,cpg_path=params.cpgPath,
+                region=None,bed=params.promoterBedPath,output=output.promoter_stat)

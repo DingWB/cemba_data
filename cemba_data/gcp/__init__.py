@@ -1,4 +1,5 @@
 from .yap_gcp import *
+from ..mapping.pipelines import bam2mhap,stat_mhap
 try:
 	import fire
 except:
@@ -17,7 +18,8 @@ def main():
 		'run_mapping':run_mapping,
 		'yap_pipeline':yap_pipeline,
 		'check_demultiplex':check_demultiplex,
-		'cell_qc':cell_qc,
+		'bam2mhap':bam2mhap,
+		'stat_mhap':stat_mhap,
 	},serialize=lambda x:print(x) if not x is None else print(""))
 
 if __name__=="_main__":

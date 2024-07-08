@@ -52,6 +52,7 @@ bam_dir=os.path.abspath(workflow.default_remote_prefix+"/bam") if gcp else "bam"
 allc_dir=os.path.abspath(workflow.default_remote_prefix+"/allc") if gcp else "allc"
 allc_multi_dir=os.path.abspath(workflow.default_remote_prefix+"/allc-multi") if gcp else "allc-multi"
 hic_dir=os.path.abspath(workflow.default_remote_prefix+"/hic") if gcp else "hic"
+mhap_dir=os.path.abspath(workflow.default_remote_prefix+"/mhap") if gcp else "mhap"
 
 local_config = read_mapping_config()
 DEFAULT_CONFIG.update(local_config)
@@ -83,10 +84,11 @@ config['local_fastq']=local_fastq
 config['bam_dir']=bam_dir
 config['allc_dir']=allc_dir
 config['hic_dir']=hic_dir
+config['mhap_dir']=mhap_dir
 config['mcg_context']=mcg_context
 config['repeat_index_flag']=repeat_index_flag
 config['allc_mcg_dir']=allc_mcg_dir
 
-for dir in [bam_dir,allc_dir,hic_dir,allc_mcg_dir]:
+for dir in [bam_dir,allc_dir]:
     if not os.path.exists(dir):
         os.mkdir(dir)
