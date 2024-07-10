@@ -320,10 +320,13 @@ def merge_mhaps(mhap_paths=[],max_open=100):
 
 def stat_single_region(f_mhap,chrom,start,end):
 	vectors,counts=[],[]
-	for line in f_mhap.fetch(chrom,start=start,end=end):
-		values=line.split('\t')
-		vectors.append(values[3])
-		counts.append(int(values[4]))
+	try:
+		for line in f_mhap.fetch(chrom,start=start,end=end):
+			values=line.split('\t')
+			vectors.append(values[3])
+			counts.append(int(values[4]))
+	except:
+		pass #no records for chrom in this mhap file.
 	if len(vectors)==0:
 		return [0,0,0,0,0,0,0,np.nan,np.nan,
 				np.nan,np.nan,np.nan,np.nan,np.nan]
