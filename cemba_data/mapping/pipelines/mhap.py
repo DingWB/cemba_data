@@ -389,11 +389,13 @@ def stat_mhap(mhap_path=None,cpg_path=None,region=None,bed=None,
 	-------
 
 	"""
+	if os.path.exists(os.path.expanduser(output)):
+		return None
 	assert not cpg_path is None
-	header=['name','chrom','start','end','nReads','mBase','cBase','tBase',
+	header=['name','nReads','mBase','cBase','tBase',
 				'K4plus','nDR','nMR','MM',
-				'CHALM','PDR','MHL','MBS','MCR','entropy','nCPG']
-	f_cpg = pysam.TabixFile(os.path.expanduser(cpg_path))
+				'CHALM','PDR','MHL','MBS','MCR','entropy'] # 'nCPG'
+	# f_cpg = pysam.TabixFile(os.path.expanduser(cpg_path))
 	f_mhap = pysam.TabixFile(os.path.expanduser(mhap_path))
 	if not region is None:
 		assert isinstance(region,str)
@@ -401,11 +403,11 @@ def stat_mhap(mhap_path=None,cpg_path=None,region=None,bed=None,
 		start, end = region.split(':')[1].split('-')
 		start,end=int(start)-1,int(end)
 		r=stat_single_region(f_mhap,chrom,start,end)
-		cpgs = f_cpg.fetch(chrom, start=start, end=end)
-		r.append(len(list(cpgs)))
-		f_cpg.close()
+		# cpgs = f_cpg.fetch(chrom, start=start, end=end)
+		# r.append(len(list(cpgs)))
+		# f_cpg.close()
 		f_mhap.close()
-		df=pd.DataFrame([[region,chrom,start,end]+r],columns=header)
+		df=pd.DataFrame([[region]+r],columns=header)
 		# print(df)
 		return df
 	if not bed is None:
@@ -420,10 +422,10 @@ def stat_mhap(mhap_path=None,cpg_path=None,region=None,bed=None,
 			end=int(values[2])
 			name=values[3]
 			r = stat_single_region(f_mhap, chrom, start, end)
-			cpgs = f_cpg.fetch(chrom, start=start, end=end)
-			r.append(len(list(cpgs)))
-			results.append([name,chrom,start,end]+r)
-		f_cpg.close()
+			# cpgs = f_cpg.fetch(chrom, start=start, end=end)
+			# r.append(len(list(cpgs)))
+			results.append([name]+r)
+		# f_cpg.close()
 		f_bed.close()
 		f_mhap.close()
 		df=pd.DataFrame(results,columns=header)
