@@ -74,20 +74,20 @@ rule bam_to_mhap:
         outfile=output.mhap[:-3] #"allc/{cell_id}.mhap", will be bgzipped and tabix indexed in mhap
         bam2mhap(bam_path=input.bam,cpg_path=params.cpgPath,output=outfile)
 
-rule stat_mhap_gene:
-    input: #sorted .mhap.gz
-        mhap="mhap/{cell_id}.mhap.gz",
-        tbi="mhap/{cell_id}.mhap.gz.tbi"
-    output:
-        gene_stat="mhap/{cell_id}.mhap.gene.stat.tsv.gz",
-    params:
-        cpgPath=os.path.expanduser(config['cpg_path']),
-        geneBedPath=os.path.expanduser(config['gene_bed_path']),
-    resources:
-        mem_mb=400
-    run:
-        from cemba_data.mapping.pipelines import stat_mhap
-        if not os.path.exists(mhap_dir):
-            os.mkdir(mhap_dir)
-        stat_mhap(mhap_path=input.mhap,cpg_path=params.cpgPath,
-                region=None,bed=params.geneBedPath,output=output.gene_stat)
+# rule stat_mhap_gene:
+#     input: #sorted .mhap.gz
+#         mhap="mhap/{cell_id}.mhap.gz",
+#         tbi="mhap/{cell_id}.mhap.gz.tbi"
+#     output:
+#         gene_stat="mhap/{cell_id}.mhap.gene.stat.tsv.gz",
+#     params:
+#         cpgPath=os.path.expanduser(config['cpg_path']),
+#         geneBedPath=os.path.expanduser(config['gene_bed_path']),
+#     resources:
+#         mem_mb=400
+#     run:
+#         from cemba_data.mapping.pipelines import stat_mhap
+#         if not os.path.exists(mhap_dir):
+#             os.mkdir(mhap_dir)
+#         stat_mhap(mhap_path=input.mhap,cpg_path=params.cpgPath,
+#                 region=None,bed=params.geneBedPath,output=output.gene_stat)

@@ -164,11 +164,14 @@ pip install pyfigshare
 
 figshare download 26210798 -o yap_example -c 2 -f fastq
 cd yap_example
-mkdir -p bismark_mapping/bismark
-mkdir -p hisat3n_mapping/hisat3n
+mkdir -p bismark_mapping/bismark/fastq
+mkdir -p hisat3n_mapping/hisat3n/fastq
 cwd=$(pwd)
-ln -s ${cwd}/fastq ${cwd}/bismark_mapping/bismark/fastq
-ln -s ${cwd}/fastq ${cwd}/hisat3n_mapping/hisat3n/fastq
+for fq in `ls ${cwd}/fastq/*.fq.gz | grep -v "trimmed"`; do
+  file=$(basename ${fq})
+  ln -s ${fq} ${cwd}/bismark_mapping/bismark/fastq/${file}
+  ln -s ${cwd}/fastq ${cwd}/hisat3n_mapping/hisat3n/fastq/${file}
+done;
 ```
 
 ### Prepare mapping config files
