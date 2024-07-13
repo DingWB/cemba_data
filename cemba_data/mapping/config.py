@@ -110,5 +110,7 @@ def print_default_mapping_config(mode,
 	config_content = config_content.replace('CHANGE_THIS_TO_YOUR_REFERENCE_FASTA', str(genome_fasta))
 	print(config_content)
 	for key in kwargs:
+		if kwargs[key] is None:
+			continue
 		print(f"{key} = {kwargs[key]}")
 	return
