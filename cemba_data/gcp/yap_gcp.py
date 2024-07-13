@@ -407,7 +407,7 @@ def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 				gcp=True,region='us-west1',keep_remote=False,
 				config_path="mapping_config.ini",aligner='hisat-3n',
-				n_jobs=64,total_memory_gb=128,node_rank=0,print_only=False,
+				n_jobs=64,total_memory_gb=None,node_rank=0,print_only=False,
 				snakemake_template=None):
 	if gcp:
 		output_dir=fastq_prefix.replace("gs://","")
@@ -451,6 +451,8 @@ def run_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 		cmds.append(cmd)
 	print(f"GCP: {gcp}; print_only: {print_only}")
 	if not gcp and print_only:
+		if total_memory_gb is None:
+			total_memory_gb=2*n_jobs
 		prepare_run(output_dir=pathlib.Path(output_dir).absolute(),
 					cores_per_job=n_jobs,total_memory_gb=total_memory_gb)
 	else:

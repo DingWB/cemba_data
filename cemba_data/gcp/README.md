@@ -185,7 +185,7 @@ yap default-mapping-config --mode m3c-mhap --barcode_version V2 --genome "~/Ref/
 yap-gcp run_mapping --fastq_prefix="bismark_mapping" --gcp=False --config_path="m3c_config_bismark.ini" --aligner='bismark' --n_jobs=4 --print_only=True
 cat bismark_mapping/snakemake/qsub/snakemake_cmd.txt
 
-yap-gcp run_mapping --fastq_prefix="hisat3n_mapping" --gcp=False --config_path="m3c_config_hisat3n.ini" --aligner='hisat3n' --n_jobs=4 --print_only=True
+yap-gcp run_mapping --fastq_prefix="hisat3n_mapping" --gcp=False --config_path="m3c-mhap_config_hisat3n.ini" --aligner='hisat3n' --n_jobs=4 --print_only=True
 cat hisat3n_mapping/snakemake/qsub/snakemake_cmd.txt
 
 snakemake -d /anvil/scratch/x-wding2/Projects/compare_pipeline/bismark_mapping/bismark --snakefile /anvil/scratch/x-wding2/Projects/compare_pipeline/bismark_mapping/bismark/Snakefile -j 4 --rerun-incomplete --default-resources mem_mb=100 --resources mem_mb=20000 --notemp

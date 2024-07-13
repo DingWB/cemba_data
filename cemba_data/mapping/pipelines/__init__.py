@@ -490,7 +490,7 @@ def prepare_run(output_dir, total_jobs=1, cores_per_job=10, total_memory_gb=None
 	return
 
 def start_from_cell_fastq(output_dir, fastq_pattern, config_path,aligner='bismark',n_group=64,
-						  n_jobs=64,total_memory_gb=128):
+						  n_jobs=64,total_memory_gb=None):
 	output_dir = pathlib.Path(output_dir).absolute()
 	if output_dir.exists():
 		raise FileExistsError(f'Output dir {output_dir} already exist, please delete it or use another path.')
@@ -542,5 +542,7 @@ def start_from_cell_fastq(output_dir, fastq_pattern, config_path,aligner='bismar
 		make_snakefile(output_dir)
 	else:
 		make_snakefile_hisat3n(output_dir)
+	if total_memory_gb is None:
+		total_memory_gb = 2 * n_jobs
 	prepare_run(output_dir,cores_per_job=n_jobs,total_memory_gb=total_memory_gb)
 	return
