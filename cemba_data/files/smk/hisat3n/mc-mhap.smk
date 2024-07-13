@@ -23,8 +23,6 @@ rule summary:
         # mhap
         expand("mhap/{cell_id}.mhap.gz",cell_id=CELL_IDS),
         expand("mhap/{cell_id}.mhap.gz.tbi",cell_id=CELL_IDS),
-        expand("mhap/{cell_id}.mhap.gene.stat.tsv.gz",cell_id=CELL_IDS),
-        expand("mhap/{cell_id}.mhap.promoter.stat.tsv.gz",cell_id=CELL_IDS),
 
         # allc-CGN
         expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz.tbi", cell_id=CELL_IDS, mcg_context=mcg_context),
@@ -171,21 +169,3 @@ rule stat_mhap_gene:
             os.mkdir(mhap_dir)
         stat_mhap(mhap_path=input.mhap,cpg_path=params.cpgPath,
                 region=None,bed=params.geneBedPath,output=output.gene_stat)
-
-rule stat_mhap_promoter:
-    input: #sorted .mhap.gz
-        mhap="mhap/{cell_id}.mhap.gz",
-        tbi="mhap/{cell_id}.mhap.gz.tbi"
-    output:
-        promoter_stat="mhap/{cell_id}.mhap.promoter.stat.tsv.gz",
-    params:
-        cpgPath=os.path.expanduser(config['cpg_path']),
-        promoterBedPath=os.path.expanduser(config['promoter_bed_path']),
-    resources:
-        mem_mb=400
-    run:
-        from cemba_data.mapping.pipelines import stat_mhap
-        if not os.path.exists(mhap_dir):
-            os.mkdir(mhap_dir)
-        stat_mhap(mhap_path=input.mhap,cpg_path=params.cpgPath,
-                region=None,bed=params.promoterBedPath,output=output.promoter_stat)

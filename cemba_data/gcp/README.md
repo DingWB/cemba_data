@@ -154,3 +154,42 @@ yap-gcp yap_pipeline --fq_dir="gs://nemo-tmp-4mxgixf-salk010/raw" \
 --aligner='hisat-3n' --n_node 16 > run.sh
 # source run.sh
 ```
+
+
+## Run YAP pipeline on test datasets
+### Download example fastq (cell level)
+```shell
+pip install pyfigshare
+# setup the token: https://github.com/DingWB/pyfigshare?tab=readme-ov-file#1-setup-token
+
+figshare download 26210798 -o yap_example -c 2 -f fastq
+cd yap_example
+mkdir -p bismark_mapping/bismark
+mkdir -p hisat3n_mapping/hisat3n
+cwd=$(pwd)
+ln -s ${cwd}/fastq ${cwd}/bismark_mapping/bismark/fastq
+ln -s ${cwd}/fastq ${cwd}/hisat3n_mapping/hisat3n/fastq
+```
+
+### Prepare mapping config files
+```
+yap default-mapping-config --mode m3c --barcode_version V2 --bismark_ref "~/Ref/hg38/hg38_ucsc_with_chrL.bismark1" --genome "~/Ref/hg38/hg38_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/hg38/hg38_ucsc.main.chrom.sizes" > m3c_config_bismark.ini
+
+yap default-mapping-config --mode m3c --barcode_version V2 --genome "~/Ref/hg38/hg38_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/hg38/hg38_ucsc.main.chrom.sizes" --hisat3n_dna_ref  "~/Ref/hg38/hg38_ucsc_with_chrL" > m3c_config_hisat3n.ini
+# or 
+yap default-mapping-config --mode m3c-mhap --barcode_version V2 --genome "~/Ref/hg38/hg38_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/hg38/hg38_ucsc.main.chrom.sizes" --hisat3n_dna_ref  "~/Ref/hg38/hg38_ucsc_with_chrL" --cpg_path "~/Ref/hg38/annotations/hg38_CpG.gz" > HBA_snm3C/${donor}_m3c-mhap_config.ini
+```
+
+### Run mapping
+```shell
+yap-gcp run_mapping --fastq_prefix="bismark_mapping" --gcp=False --config_path="m3c_config_bismark.ini" --aligner='bismark' --n_jobs=4 --print_only=True
+cat bismark_mapping/snakemake/qsub/snakemake_cmd.txt
+
+yap-gcp run_mapping --fastq_prefix="hisat3n_mapping" --gcp=False --config_path="m3c_config_hisat3n.ini" --aligner='hisat3n' --n_jobs=4 --print_only=True
+cat hisat3n_mapping/snakemake/qsub/snakemake_cmd.txt
+
+snakemake -d /anvil/scratch/x-wding2/Projects/compare_pipeline/bismark_mapping/bismark --snakefile /anvil/scratch/x-wding2/Projects/compare_pipeline/bismark_mapping/bismark/Snakefile -j 4 --rerun-incomplete --default-resources mem_mb=100 --resources mem_mb=20000 --notemp
+
+snakemake -d /anvil/scratch/x-wding2/Projects/compare_pipeline/hisat3n_mapping/hisat3n --snakefile /anvil/scratch/x-wding2/Projects/compare_pipeline/hisat3n_mapping/hisat3n/Snakefile -j 4 --rerun-incomplete --default-resources mem_mb=100 --resources mem_mb=20000 --notemp
+
+```
