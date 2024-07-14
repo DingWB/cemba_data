@@ -27,6 +27,7 @@ bam_dir=os.path.abspath(workflow.default_remote_prefix+"/bam") if gcp else "bam"
 allc_dir=os.path.abspath(workflow.default_remote_prefix+"/allc") if gcp else "allc"
 hic_dir=os.path.abspath(workflow.default_remote_prefix+"/hic") if gcp else "hic"
 fastq_dir=os.path.abspath(workflow.default_remote_prefix+"/fastq") if gcp else "fastq"
+mhap_dir=os.path.abspath(workflow.default_remote_prefix+"/mhap") if gcp else "mhap"
 mcg_context = 'CGN' if int(num_upstr_bases) == 0 else 'HCGN'
 allc_mcg_dir=os.path.abspath(workflow.default_remote_prefix+f"/allc-{mcg_context}") if gcp else f"allc-{mcg_context}"
 
@@ -45,8 +46,9 @@ rule summary:
         expand("allc/{cell_id}.allc.tsv.gz", cell_id=CELL_IDS),
         # also add all the stats path here, so they won't be deleted until summary is generated
         expand("allc/{cell_id}.allc.tsv.gz.count.csv", cell_id=CELL_IDS),
-        expand("allc/{cell_id}.mhap.gz", cell_id=CELL_IDS),
-        expand("allc/{cell_id}.mhap.gz.tbi",cell_id=CELL_IDS),
+        # mhap
+        expand("mhap/{cell_id}.mhap.gz",cell_id=CELL_IDS),
+        expand("mhap/{cell_id}.mhap.gz.tbi",cell_id=CELL_IDS),
         # allc-CGN
         expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz.tbi",cell_id=CELL_IDS,mcg_context=mcg_context),
         expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz",cell_id=CELL_IDS,mcg_context=mcg_context),
@@ -236,14 +238,16 @@ rule bam_to_mhap:
         bam="bam/{cell_id}.mC.bam",
         bai="bam/{cell_id}.mC.bam.bai"
     output:
-        mhap="allc/{cell_id}.mhap.gz",
-        tbi="allc/{cell_id}.mhap.gz.tbi"
+        mhap="mhap/{cell_id}.mhap.gz",
+        tbi="mhap/{cell_id}.mhap.gz.tbi"
     params:
         cpgPath=os.path.expanduser(config['cpgPath']),
     resources:
         mem_mb=500
     run:
-        from pym3c import bam2mhap
+        from cemba_data.mapping.pipelines import bam2mhap
+        if not os.path.exists(mhap_dir):
+            os.mkdir(mhap_dir)
         outfile=output.mhap[:-3]
         bam2mhap(bam_path=input.bam,cpg_path=params.cpgPath,output=outfile)
 
