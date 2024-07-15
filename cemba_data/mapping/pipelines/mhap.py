@@ -372,7 +372,7 @@ def open1(infile):
 	return f
 
 def stat_mhap(mhap_path=None,cpg_path=None,region=None,bed=None,
-		 output=None,sc=True):
+		 output=None):
 	"""
 	stat mhap file, for example:
 		stat_mhap -m HBA_211015_H1930004_CB63_V1C_3C_1_P5-6-K9-G24.mC.mhap.gz -c ~/Ref/hg38/annotations/hg38_CpG.gz -r chr1:876345-877299
@@ -395,14 +395,9 @@ def stat_mhap(mhap_path=None,cpg_path=None,region=None,bed=None,
 	if os.path.exists(os.path.expanduser(output)):
 		return None
 	assert not cpg_path is None
-	if not sc:
-		header=['name','nReads','mBase','cBase','tBase',
-					'K4plus','nDR','nMR','MM',
-					'CHALM','PDR','MHL','MBS','MCR','entropy'] # 'nCPG'
-	else: #only calculate MHL, MCR and
-		header = ['name', 'nReads', 'mBase', 'cBase', 'tBase',
-				  'K4plus', 'nDR', 'nMR', 'MM',
-				  'CHALM', 'PDR', 'MHL', 'MBS', 'MCR', 'entropy']  # 'nCPG'
+	header=['name','nReads','mBase','cBase','tBase',
+				'K4plus','nDR','nMR','MM',
+				'CHALM','PDR','MHL','MBS','MCR','entropy'] # 'nCPG'
 	# f_cpg = pysam.TabixFile(os.path.expanduser(cpg_path))
 	f_mhap = pysam.TabixFile(os.path.expanduser(mhap_path))
 	if not region is None:
@@ -430,10 +425,7 @@ def stat_mhap(mhap_path=None,cpg_path=None,region=None,bed=None,
 			end=int(values[2])
 			name=values[3]
 			r = stat_single_region(f_mhap, chrom, start, end)
-			# cpgs = f_cpg.fetch(chrom, start=start, end=end)
-			# r.append(len(list(cpgs)))
 			results.append([name]+r)
-		# f_cpg.close()
 		f_bed.close()
 		f_mhap.close()
 		df=pd.DataFrame(results,columns=header)
