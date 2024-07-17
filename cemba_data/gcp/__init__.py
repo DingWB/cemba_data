@@ -19,7 +19,6 @@ def main():
 		'yap_pipeline':yap_pipeline,
 		'check_demultiplex':check_demultiplex,
 		'bam2mhap':bam2mhap,
-		'stat_mhap':stat_mhap,
 	},serialize=lambda x:print(x) if not x is None else print(""))
 
 if __name__=="_main__":
