@@ -9,7 +9,7 @@ from .mc import mc_config_str
 from .mct import mct_config_str
 from ._4m import _4m_config_str
 from ...utilities import get_configuration
-from .mhap import bam2mhap,stat_mhap
+from .mhap import bam2mhap
 # from cemba_data.utilities import get_configuration
 # Load defaults
 PACKAGE_DIR = pathlib.Path(cemba_data.__path__[0])
