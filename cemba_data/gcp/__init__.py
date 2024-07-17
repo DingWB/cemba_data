@@ -1,5 +1,5 @@
 from .yap_gcp import *
-from ..mapping.pipelines import bam2mhap,stat_mhap
+from ..mapping.pipelines import bam2mhap
 try:
 	import fire
 except:
