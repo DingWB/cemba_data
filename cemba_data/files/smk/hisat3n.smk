@@ -27,7 +27,8 @@ rule sort_fq:
     threads:
         1.5
     resources:
-        high_io_job=1 #
+        high_io_job=1,
+        mem_mb=500
     shell:
         'zcat {input.fq} | paste - - - - | sort -k1,1 -t " " | tr "\t" "\n" > {output.fq} '
 
@@ -245,7 +246,7 @@ rule dedup:
         bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam")), #to keep this bam, change to: "bam/{cell_id}.hisat3n_dna.all_reads.deduped.bam",
         stats="bam/{cell_id}.hisat3n_dna.all_reads.deduped.matrix.txt"
     resources:
-        mem_mb=2000
+        mem_mb=4000
     # benchmark:
     #         "fastq/{cell_id}.dedup.benchmark.txt"
     threads:

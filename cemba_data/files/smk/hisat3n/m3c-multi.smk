@@ -82,7 +82,7 @@ rule dedup_multi_bam:
         bam=local(temp(bam_dir+"/{cell_id}.hisat3n_dna.multi_align.deduped.bam")), #"bam/{cell_id}.hisat3n_dna.multi_align.deduped.bam",
         stats="bam/{cell_id}.hisat3n_dna.multi_align.deduped.matrix.txt"
     resources:
-        mem_mb=2000
+        mem_mb=4000
     threads:
         2
     shell:
