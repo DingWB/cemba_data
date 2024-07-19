@@ -28,7 +28,7 @@ rule sort_fq:
         1.5
     resources:
         high_io_job=1,
-        mem_mb=500
+        # mem_mb=500
     shell:
         'zcat {input.fq} | paste - - - - | sort -k1,1 -t " " | tr "\t" "\n" > {output.fq} '
 
