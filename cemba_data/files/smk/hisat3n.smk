@@ -28,7 +28,7 @@ rule sort_fq:
         1.5
     resources:
         high_io_job=1,
-        # mem_mb=500
+        mem_mb=200
     shell:
         'zcat {input.fq} | paste - - - - | sort -k1,1 -t " " | tr "\t" "\n" > {output.fq} '
 
@@ -41,6 +41,8 @@ rule trim:
         R1=local(temp("fastq/{cell_id}-R1.trimmed.fq.gz")),
         R2=local(temp("fastq/{cell_id}-R2.trimmed.fq.gz")),
         stats="fastq/{cell_id}.trimmed.stats.txt"
+    resources:
+        mem_mb=200
     threads:
         1
     shell:
