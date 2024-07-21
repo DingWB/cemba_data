@@ -271,7 +271,7 @@ def run_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 	else:
 		cmd = f'snakemake -s {smk1} --scheduler greedy --printshellcmds --rerun-incomplete --config fq_dir="{fq_dir}" outdir="{outdir}" barcode_version="{barcode_version}" -j {n_jobs}'
 
-	print(f"CMD: {cmd}")
+	print(cmd)
 	if not print_only:
 		os.system(cmd)
 
