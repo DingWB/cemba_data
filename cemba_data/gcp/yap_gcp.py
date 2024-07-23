@@ -445,21 +445,26 @@ def run_mapping(workd="gs://mapping_example/test_gcp",
 		common_str = f'--default-resources mem_mb=100 --resources mem_mb=50000 --printshellcmds --scheduler greedy --rerun-incomplete --config gcp={gcp} fastq_server={fastq_server} -j {n_jobs} --default-remote-provider GS --google-lifesciences-region {region} '
 		if keep_remote:
 			common_str += "--keep-remote "
+		pattern = "fastq/{cell_id}-R1.fq.gz"
 	elif fastq_server=='ftp': # CELL_IDS should exists under each uid
 		all_uids, = glob_wildcards(os.path.join(output_folder, "{uid}/CELL_IDS"),
 												followlinks=True)
 		uids = list(set(all_uids))
 		log_path = os.path.join(output_folder, f"logs.txt")
 		common_str = f'--default-resources mem_mb=100 --resources mem_mb=50000 --printshellcmds --scheduler greedy --rerun-incomplete --config gcp={gcp} fastq_server={fastq_server} -j {n_jobs}  '
+		pattern="CELL_IDS"
 	else:
 		all_uids,all_cell_ids=glob_wildcards(os.path.join(output_folder,"{uid}/fastq/{cell_id}-R1.fq.gz"),followlinks=True)
 		uids=list(set(all_uids))
 		common_str = f'--default-resources mem_mb=100 --resources mem_mb=50000 --printshellcmds --scheduler greedy --rerun-incomplete --config gcp={gcp} fastq_server={fastq_server} -j {n_jobs}  '
 		log_path = os.path.join(output_folder, f"logs.txt")
+		pattern = "fastq/{cell_id}-R1.fq.gz"
 
 	cmds=[]
 	for uid in uids:
-		make_all_snakefile(output_folder, uid, aligner=aligner, gcp=gcp,snakemake_template=snakemake_template)
+		make_all_snakefile(output_folder, uid, aligner=aligner, gcp=gcp,
+						   snakemake_template=snakemake_template,
+						   pattern=pattern)
 		# mapping_config.ini need to be under local_output_folder
 		cmd_str=f"--default-remote-prefix {output_folder}/{uid}" if gcp else f"-d {output_folder}/{uid}"
 		# there should be fastq dir under default-remote-prefix
