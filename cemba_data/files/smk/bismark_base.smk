@@ -7,6 +7,7 @@ repeat index will use more memory
 import os,sys
 import yaml
 import pathlib
+import pandas as pd
 
 if "gcp" not in config:
     config["gcp"]=False #whether run on GCP (write output to GCP bucket)

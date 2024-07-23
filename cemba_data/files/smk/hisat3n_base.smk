@@ -5,6 +5,7 @@ hg38 normal index uses ~9 GB of memory
 repeat index will use more memory
 """
 import os,sys
+import pandas as pd
 import yaml
 import pathlib
 from cemba_data.hisat3n import *
