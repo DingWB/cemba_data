@@ -33,26 +33,17 @@ DEFAULT_CONFIG = {
 }
 REQUIRED_CONFIG = ['hisat3n_dna_reference', 'reference_fasta', 'chrom_size_path']
 
-if "gcp" in config:
-    gcp=config["gcp"] # if the fastq files stored in GCP cloud, set gcp=True in snakemake: --config gcp=True
-else:
-    gcp=False
+if "gcp" not in config:
+    config["gcp"]=False #whether run on GCP (write output to GCP bucket)
 
-if "local_fastq" in config and gcp:
-    local_fastq=config["local_fastq"] # if the fastq files stored in GCP cloud, set local_fastq=False in snakemake: --config local_fastq=False
-else:
-    local_fastq=True
+if "fastq_server" not in config:
+    config["fastq_server"]='local' # can be local, gcp, ftp
 
-if not local_fastq or gcp:
-    from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
-    GS = GSRemoteProvider()
-    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
-
-bam_dir=os.path.abspath(workflow.default_remote_prefix+"/bam") if gcp else "bam"
-allc_dir=os.path.abspath(workflow.default_remote_prefix+"/allc") if gcp else "allc"
-allc_multi_dir=os.path.abspath(workflow.default_remote_prefix+"/allc-multi") if gcp else "allc-multi"
-hic_dir=os.path.abspath(workflow.default_remote_prefix+"/hic") if gcp else "hic"
-mhap_dir=os.path.abspath(workflow.default_remote_prefix+"/mhap") if gcp else "mhap"
+bam_dir=os.path.abspath(workflow.default_remote_prefix+"/bam") if config["gcp"] else "bam"
+allc_dir=os.path.abspath(workflow.default_remote_prefix+"/allc") if config["gcp"] else "allc"
+allc_multi_dir=os.path.abspath(workflow.default_remote_prefix+"/allc-multi") if config["gcp"] else "allc-multi"
+hic_dir=os.path.abspath(workflow.default_remote_prefix+"/hic") if config["gcp"] else "hic"
+mhap_dir=os.path.abspath(workflow.default_remote_prefix+"/mhap") if config["gcp"] else "mhap"
 
 local_config = read_mapping_config()
 DEFAULT_CONFIG.update(local_config)
@@ -68,19 +59,17 @@ for k in REQUIRED_CONFIG:
 if len(missing_key) > 0:
     raise ValueError('Missing required config: {}'.format(missing_key))
 
-if not gcp:
+if not config["gcp"]: # local
     # fastq table and cell IDs
-    fastq_table = validate_cwd_fastq_paths()
+    fastq_table = validate_cwd_fastq_paths() #get fastq path from pathlib.Path(f'{cwd}/fastq/').glob('*.[fq.gz][fastq.gz]')
     CELL_IDS = fastq_table.index.tolist() # CELL_IDS will be writen in the beginning of this snakemake file.
 
 mcg_context = 'CGN' if int(config['num_upstr_bases']) == 0 else 'HCGN'
 #repeat_index_flag = "--repeat" if config['hisat3n_repeat_index_type'] == 'repeat' else "--no-repeat-index"
 repeat_index_flag="--no-repeat-index" #repeat would cause some randomness, get different output (mapping summary) even using the same input and parameters
-allc_mcg_dir=os.path.abspath(workflow.default_remote_prefix+f"/allc-{mcg_context}") if gcp else f"allc-{mcg_context}"
+allc_mcg_dir=os.path.abspath(workflow.default_remote_prefix+f"/allc-{mcg_context}") if config["gcp"] else f"allc-{mcg_context}"
 # print(f"bam_dir: {bam_dir}\n allc_dir: {allc_dir}\n hic_dir: {hic_dir} \n allc_mcg_dir: {allc_mcg_dir}")
 
-config['gcp']=gcp
-config['local_fastq']=local_fastq
 config['bam_dir']=bam_dir
 config['allc_dir']=allc_dir
 config['hic_dir']=hic_dir

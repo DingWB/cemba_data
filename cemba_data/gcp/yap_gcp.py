@@ -10,6 +10,7 @@ from cemba_data.demultiplex.fastq_dataframe import _parse_v2_fastq_path
 from cemba_data.demultiplex import _parse_index_fasta
 from cemba_data.mapping.pipelines import prepare_run
 from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
+from snakemake.remote.FTP import RemoteProvider as FTPRemoteProvider
 import json
 import pathlib
 import subprocess
@@ -22,16 +23,20 @@ try: #gcp
 except:
 	pass
 
-def make_v2_fastq_df(fq_dir,run_on_gcp):
+def make_v2_fastq_df(fq_dir,fastq_server='local'):
 	# For example: UWA7648_CX05_A10_2_P8-1-O4_22F25JLT3_S15_L001_I1_001.fastq.gz
 	# depth = 2
-	if run_on_gcp:
+	if fastq_server=='gcp': #fq_dir="gs://mapping_example/fastq/novaseq_fastq"
 		GS = GSRemoteProvider(project=gcp_project)
 		os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
 		bucket_name = fq_dir.replace('gs://', '').split('/')[0]
 		indir = '/'.join(fq_dir.replace('gs://', '').split('/')[1:])
 		files = GS.client.list_blobs(bucket_name, prefix=indir, match_glob='**{.fq.gz,.fastq.gz}')
 		input_files = ["gs://"+bucket_name+"/"+file.name for file in files]
+	elif fastq_server=="ftp": #for example: fq_dir="ftp.sra.ebi.ac.uk/vol1/fastq/SRR243/010/SRR24316310"
+		FTP = FTPRemoteProvider() #username="myusername", password="mypassword"
+		prefixes, = FTP.glob_wildcards(fq_dir + "{prefixes}.gz")
+		input_files = [f"{fq_dir}{file}.gz" for file in prefixes]
 	else: #local
 		print(fq_dir)
 		input_files=glob.glob(os.path.join(os.path.expanduser(fq_dir),"*.fastq.gz"))+glob.glob(os.path.join(os.path.expanduser(fq_dir),"*.fq.gz")) # * should be included in fq_dir, is fastq_pattern
@@ -42,7 +47,7 @@ def make_v2_fastq_df(fq_dir,run_on_gcp):
 	df.fastq_path=df.fastq_path.apply(lambda x:str(x))
 	return df
 
-def get_fastq_info(fq_dir,run_on_gcp,local_outdir="./"):
+def get_fastq_info(fq_dir,fastq_server='gcp',local_outdir="./"):
 	if not os.path.exists(local_outdir):
 		os.makedirs(local_outdir,exist_ok=True)
 	outfile=os.path.join(local_outdir,"fastq_info.txt")
@@ -50,7 +55,7 @@ def get_fastq_info(fq_dir,run_on_gcp,local_outdir="./"):
 		df=pd.read_csv(outfile,sep='\t')
 		# need to write to file, otherwise, snakemake will call this function multiple times.
 		return df
-	df=make_v2_fastq_df(fq_dir,run_on_gcp)
+	df=make_v2_fastq_df(fq_dir,fastq_server) #columns:plate,multiplex_group,primer_name,lane,read_type,fastq_path (on remote server or local),uid
 	# df['fastq_path']=df.apply(lambda row:os.path.join(row.indir,'-'.join(row.loc[['plate','multiplex_group','primer_name']].map(str).tolist())+"_"+"_".join(row.loc[['ID','pns','lane','read_type','suffix']].map(str).tolist())+f".{fq_ext}.gz"),axis=1)
 	# df['uid']=df.plate.map(str)+'-'+df.multiplex_group.map(str)+'-'+df.primer_name.map(str) #f'{plate}-{multiplex_group}-{primer_name}')
 	df=df.loc[df.read_type.isin(['R1','R2'])]
@@ -58,8 +63,9 @@ def get_fastq_info(fq_dir,run_on_gcp,local_outdir="./"):
 	df=df.loc[df.read_type=='R1']
 	df.rename(columns={'fastq_path':'R1'},inplace=True)
 	df['R2']=df.R1.apply(lambda x:x.replace('_R1_','_R2_'))
+	df.sort_values(['uid','lane'],inplace=True)
 	df.to_csv(outfile,sep='\t',index=False)
-	return df
+	return df #columns: plate,multiplex_group,primer_name,lane,read_type,R1,uid,R2
 
 def index_name2multiplex_group(x):
 	if 'unknow' not in x.lower():
@@ -132,8 +138,9 @@ def get_random_index(UIDs, barcode_version,local_outdir="./"):
 	df_index['uid']=df_index.loc[:,['old_uid','real_multiplex_group']].apply(
 		lambda x:'-'.join([x.old_uid.split('-')[0],str(x.real_multiplex_group),x.old_uid.split('-')[-1]]),axis=1
 	)
+	df_index['cell_id'] = df_index['uid'] + '-' + df_index['index_name']
 	df_index.to_csv(outfile, sep='\t', index=False)
-	return df_index
+	return df_index # columns: 'old_uid,read_type,index_name,real_multiplex_group,uid'
 
 def get_fastq_uids(remote_prefix=None):
 	GS = GSRemoteProvider(project=gcp_project)
@@ -214,7 +221,7 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 	workdir = os.path.abspath(os.path.expanduser(tmp_dir))
 	if not os.path.exists(workdir):
 		os.makedirs(workdir)
-	CMD=f"yap-gcp run_demultiplex --fq_dir {fq_dir} --remote_prefix {remote_prefix} --outdir {outdir} \
+	CMD=f"yap-remote run_demultiplex --fq_dir {fq_dir} --remote_prefix {remote_prefix} --outdir {outdir} \
 --barcode_version {barcode_version} \
 --gcp {gcp} --region {region} --keep_remote {keep_remote} --n_jobs {n_jobs}"
 	if not env_name is None:
@@ -370,7 +377,7 @@ def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 	with open(skypilot_template) as f:
 		template = f.read()
 	if not separated:
-		CMD = f'yap-gcp run_mapping --fastq_prefix {fastq_prefix} \
+		CMD = f'yap-remote run_mapping --fastq_prefix {fastq_prefix} \
 --config_path "mapping_config.ini" --aligner {aligner} \
 --gcp {gcp} --region {region} \
 --keep_remote {keep_remote} --n_jobs {n_jobs} \
@@ -385,7 +392,7 @@ def prepare_mapping(fastq_prefix="gs://mapping_example/test_gcp",
 		print(f"Or: \nsky launch -y -n {job_name} {output}")
 	else:
 		for rank in range(n_node):
-			CMD = f'yap-gcp run_mapping --fastq_prefix {fastq_prefix} \
+			CMD = f'yap-remote run_mapping --fastq_prefix {fastq_prefix} \
 --config_path "mapping_config.ini" --aligner {aligner} \
 --gcp {gcp} --region {region} \
 --keep_remote {keep_remote} --n_jobs {n_jobs} \
@@ -482,7 +489,7 @@ def yap_pipeline(
 	if not mapping_template is None:
 		mapping_template=os.path.expanduser(mapping_template)
 
-	cmd=f'conda activate {env_name} && yap-gcp prepare_demultiplex --fq_dir {fq_dir} --remote_prefix {remote_prefix} \
+	cmd=f'conda activate {env_name} && yap-remote prepare_demultiplex --fq_dir {fq_dir} --remote_prefix {remote_prefix} \
 --outdir {outdir} --barcode_version {barcode_version} --env_name {env_name} \
 --region {region} --keep_remote {keep_remote} --gcp {gcp} \
 --skypilot_template {demultiplex_template} --n_jobs {n_jobs1} \
@@ -496,7 +503,7 @@ def yap_pipeline(
 --bismark_ref "{bismark_ref}" --genome "{genome}" \
 --chrom_size_path "{chrom_size_path}" \
 --hisat3n_dna_ref  "{hisat3n_dna_ref}" > config.ini')
-	cmd=f'conda activate {env_name} && yap-gcp prepare_mapping --fastq_prefix {fastq_prefix} \
+	cmd=f'conda activate {env_name} && yap-remote prepare_mapping --fastq_prefix {fastq_prefix} \
 --config_path config.ini --aligner {aligner} --separated {separated} \
 --tmp_dir mapping_gcp_tmp --n_node {n_node} --image {image} \
 --region {region} --keep_remote {keep_remote} --gcp {gcp} \

@@ -16,26 +16,34 @@ default_config={
 # demultiplex can not be ran using spot mode, because in cutadapt step,
 # {dir}/{uid}/lanes/{uid}-{lane}-{name}-R1.fq.gz the name is unknown, so
 # it can not be upload onto cloud, if ran with spot, those files would lost.
+if "gcp" not in config:
+    config["gcp"]=False #whether run on GCP (write output to GCP bucket)
 
-if 'gcp' in config and config['gcp']:
+if "fastq_server" not in config:
+    config["fastq_server"]='local' # can be local, gcp, ftp
+
+if config["fastq_server"]=='gcp' or config["gcp"]:
     from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
     GS = GSRemoteProvider()
     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
-    fq_dir=config["fq_dir"]
-    run_on_gcp=True
+elif config["fastq_server"]=='ftp':
+    from snakemake.remote.FTP import RemoteProvider as FTPRemoteProvider
+    FTP = FTPRemoteProvider()
+
+if config["fastq_server"]=='local':
+    fq_dir = pathlib.Path(config["fq_dir"]).absolute()
 else:
-    fq_dir=pathlib.Path(config["fq_dir"]).absolute()
-    run_on_gcp=False
+    fq_dir = config["fq_dir"]
 
 for key in default_config:
     if key not in config:
         config[key]=default_config[key]
 
 outdir=config["outdir"] if 'outdir' in config else 'mapping'
-local_outdir=outdir if not run_on_gcp else workflow.default_remote_prefix+"/"+outdir
+local_outdir=outdir if not config["gcp"] else workflow.default_remote_prefix+"/"+outdir
 barcode_version = config["barcode_version"] if 'barcode_version' in config else "V2"
 
-df_fq=get_fastq_info(fq_dir,run_on_gcp,local_outdir)
+df_fq=get_fastq_info(fq_dir,config["fastq_server"],local_outdir)
 # df_fq['stats_out']=df_fq.apply(lambda row: os.path.join(local_outdir, f"{row.uid}/demultiplex.stats.txt"),axis=1) #"{dir}/{uid}/lanes/{uid}-{lane}.demultiplex.stats.txt"
 #for each pool, there are 16 old uid, 96 (16*6) new uid (6 multiplex groups)
 uid_fastqs_dict=df_fq.loc[:,['uid','R1','R2']].groupby('uid').agg(lambda x:x.tolist()).to_dict(orient='index') #uid_fastqs_dict[uid]['R1'] and R2 are list
@@ -111,7 +119,7 @@ rule download_from_gcp:
 
 rule merge_lanes:
     input:
-        fqs=lambda wildcards: [local("download/"+fq.replace('gs://','')) for fq in uid_fastqs_dict[wildcards.uid][wildcards.read_type]] if run_on_gcp \
+        fqs=lambda wildcards: [local("download/"+fq.replace('gs://','')) for fq in uid_fastqs_dict[wildcards.uid][wildcards.read_type]] if config['fastq_server']=='gcp' \
                                         else uid_fastqs_dict[wildcards.uid][wildcards.read_type]
 
     output:
@@ -123,7 +131,7 @@ rule merge_lanes:
     run:
         shell(f"mkdir -p {params.outdir}")
         shell(f"cat {input.fqs} > {output.fq}")
-        if run_on_gcp:
+        if config['fastq_server']=='gcp':
             for fq in input.fqs:
                 print(f"Removing temporary raw fastq: {fq}")
                 os.remove(fq)
@@ -179,7 +187,7 @@ rule run_demultiplex: #{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pn
             read_type = os.path.basename(input_fq).rstrip('.fq.gz').split('-')[-1]
             new_path=local_outdir+f"/{new_uid}/fastq/{new_uid}-{index_name}-{read_type}.fq.gz"
             # print(input_fq,new_path)
-            if run_on_gcp: #upload to GCP
+            if config['gcp']: #upload to GCP
                 os.system(f"gsutil cp -n {input_fq} gs://{new_path}")
                 os.remove(input_fq)
             else: #local, rename

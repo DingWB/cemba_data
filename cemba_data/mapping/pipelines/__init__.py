@@ -92,6 +92,23 @@ def make_snakefile(output_dir,aligner="bismark"):
 
 def make_all_snakefile(output_dir, subdir=None, aligner="hisat-3n", gcp=True,
 					   snakemake_template=None, pattern="fastq/{cell_id}-R1.fq.gz"):
+	"""
+
+	Parameters
+	----------
+	output_dir :
+	subdir :
+	aligner :
+	gcp :
+	snakemake_template :
+	pattern : str
+		used to get cell_ids
+		fastq/{cell_id}-R1.fq.gz, or "CELL_IDS.tsv"
+
+	Returns
+	-------
+
+	"""
 	if gcp:
 		from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
 		import json
@@ -147,7 +164,9 @@ def make_all_snakefile(output_dir, subdir=None, aligner="hisat-3n", gcp=True,
 			os.makedirs(sub_folder,exist_ok=True)
 	else:
 		sub_folder=output_dir
-	if gcp:
+	if pattern=='CELL_IDS':
+		cell_ids=pd.read_csv(os.path.join(sub_folder,pattern),sep='\t',index_col=0).index.tolist()
+	elif gcp:
 		cell_ids = GS.glob_wildcards(os.path.join(sub_folder,pattern))[0]
 		#sub_folder can startwith gs://, if gs:// not present at the beginning, it is also OK
 	else:

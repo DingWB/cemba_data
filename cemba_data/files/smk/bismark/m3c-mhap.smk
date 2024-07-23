@@ -7,39 +7,14 @@ repeat index will use more memory
 import os,sys
 import yaml
 import pathlib
+import cemba_data
+PACKAGE_DIR=cemba_data.__path__[0]
+include:
+    os.path.join(PACKAGE_DIR,"files","smk",'bismark_base.smk')
 
-if "gcp" in config:
-    gcp=config["gcp"] # if the fastq files stored in GCP cloud, set gcp=True in snakemake: --config gcp=True
-else:
-    gcp=False
-
-if "local_fastq" in config and gcp:
-    local_fastq=config["local_fastq"] # if the fastq files stored in GCP cloud, set local_fastq=False in snakemake: --config local_fastq=False
-else:
-    local_fastq=True
-
-if not local_fastq or gcp:
-    from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
-    GS = GSRemoteProvider()
-    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
-
-bam_dir=os.path.abspath(workflow.default_remote_prefix+"/bam") if gcp else "bam"
-allc_dir=os.path.abspath(workflow.default_remote_prefix+"/allc") if gcp else "allc"
-hic_dir=os.path.abspath(workflow.default_remote_prefix+"/hic") if gcp else "hic"
-fastq_dir=os.path.abspath(workflow.default_remote_prefix+"/fastq") if gcp else "fastq"
-mhap_dir=os.path.abspath(workflow.default_remote_prefix+"/mhap") if gcp else "mhap"
-mcg_context = 'CGN' if int(num_upstr_bases) == 0 else 'HCGN'
-allc_mcg_dir=os.path.abspath(workflow.default_remote_prefix+f"/allc-{mcg_context}") if gcp else f"allc-{mcg_context}"
-
-for dir in [bam_dir,allc_dir,hic_dir,allc_mcg_dir]:
-    if not os.path.exists(dir):
-        os.mkdir(dir)
-
-if not local_fastq or gcp:
-    from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
-    GS = GSRemoteProvider()
-    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
-
+mhap_dir=os.path.abspath(workflow.default_remote_prefix+"/mhap") if config["gcp"] else "mhap"
+if not os.path.exists(mhap_dir):
+    os.mkdir(mhap_dir)
 # the summary rule is the final target
 rule summary:
     input:
@@ -73,7 +48,7 @@ rule summary:
 # Trim reads
 rule trim:
     input:
-        fq=local("fastq/{cell_id}-{read_type}.fq.gz") if local_fastq else GS.remote("gs://"+workflow.default_remote_prefix+"/fastq/{cell_id}-{read_type}.fq.gz")
+        fq=get_fastq_path()
     output:
         fq=local(temp("fastq/{cell_id}-{read_type}.trimmed.fq.gz")),
         stats="fastq/{cell_id}-{read_type}.trimmed.stats.tsv"

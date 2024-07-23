@@ -4,7 +4,6 @@ from cemba_data.hisat3n import *
 # FASTQ Trimming
 # ==================================================
 # print(config)
-
 bam_dir=config['bam_dir']
 allc_dir=config['allc_dir']
 hic_dir=config['hic_dir']
@@ -12,16 +11,33 @@ mcg_context=config['mcg_context']
 repeat_index_flag=config['repeat_index_flag']
 allc_mcg_dir=config['allc_mcg_dir']
 
-if not config['local_fastq'] or config['gcp']:
+if config["fastq_server"]=='gcp' or config["gcp"]:
     from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
     GS = GSRemoteProvider()
     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
+elif config["fastq_server"]=='ftp':
+    from snakemake.remote.FTP import RemoteProvider as FTPRemoteProvider
+    FTP = FTPRemoteProvider()
+    fastq_dir = os.path.abspath(workflow.default_remote_prefix + "/fastq") if config["gcp"] else "fastq"
+    os.makedirs(fastq_dir,exist_ok=True)
+    cell_id_path=os.path.abspath(workflow.default_remote_prefix + "/CELL_IDS") if config["gcp"] else "CELL_IDS"
+    # instead of creating fastq directory, there should be a file names CELL_IDS, columns: cell_id,read_type and fastq_path should be present
+    cell_dict=pd.read_csv(cell_id_path,sep='\t').set_index(['cell_id','read_type']).fastq_path.to_dict()
+
+def get_fastq_path():
+    if config["fastq_server"]=='ftp':
+        # FTP.remote("ftp.sra.ebi.ac.uk/vol1/fastq/SRR243/010/SRR24316310/SRR24316310_1.fastq.gz", keep_local=True)
+        return lambda wildcards: FTP.remote(cell_dict[tuple([wildcards.cell_id,wildcards.read_type])])
+    elif config["fastq_server"]=='gcp':
+        return GS.remote("gs://" + workflow.default_remote_prefix + "/fastq/{cell_id}-{read_type}.fq.gz")
+    else: # local
+        return local("fastq/{cell_id}-{read_type}.fq.gz")
 
 # Trim reads
 # sort the fastq files so that R1 and R2 are in the same order
 rule sort_fq:
     input:
-        fq=local("fastq/{cell_id}-{read_type}.fq.gz") if config['local_fastq'] else GS.remote("gs://"+workflow.default_remote_prefix+"/fastq/{cell_id}-{read_type}.fq.gz"),
+        fq=get_fastq_path(),
     output:
         fq=local(temp("fastq/{cell_id}-{read_type}_sort.fq")),
     threads:

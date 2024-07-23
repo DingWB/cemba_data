@@ -190,9 +190,41 @@ cat bismark_mapping/snakemake/qsub/snakemake_cmd.txt # sh
 
 yap-gcp run_mapping --fastq_prefix="hisat3n_mapping" --gcp=False --config_path="m3c-mhap_config_hisat3n.ini" --aligner='hisat3n' --n_jobs=4 --print_only=True
 cat hisat3n_mapping/snakemake/qsub/snakemake_cmd.txt # sh to run
-
-#snakemake -d /anvil/scratch/x-wding2/Projects/compare_pipeline/bismark_mapping/bismark --snakefile /anvil/scratch/x-wding2/Projects/compare_pipeline/bismark_mapping/bismark/Snakefile -j 4 --rerun-incomplete --default-resources mem_mb=100 --resources mem_mb=20000 --notemp
-#
-#snakemake -d /anvil/scratch/x-wding2/Projects/compare_pipeline/hisat3n_mapping/hisat3n --snakefile /anvil/scratch/x-wding2/Projects/compare_pipeline/hisat3n_mapping/hisat3n/Snakefile -j 4 --rerun-incomplete --default-resources mem_mb=100 --resources mem_mb=20000 --notemp
-
 ```
+
+
+## Run yap-gcp on fastq stored on SRA / GEO or other ftp server
+```shell
+figshare download 26210798 -f HBA_snm3C_phenotype.tsv
+```
+
+download only two region (donor1 V1C and BNST)
+```python
+df=pd.read_csv("HBA_snm3C_phenotype.tsv",sep='\t')
+df=df.loc[(df.source_name_ch1=='h1930001') & (df['brain region'].isin(['V1C','BNST']))]
+# randomly  select 2 cells from each region:
+df=df.groupby('brain region').sample(2)
+for donor,df1 in df.groupby('source_name_ch1'):
+    outdir=os.path.abspath(donor)
+    for region,df2 in df1.groupby('brain region'):
+        print(donor,region)
+        outdir=os.path.join(donor,region)
+        if not os.path.exists(outdir):
+            os.makedirs(outdir)
+        df2=df2.loc[:,['title','R1_ftp','R2_ftp']].set_index('title').stack().reset_index()
+        df2.columns=['cell_id','read_type','fastq_path']
+        df2.read_type=df2.read_type.apply(lambda x:x.split('_')[0])
+        df2.to_csv(os.path.join(outdir,"CELL_IDS"),sep='\t',index=False)
+```
+
+```shell
+tree h1930001
+h1930001
+├── BNST
+│   └── CELL_IDS
+└── V1C
+    └── CELL_IDS
+
+2 directories, 2 files
+```
+
