@@ -452,8 +452,8 @@ def run_mapping(workd="gs://mapping_example/test_gcp",
 		uids = list(set(all_uids))
 		log_path = os.path.join(output_folder, f"logs.txt")
 		common_str = f'--default-resources mem_mb=100 --resources mem_mb=50000 --printshellcmds --scheduler greedy --rerun-incomplete --config gcp={gcp} fastq_server={fastq_server} -j {n_jobs}  '
-		pattern="CELL_IDS"
-	else:
+		pattern="CELL_IDS" #no fastq files under fastq dir, use CELL_IDS instead (including cell_id,read_type, and fastq_path)
+	else: # local
 		all_uids,all_cell_ids=glob_wildcards(os.path.join(output_folder,"{uid}/fastq/{cell_id}-R1.fq.gz"),followlinks=True)
 		uids=list(set(all_uids))
 		common_str = f'--default-resources mem_mb=100 --resources mem_mb=50000 --printshellcmds --scheduler greedy --rerun-incomplete --config gcp={gcp} fastq_server={fastq_server} -j {n_jobs}  '
