@@ -476,7 +476,8 @@ def run_mapping(workd="gs://mapping_example/test_gcp",
 		if total_memory_gb is None:
 			total_memory_gb=2*n_jobs
 		prepare_run(output_dir=pathlib.Path(output_folder).absolute(),
-					cores_per_job=n_jobs,total_memory_gb=total_memory_gb)
+					cores_per_job=n_jobs,total_memory_gb=total_memory_gb,
+					fastq_server=fastq_server)
 	else:
 		for cmd in cmds:
 			print(f"{cmd}")

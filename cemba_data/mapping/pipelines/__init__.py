@@ -231,19 +231,21 @@ def make_snakefile_hisat3n(output_dir,aligner='hisat-3n'):
 	subprocess.run(['touch', f'{output_dir}/snakemake/hisat3n'], check=True)
 	return
 
-def write_qsub_commands(output_dir, cores_per_job, total_memory_gb=None, script_dir=None):
+def write_qsub_commands(output_dir, cores_per_job, total_memory_gb=None,
+						script_dir=None,fastq_server='local'):
 	if total_memory_gb is None:
 		total_memory_gb=2*cores_per_job
+	if fastq_server!='local':
+		ext_par=f"--fastq_server {fastq_server}"
+	else:
+		ext_par=''
 	cmds = {}
 	snake_files = list(output_dir.glob('*/Snakefile'))
 	for snake_file in snake_files:
 		uid = snake_file.parent.name
-		cmd = f'snakemake ' \
-			  f'-d {snake_file.parent} ' \
-			  f'--snakefile {snake_file} ' \
-			  f'-j {cores_per_job} --rerun-incomplete ' \
-			  f'--default-resources mem_mb=100 ' \
-			  f'--resources mem_mb={int(1024 * total_memory_gb)} && rm -rf {snake_file.parent}/.snakemake '
+		cmd = f"""snakemake -d {snake_file.parent} --snakefile {snake_file} {ext_par} -j {cores_per_job} --rerun-incomplete --default-resources mem_mb=100 \
+--resources mem_mb={int(1024 * total_memory_gb)} && rm -rf {snake_file.parent}/.snakemake
+		"""
 		cmds[uid] = cmd #--resources mem_mb is the limitation.
 	script_path = script_dir / 'snakemake_cmd.txt'
 	with open(script_path, 'w') as f:
@@ -333,12 +335,13 @@ def write_sbatch_commands(output_dir, cores_per_job, script_dir, total_mem_mb, q
 				f.write(cmd + '\n')
 	return f'{outdir}/snakemake/sbatch/snakemake_{queue}_cmd.txt'
 
-def prepare_qsub(name, snakemake_dir, total_jobs, cores_per_job, total_memory_gb):
+def prepare_qsub(name, snakemake_dir, total_jobs, cores_per_job, total_memory_gb,fastq_server):
 	memory_gb_per_core = total_memory_gb / cores_per_job
 	output_dir = snakemake_dir.parent
 	qsub_dir = snakemake_dir / 'qsub'
 	qsub_dir.mkdir(exist_ok=True)
-	script_path = write_qsub_commands(output_dir, cores_per_job, total_memory_gb, script_dir=qsub_dir)
+	script_path = write_qsub_commands(output_dir, cores_per_job, total_memory_gb,
+									  script_dir=qsub_dir,fastq_server=fastq_server)
 	qsub_str = f"""
 #!/bin/bash
 #$ -N yap{name}
@@ -469,7 +472,8 @@ def prepare_sbatch(name, snakemake_dir, queue,total_memory_gb=None):
 	print('#' * 40 + '\n')
 	return
 
-def prepare_run(output_dir, total_jobs=1, cores_per_job=10, total_memory_gb=None, name=None):
+def prepare_run(output_dir, total_jobs=1, cores_per_job=10, total_memory_gb=None,
+				name=None,fastq_server='local'):
 	config = get_configuration(output_dir / 'mapping_config.ini')
 	mode = config['mode']
 	if mode.split('-')[0] in ['mc', 'm3c'] and cores_per_job < 4:
@@ -495,7 +499,8 @@ def prepare_run(output_dir, total_jobs=1, cores_per_job=10, total_memory_gb=None
 					snakemake_dir=snakemake_dir,
 					total_jobs=total_jobs,
 					cores_per_job=cores_per_job,
-					total_memory_gb=total_memory_gb)
+					total_memory_gb=total_memory_gb,
+				 fastq_server=fastq_server)
 	prepare_sbatch(name=name, snakemake_dir=snakemake_dir, queue='normal',total_memory_gb=total_memory_gb)
 	prepare_sbatch(name=name, snakemake_dir=snakemake_dir, queue='skx-normal',total_memory_gb=total_memory_gb)
 	prepare_sbatch(name=name, snakemake_dir=snakemake_dir, queue='shared',total_memory_gb=total_memory_gb)
