@@ -236,14 +236,14 @@ def write_qsub_commands(output_dir, cores_per_job, total_memory_gb=None,
 	if total_memory_gb is None:
 		total_memory_gb=2*cores_per_job
 	if fastq_server!='local':
-		ext_par=f"--config fastq_server='{fastq_server}' "
+		config_par=f"--config fastq_server='{fastq_server}' "
 	else:
-		ext_par=''
+		config_par=''
 	cmds = {}
 	snake_files = list(output_dir.glob('*/Snakefile'))
 	for snake_file in snake_files:
 		uid = snake_file.parent.name
-		cmd = f"""snakemake -d {snake_file.parent} --snakefile {snake_file} {ext_par} -j {cores_per_job} --rerun-incomplete --default-resources mem_mb=100 \
+		cmd = f"""snakemake -d {snake_file.parent} --snakefile {snake_file} {config_par} -j {cores_per_job} --rerun-incomplete --default-resources mem_mb=100 \
 --resources mem_mb={int(1024 * total_memory_gb)} && rm -rf {snake_file.parent}/.snakemake"""
 		cmds[uid] = cmd #--resources mem_mb is the limitation.
 	script_path = script_dir / 'snakemake_cmd.txt'
