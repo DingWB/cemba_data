@@ -79,7 +79,7 @@ yap-gcp yap_pipeline --fq_dir="gs://mapping_example/fastq/novaseq_fastq" \
 source run.sh
 
 # demultiplex 
-yap-gcp run_mapping --fastq_prefix="mapping/mCT" --gcp=False --config_path="mct_config.ini" --aligner='hisat-3n' --n_jobs=64 --print_only True | grep "^snakemake" > run_mct_mapping.sh
+yap-gcp run_mapping --workd="mapping/mCT" --gcp=False --config_path="mct_config.ini" --aligner='hisat-3n' --n_jobs=64 --print_only True | grep "^snakemake" > run_mct_mapping.sh
 yap sbatch --project_name mapping --command_file_path run_mct_mapping.sh --queue shared --max_jobs 4 --dry_run --working_dir ./ --time_str 1
 # or
 split -n l/8 -d run_mct_mapping.sh run_mct_mapping.
@@ -185,10 +185,10 @@ yap default-mapping-config --mode m3c-mhap --barcode_version V2 --genome "~/Ref/
 
 ### Run mapping
 ```shell
-yap-gcp run_mapping --fastq_prefix="bismark_mapping" --gcp=False --config_path="m3c_config_bismark.ini" --aligner='bismark' --n_jobs=4 --print_only=True
+yap-gcp run_mapping --workd="bismark_mapping" --gcp=False --config_path="m3c_config_bismark.ini" --aligner='bismark' --n_jobs=4 --print_only=True
 cat bismark_mapping/snakemake/qsub/snakemake_cmd.txt # sh
 
-yap-gcp run_mapping --fastq_prefix="hisat3n_mapping" --gcp=False --config_path="m3c-mhap_config_hisat3n.ini" --aligner='hisat3n' --n_jobs=4 --print_only=True
+yap-gcp run_mapping --workd="hisat3n_mapping" --gcp=False --config_path="m3c-mhap_config_hisat3n.ini" --aligner='hisat3n' --n_jobs=4 --print_only=True
 cat hisat3n_mapping/snakemake/qsub/snakemake_cmd.txt # sh to run
 ```
 
@@ -217,14 +217,8 @@ for donor,df1 in df.groupby('source_name_ch1'):
         df2.to_csv(os.path.join(outdir,"CELL_IDS"),sep='\t',index=False)
 ```
 
+### Run mapping (download cell fastq directly from ftp server and delete it after sort_fq is done)
 ```shell
-tree h1930001
-h1930001
-├── BNST
-│   └── CELL_IDS
-└── V1C
-    └── CELL_IDS
-
-2 directories, 2 files
+yap-gcp run_mapping --workd="h1930001" --gcp=False --config_path="m3c-mhap_config_hisat3n.ini" --aligner='hisat3n' --n_jobs=4 --total_memory_gb=5 --print_only=True
 ```
 

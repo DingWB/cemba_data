@@ -57,9 +57,9 @@ yap demultiplex --fastq_pattern "Pool_Remind1_m3c/*.fastq.gz" -o mapping/Pool_Re
 ```shell
 sh mapping/snakemake/qsub/snakemake_cmd.txt # old yap pipeline
 # or new yap-gcp pipeline
-yap-gcp run_mapping --fastq_prefix="mapping/Pool_Remind1_m3c" --gcp=False --config_path="m3c_config.ini" --aligner='hisat-3n' --n_jobs=64 --print_only=True
+yap-gcp run_mapping --workd="mapping/Pool_Remind1_m3c" --gcp=False --config_path="m3c_config.ini" --aligner='hisat-3n' --n_jobs=64 --print_only=True
 # or bismark
-yap-gcp run_mapping --fastq_prefix="mapping" --gcp=False --config_path="m3c_config.ini" --aligner='bismark' --n_jobs=64 --print_only=True
+yap-gcp run_mapping --workd="mapping" --gcp=False --config_path="m3c_config.ini" --aligner='bismark' --n_jobs=64 --print_only=True
 sh mapping/snakemake/qsub/snakemake_cmd.txt
 ```
 
@@ -81,6 +81,6 @@ sh mapping/snakemake/qsub/snakemake_cmd.txt
 # (2). new yap-gcp pipeline, run on local HPC (faster)
 yap-gcp run_demultiplex --fq_dir=" /gale/raidix/rdx-2/illumina_runs/240322_M00412_0796_000000000-GK7K5_240325081847048305907-1/SALK054/" --outdir="mapping" --gcp=False --n_jobs=16
 # time and memory usage: 69.52   282008  754%; 30X faster
-yap-gcp run_mapping --fastq_prefix="mapping" --gcp=False --config_path="m3c_config.ini" --aligner='bismark' --n_jobs=64 --print_only=True
+yap-gcp run_mapping --workd="mapping" --gcp=False --config_path="m3c_config.ini" --aligner='bismark' --n_jobs=64 --print_only=True
 sh mapping/snakemake/qsub/snakemake_cmd.txt
 ```
