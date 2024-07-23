@@ -446,7 +446,7 @@ def run_mapping(workd="gs://mapping_example/test_gcp",
 		if keep_remote:
 			common_str += "--keep-remote "
 	elif fastq_server=='ftp': # CELL_IDS should exists under each uid
-		all_uids = glob_wildcards(os.path.join(output_folder, "{uid}/CELL_IDS"),
+		all_uids, = glob_wildcards(os.path.join(output_folder, "{uid}/CELL_IDS"),
 												followlinks=True)
 		uids = list(set(all_uids))
 		log_path = os.path.join(output_folder, f"logs.txt")
