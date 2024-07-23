@@ -221,4 +221,3 @@ for donor,df1 in df.groupby('source_name_ch1'):
 ```shell
 yap-gcp run_mapping --workd="h1930001" --fastq_server='ftp' --gcp=False --config_path="m3c-mhap_config_hisat3n.ini" --aligner='hisat3n' --n_jobs=4 --total_memory_gb=5 --print_only=True
 ```
-
