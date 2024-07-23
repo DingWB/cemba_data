@@ -27,7 +27,9 @@ elif config["fastq_server"]=='ftp':
 def get_fastq_path():
     if config["fastq_server"]=='ftp':
         # FTP.remote("ftp.sra.ebi.ac.uk/vol1/fastq/SRR243/010/SRR24316310/SRR24316310_1.fastq.gz", keep_local=True)
-        return lambda wildcards: FTP.remote(cell_dict[tuple([wildcards.cell_id,wildcards.read_type])])
+        key=tuple([wildcards.cell_id,wildcards.read_type])
+        print("ftp:",key,cell_dict[key])
+        return lambda wildcards: FTP.remote(cell_dict[key])
     elif config["fastq_server"]=='gcp':
         return GS.remote("gs://" + workflow.default_remote_prefix + "/fastq/{cell_id}-{read_type}.fq.gz")
     else: # local
@@ -96,7 +98,7 @@ rule hisat_3n_pair_end_mapping_dna_mode:
         hisat-3n {config[hisat3n_dna_reference]} -q  -1 {input.R1} -2 {input.R2} \
 --directional-mapping-reverse --base-change C,T {repeat_index_flag} \
 --no-spliced-alignment --no-temp-splicesite -t  --new-summary \
---summary-file {output.stats} --threads {threads} | samtools view -b -q 0 -o {output.bam}
+--summary-file {output.stats} --threads {threads} --quiet | samtools view -b -q 0 -o {output.bam}
         """
 
 
@@ -160,7 +162,7 @@ rule hisat_3n_single_end_mapping_dna_mode:
         hisat-3n {config[hisat3n_dna_reference]} -q -U {input.fastq} \
 {params.direction} --base-change C,T {repeat_index_flag} \
 --no-spliced-alignment --no-temp-splicesite -t --new-summary --summary-file {output.stats} \
---threads {threads} | samtools view -b -q 10 -o {output.bam}
+--threads {threads} --quiet | samtools view -b -q 10 -o {output.bam}
         """
         # # only take the unique aligned reads
 
