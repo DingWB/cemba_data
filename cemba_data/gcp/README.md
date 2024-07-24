@@ -184,10 +184,10 @@ yap default-mapping-config --mode m3c-mhap --barcode_version V2 --genome "~/Ref/
 
 ### Run mapping
 ```shell
-yap-gcp run_mapping --workd="bismark_mapping" --gcp=False --config_path="m3c_config_bismark.ini" --aligner='bismark' --n_jobs=4 --print_only=True
+yap-gcp run_mapping --workd="bismark_mapping" --fastq_server="local" --gcp=False --config_path="m3c_config_bismark.ini" --aligner='bismark' --n_jobs=4 --print_only=True
 cat bismark_mapping/snakemake/qsub/snakemake_cmd.txt # sh
 
-yap-gcp run_mapping --workd="hisat3n_mapping" --gcp=False --config_path="m3c-mhap_config_hisat3n.ini" --aligner='hisat3n' --n_jobs=4 --print_only=True
+yap-gcp run_mapping --workd="hisat3n_mapping" --fastq_server="local" --gcp=False --config_path="m3c-mhap_config_hisat3n.ini" --aligner='hisat3n' --n_jobs=4 --print_only=True
 cat hisat3n_mapping/snakemake/qsub/snakemake_cmd.txt # sh to run
 ```
 

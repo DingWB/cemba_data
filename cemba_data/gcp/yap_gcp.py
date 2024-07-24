@@ -174,7 +174,7 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 						barcode_version="V2",env_name='base',
 						tmp_dir="demultiplex_gcp_tmp",disk_size=3072,
 						region='us-west1',keep_remote=False,
-						fastq_server='gcp',gcp=True,
+						fastq_server='local',gcp=False,
 						skypilot_template=None,n_jobs=16,job_name="demultiplex",
 						image="bican",output='run_demultiplex.yaml'):
 	"""
@@ -247,8 +247,8 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 	print(f"To run: sky launch -y -i 10 -n {job_name} {output}")
 
 def run_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
-						barcode_version="V2",fastq_server='gcp',
-						gcp=True,region='us-west1',keep_remote=False,
+						barcode_version="V2",fastq_server='local',
+						gcp=False,region='us-west1',keep_remote=False,
 						n_jobs=16,print_only=False):
 	"""
 		This function need to be executed on the GCP VM machine. Please see
@@ -288,7 +288,7 @@ def prepare_mapping(workd="gs://mapping_example/test_gcp",
 					tmp_dir="mapping_gcp_tmp",disk_size=500,
 					chunk_size=None,separated=True,  n_node=12,image="bican",
 					region='us-west1',keep_remote=False,
-					fastq_server='gcp',gcp=True,
+					fastq_server='local',gcp=False,
 					skypilot_template=None,job_name='mapping',
 					env_name='base',n_jobs=64):
 	"""
@@ -414,7 +414,7 @@ def prepare_mapping(workd="gs://mapping_example/test_gcp",
 		print(f"To run this job: \nsh {output} \n")
 
 def run_mapping(workd="gs://mapping_example/test_gcp",
-				fastq_server='gcp',gcp=True,
+				fastq_server='local',gcp=False,
 				region='us-west1',keep_remote=False,
 				config_path="mapping_config.ini",aligner='hisat-3n',
 				n_jobs=64,total_memory_gb=None,node_rank=0,
@@ -491,7 +491,8 @@ def yap_pipeline(
 	fq_dir="gs://mapping_example/fastq/salk10_test",
 	remote_prefix='bican',outdir='salk010_test',
 	barcode_version="V2", env_name='base',
-	region='us-west1', keep_remote=False, gcp=True,
+	region='us-west1', keep_remote=False,
+	fastq_server='local',gcp=False,
 	n_jobs1=16,n_jobs2=64,separated=True,
 	image="bican",demultiplex_template=None,
 	mapping_template=None, genome="~/Ref/hg38_Broad/hg38.fa",
@@ -507,7 +508,7 @@ def yap_pipeline(
 
 	cmd=f'conda activate {env_name} && yap-remote prepare_demultiplex --fq_dir {fq_dir} --remote_prefix {remote_prefix} \
 --outdir {outdir} --barcode_version {barcode_version} --env_name {env_name} \
---region {region} --keep_remote {keep_remote} --gcp {gcp} \
+--region {region} --keep_remote {keep_remote} --fastq_server {fastq_server} --gcp {gcp} \
 --skypilot_template {demultiplex_template} --n_jobs {n_jobs1} \
 --job_name demultiplex --image {image} --disk_size {disk_size1} \
 --output run_demultiplex.yaml'
@@ -522,7 +523,7 @@ def yap_pipeline(
 	cmd=f'conda activate {env_name} && yap-remote prepare_mapping --workd {workd} \
 --config_path config.ini --aligner {aligner} --separated {separated} \
 --tmp_dir mapping_gcp_tmp --n_node {n_node} --image {image} \
---region {region} --keep_remote {keep_remote} --gcp {gcp} \
+--region {region} --keep_remote {keep_remote} --fastq_server {fastq_server} --gcp {gcp} \
 --skypilot_template {mapping_template} --job_name mapping \
 --env_name {env_name} --n_jobs {n_jobs2} --disk_size {disk_size2}'
 	print(cmd)
