@@ -27,9 +27,9 @@ elif config["fastq_server"]=='ftp':
 def get_fastq_path():
     if config["fastq_server"]=='ftp':
         # FTP.remote("ftp.sra.ebi.ac.uk/vol1/fastq/SRR243/010/SRR24316310/SRR24316310_1.fastq.gz", keep_local=True)
-        key=tuple([wildcards.cell_id,wildcards.read_type])
+        key=lambda wildcards: tuple([wildcards.cell_id,wildcards.read_type])
         print("ftp:",key,cell_dict[key])
-        return lambda wildcards: FTP.remote(cell_dict[key])
+        return FTP.remote(cell_dict[key])
     elif config["fastq_server"]=='gcp':
         return GS.remote("gs://" + workflow.default_remote_prefix + "/fastq/{cell_id}-{read_type}.fq.gz")
     else: # local
