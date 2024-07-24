@@ -4,12 +4,15 @@ from cemba_data.hisat3n import *
 # FASTQ Trimming
 # ==================================================
 # print(config)
-bam_dir=config['bam_dir']
-allc_dir=config['allc_dir']
-hic_dir=config['hic_dir']
-mcg_context=config['mcg_context']
-repeat_index_flag=config['repeat_index_flag']
-allc_mcg_dir=config['allc_mcg_dir']
+# bam_dir=config['bam_dir']
+# allc_dir=config['allc_dir']
+# hic_dir=config['hic_dir']
+# mcg_context=config['mcg_context']
+# repeat_index_flag=config['repeat_index_flag']
+# allc_mcg_dir=config['allc_mcg_dir']
+
+print(f"bam_dir: {bam_dir}")
+print(f"allc_dir: {allc_dir}")
 
 if config["fastq_server"]=='gcp' or config["gcp"]:
     from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
@@ -96,6 +99,7 @@ rule hisat_3n_pair_end_mapping_dna_mode:
     #         "fastq/{cell_id}.hisat_3n_pair_end_mapping_dna_mode.benchmark.txt"
     shell: # # do not filter any reads in this step
         """
+        mkdir -p {bam_dir}
         hisat-3n {config[hisat3n_dna_reference]} -q  -1 {input.R1} -2 {input.R2} \
 --directional-mapping-reverse --base-change C,T {repeat_index_flag} \
 --no-spliced-alignment --no-temp-splicesite -t  --new-summary \

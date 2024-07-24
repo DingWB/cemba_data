@@ -7,7 +7,7 @@ include:
 include:
     os.path.join(PACKAGE_DIR,"files","smk",'hisat3n.smk')
 
-mhap_dir=config['mhap_dir']
+# mhap_dir=config['mhap_dir']
 # ==================================================
 # Mapping summary
 # ==================================================
