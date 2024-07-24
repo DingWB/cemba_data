@@ -4,7 +4,6 @@ PACKAGE_DIR=cemba_data.__path__[0]
 include:
     os.path.join(PACKAGE_DIR,"files","smk",'hisat3n_base.smk')
 
-# mhap_dir=config['mhap_dir']
 # the summary rule is the final target
 rule summary:
     input:

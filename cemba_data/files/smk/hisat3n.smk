@@ -1,37 +1,13 @@
 import os
 from cemba_data.hisat3n import *
+import cemba_data
+PACKAGE_DIR=cemba_data.__path__[0]
+include:
+    os.path.join(PACKAGE_DIR,"files","smk",'hisat3n_base.smk')
 # ==================================================
 # FASTQ Trimming
 # ==================================================
 # print(config)
-
-print(f"bam_dir: {os.path.abspath(bam_dir)}")
-print(f"allc_dir: {os.path.abspath(allc_dir)}")
-
-if config["fastq_server"]=='gcp' or config["gcp"]:
-    from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
-    GS = GSRemoteProvider()
-    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
-elif config["fastq_server"]=='ftp':
-    from snakemake.remote.FTP import RemoteProvider as FTPRemoteProvider
-    FTP = FTPRemoteProvider()
-    fastq_dir = os.path.abspath(workflow.default_remote_prefix + "/fastq") if config["gcp"] else "fastq"
-    os.makedirs(fastq_dir,exist_ok=True)
-    # print(f"cwd: {os.getcwd()}") # the same as parameter: snakemake -d
-    cell_id_path=os.path.abspath("gs://"+workflow.default_remote_prefix + "/CELL_IDS") if config["gcp"] else "CELL_IDS"
-    # instead of creating fastq directory, there should be a file names CELL_IDS, columns: cell_id,read_type and fastq_path should be present
-    df1=pd.read_csv(cell_id_path,sep='\t')
-    # print(df1.head())
-    cell_dict=df1.set_index(['cell_id','read_type']).fastq_path.to_dict()
-
-def get_fastq_path():
-    if config["fastq_server"]=='ftp':
-        # FTP.remote("ftp.sra.ebi.ac.uk/vol1/fastq/SRR243/010/SRR24316310/SRR24316310_1.fastq.gz", keep_local=True)
-        return lambda wildcards: FTP.remote(cell_dict[tuple([wildcards.cell_id,wildcards.read_type])])
-    elif config["fastq_server"]=='gcp':
-        return GS.remote("gs://" + workflow.default_remote_prefix + "/fastq/{cell_id}-{read_type}.fq.gz")
-    else: # local
-        return local("fastq/{cell_id}-{read_type}.fq.gz")
 
 # Trim reads
 # sort the fastq files so that R1 and R2 are in the same order

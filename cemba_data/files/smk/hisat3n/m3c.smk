@@ -2,9 +2,6 @@ import os,sys
 import cemba_data
 PACKAGE_DIR=cemba_data.__path__[0]
 include:
-    os.path.join(PACKAGE_DIR,"files","smk",'hisat3n_base.smk')
-
-include:
     os.path.join(PACKAGE_DIR,"files","smk",'hisat3n.smk')
 # ==================================================
 # Mapping summary
