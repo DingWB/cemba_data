@@ -22,14 +22,14 @@ elif config["fastq_server"]=='ftp':
     os.makedirs(fastq_dir,exist_ok=True)
     cell_id_path=os.path.abspath(workflow.default_remote_prefix + "/CELL_IDS") if config["gcp"] else "CELL_IDS"
     # instead of creating fastq directory, there should be a file names CELL_IDS, columns: cell_id,read_type and fastq_path should be present
-    cell_dict=pd.read_csv(cell_id_path,sep='\t').set_index(['cell_id','read_type']).fastq_path.to_dict()
+    df1=pd.read_csv(cell_id_path,sep='\t')
+    # print(df1.head())
+    cell_dict=df1.set_index(['cell_id','read_type']).fastq_path.to_dict()
 
 def get_fastq_path():
     if config["fastq_server"]=='ftp':
         # FTP.remote("ftp.sra.ebi.ac.uk/vol1/fastq/SRR243/010/SRR24316310/SRR24316310_1.fastq.gz", keep_local=True)
-        key=lambda wildcards: tuple([wildcards.cell_id,wildcards.read_type])
-        print("ftp:",key,cell_dict[key])
-        return FTP.remote(cell_dict[key])
+        return lambda wildcards: FTP.remote(cell_dict[tuple([wildcards.cell_id,wildcards.read_type])])
     elif config["fastq_server"]=='gcp':
         return GS.remote("gs://" + workflow.default_remote_prefix + "/fastq/{cell_id}-{read_type}.fq.gz")
     else: # local
