@@ -20,7 +20,7 @@ elif config["fastq_server"]=='ftp':
     FTP = FTPRemoteProvider()
     fastq_dir = os.path.abspath(workflow.default_remote_prefix + "/fastq") if config["gcp"] else "fastq"
     os.makedirs(fastq_dir,exist_ok=True)
-    print(f"cwd: {os.getcwd()}")
+    # print(f"cwd: {os.getcwd()}") # the same as parameter: snakemake -d
     cell_id_path=os.path.abspath("gs://"+workflow.default_remote_prefix + "/CELL_IDS") if config["gcp"] else "CELL_IDS"
     # instead of creating fastq directory, there should be a file names CELL_IDS, columns: cell_id,read_type and fastq_path should be present
     df1=pd.read_csv(cell_id_path,sep='\t')
