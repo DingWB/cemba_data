@@ -70,8 +70,8 @@ def make_snakefile(output_dir,aligner="bismark"):
 		config_str = _4m_config_str(config)
 	else:
 		raise ValueError(f'Unknown mode {mode}')
-	print('Making Snakefile based on mapping config INI file. The parameters are:')
-	print(config_str)
+	# print('Making Snakefile based on mapping config INI file. The parameters are:')
+	# print(config_str)
 
 	if aligner.lower()=="bismark":
 		snakefile_path=os.path.join(PACKAGE_DIR, f'files/smk/bismark/{mode.lower()}.smk')
@@ -142,8 +142,8 @@ def make_all_snakefile(output_dir, subdir=None, aligner="hisat-3n", gcp=True,
 	else:
 		print(mode)
 		raise ValueError(f'Unknown mode {mode}')
-	print('Making Snakefile based on mapping config INI file. The parameters are:')
-	print(config_str)
+	# print('Making Snakefile based on mapping config INI file. The parameters are:')
+	# print(config_str)
 
 	if not snakemake_template is None:
 		snakefile_path=os.path.expanduser(snakemake_template)
