@@ -82,7 +82,7 @@ rule hisat_3n_pair_end_mapping_dna_mode:
         hisat-3n {config[hisat3n_dna_reference]} -q  -1 {input.R1} -2 {input.R2} \
 --directional-mapping-reverse --base-change C,T {repeat_index_flag} \
 --no-spliced-alignment --no-temp-splicesite -t  --new-summary \
---summary-file {output.stats} --threads {threads} --quiet | samtools view -b -q 1 -o {output.bam}
+--summary-file {output.stats} --threads {threads} | samtools view -b -q 1 -o {output.bam}
         """
 
 rule sort_dna_bam:

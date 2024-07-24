@@ -109,7 +109,7 @@ rule hisat_3n_pair_end_mapping_dna_mode:
         hisat-3n {config[hisat3n_dna_reference]} -q  -1 {input.R1} -2 {input.R2} \
 --directional-mapping-reverse --base-change C,T {repeat_index_flag} \
 --no-spliced-alignment --no-temp-splicesite -t  --new-summary \
---summary-file {output.stats} --threads {threads} --quiet | samtools view -b -q 10 -o {output.bam}
+--summary-file {output.stats} --threads {threads} | samtools view -b -q 10 -o {output.bam}
         """
 
 rule sort_dna_bam:
@@ -179,7 +179,7 @@ rule hisat2_pairend_mapping_rna_mode:
     shell: # add read group @RG to the reads in order to use featuerCounts
         """
         hisat2 -x {config[hisat_rna_reference]} -q -1 {input.R1} -2 {input.R2} -t --new-summary \
---summary-file {output.stats} --threads {threads} --quiet \
+--summary-file {output.stats} --threads {threads} \
 | samtools addreplacerg -r '@RG\tID:{wildcards.cell_id}' -u -o - - \
 | samtools view -b -q 10 -o {output.bam}
         """
