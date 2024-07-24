@@ -1,35 +1,14 @@
 import os,sys
 # Snakemake rules below
 # suitable for sn4m-seq
+import cemba_data
+PACKAGE_DIR=cemba_data.__path__[0]
+include:
+    os.path.join(PACKAGE_DIR,"files","smk",'bismark_base.smk')
 
-# use diff mcg_context for normal mC or NOMe
-mcg_context = 'CGN' if num_upstr_bases == 0 else 'HCGN'
-
-if "gcp" in config:
-    gcp=config["gcp"] # if the fastq files stored in GCP cloud, set gcp=True in snakemake: --config gcp=True
-else:
-    gcp=False
-
-if "local_fastq" in config and gcp:
-    local_fastq=config["local_fastq"] # if the fastq files stored in GCP cloud, set local_fastq=False in snakemake: --config local_fastq=False
-else:
-    local_fastq=True
-
-if not local_fastq or gcp:
-    from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
-    GS = GSRemoteProvider()
-    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
-
-bam_dir=os.path.abspath(workflow.default_remote_prefix+"/bam") if gcp else "bam"
-rna_bam_dir=os.path.abspath(workflow.default_remote_prefix+"/rna_bam") if gcp else "rna_bam"
-hic_dir=os.path.abspath(workflow.default_remote_prefix+"/hic") if gcp else "hic"
-allc_dir=os.path.abspath(workflow.default_remote_prefix+"/allc") if gcp else "allc"
-fastq_dir=os.path.abspath(workflow.default_remote_prefix+"/fastq") if gcp else "fastq"
-mcg_context = 'CGN' if int(num_upstr_bases) == 0 else 'HCGN'
-allc_mcg_dir=os.path.abspath(workflow.default_remote_prefix+f"/allc-{mcg_context}") if gcp else f"allc-{mcg_context}"
-for dir in [bam_dir,rna_bam_dir,allc_dir,hic_dir,allc_mcg_dir]:
-    if not os.path.exists(dir):
-        os.mkdir(dir)
+rna_bam_dir=os.path.abspath(workflow.default_remote_prefix+"/rna_bam") if config["gcp"] else "rna_bam"
+if not os.path.exists(rna_bam_dir):
+    os.mkdir(rna_bam_dir)
 
 # the summary rule is the final target
 rule summary:
@@ -56,7 +35,7 @@ rule summary:
     output:
         "MappingSummary.csv.gz"
     params:
-        outdir=os.path.abspath("./") if not gcp else workflow.default_remote_prefix,
+        outdir=os.path.abspath("./") if not config["gcp"] else workflow.default_remote_prefix,
     shell:
         """
         yap-internal summary --output_dir {params.outdir} --fastq_dir {fastq_dir} --mode {mode} --barcode_version {barcode_version} \
@@ -414,7 +393,7 @@ rule star:
     threads:
         workflow.cores * 0.8  # workflow.cores is user provided cores for snakemake
     params:
-        prefix = "rna_bam/TotalRNA" if not gcp else workflow.default_remote_prefix + "/rna_bam/TotalRNA"
+        prefix = "rna_bam/TotalRNA" if not config["gcp"] else workflow.default_remote_prefix + "/rna_bam/TotalRNA"
     resources:
         mem_mb=48000
     shell:

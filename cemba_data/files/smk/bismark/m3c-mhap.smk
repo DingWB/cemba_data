@@ -37,7 +37,7 @@ rule summary:
     output:
         "MappingSummary.csv.gz"
     params:
-        outdir="./" if not gcp else workflow.default_remote_prefix,
+        outdir="./" if not config["gcp"] else workflow.default_remote_prefix,
     shell:
         """
         yap-internal summary --output_dir {params.outdir} --fastq_dir {fastq_dir} --mode {mode} --barcode_version {barcode_version} \
@@ -159,7 +159,7 @@ rule dedup_bam:
         bam=local(temp(bam_dir+"/{cell_id}-{read_type}.merged.deduped.bam")),
         stats=bam_dir+"/{cell_id}-{read_type}.merged.deduped.matrix.txt"
     params:
-        tmp_dir="bam/temp" if not gcp else workflow.default_remote_prefix+"/bam/temp"
+        tmp_dir="bam/temp" if not config["gcp"] else workflow.default_remote_prefix+"/bam/temp"
     resources:
         mem_mb=3000
     shell:

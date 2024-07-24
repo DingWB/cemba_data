@@ -35,7 +35,7 @@ rule summary:
         shell(config['post_mapping_script'])
 
         # generate the final summary
-        indir='.' if not gcp else workflow.default_remote_prefix
+        indir='.' if not config["gcp"] else workflow.default_remote_prefix
         snmc_summary(outname=output.csv,indir=indir)
 
         # cleanup

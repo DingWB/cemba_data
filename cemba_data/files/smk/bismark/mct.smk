@@ -12,7 +12,7 @@ PACKAGE_DIR=cemba_data.__path__[0]
 include:
     os.path.join(PACKAGE_DIR,"files","smk",'bismark_base.smk')
 
-rna_bam_dir=os.path.abspath(workflow.default_remote_prefix+"/rna_bam") if gcp else "rna_bam"
+rna_bam_dir=os.path.abspath(workflow.default_remote_prefix+"/rna_bam") if config["gcp"] else "rna_bam"
 
 if not os.path.exists(rna_bam_dir):
     os.mkdir(rna_bam_dir)
@@ -41,7 +41,7 @@ rule summary:
     output:
         "MappingSummary.csv.gz"
     params:
-        outdir="./" if not gcp else workflow.default_remote_prefix,
+        outdir="./" if not config["gcp"] else workflow.default_remote_prefix,
     shell:
         """
         yap-internal summary --output_dir {params.outdir} --fastq_dir {fastq_dir} --mode {mode} --barcode_version {barcode_version} \
@@ -129,7 +129,7 @@ rule dedup_bam:
         bam=local(temp(bam_dir+"/{cell_id}-{read_type}.trimmed_bismark_bt2.deduped.bam")),
         stats="bam/{cell_id}-{read_type}.trimmed_bismark_bt2.deduped.matrix.txt"
     params:
-        tmp_dir="bam/temp" if not gcp else workflow.default_remote_prefix+"/bam/temp"
+        tmp_dir="bam/temp" if not config["gcp"] else workflow.default_remote_prefix+"/bam/temp"
     resources:
         mem_mb=3000
     shell:
@@ -228,7 +228,7 @@ rule star:
         'rna_bam/TotalRNALog.progress.out',
         'rna_bam/TotalRNASJ.out.tab'
     params:
-        prefix="rna_bam/TotalRNA" if not gcp else workflow.default_remote_prefix+"/rna_bam/TotalRNA"
+        prefix="rna_bam/TotalRNA" if not config["gcp"] else workflow.default_remote_prefix+"/rna_bam/TotalRNA"
     threads:
         workflow.cores * 0.8  # workflow.cores is user provided cores for snakemake
     resources:
