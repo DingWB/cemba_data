@@ -78,7 +78,6 @@ yap-gcp yap_pipeline --fq_dir="gs://mapping_example/fastq/novaseq_fastq" \
 --aligner='hisat-3n' > run.sh
 source run.sh
 
-# demultiplex 
 yap-gcp run_mapping --workd="mapping/mCT" --gcp=False --config_path="mct_config.ini" --aligner='hisat-3n' --n_jobs=64 --print_only True | grep "^snakemake" > run_mct_mapping.sh
 yap sbatch --project_name mapping --command_file_path run_mct_mapping.sh --queue shared --max_jobs 4 --dry_run --working_dir ./ --time_str 1
 # or
