@@ -23,9 +23,9 @@ pip uninstall -y cemba_data && pip install git+https://github.com/DingWB/cemba_d
 ```
 
 # Documentation
-## (1). Make sure create the right environment
+## Make sure create the right environment
 
-## (2). Generate config.ini
+## Generate config.ini
 ```shell
 # m3c
 yap default-mapping-config --mode m3c --barcode_version V2 --bismark_ref "~/Ref/mm10/mm10_ucsc_with_chrL.bismark1" --genome "~/Ref/mm10/mm10_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/mm10/mm10_ucsc.nochrM.sizes" --hisat3n_dna_ref  "~/Ref/mm10/mm10_ucsc_with_chrL" > m3c_config.ini
@@ -42,7 +42,7 @@ yap default-mapping-config --mode mct --barcode_version V2 --bismark_ref "~/Ref/
 yap default-mapping-config --mode mct --barcode_version V2 --hisat3n_dna_ref "~/Ref/mm10/mm10_ucsc_with_chrL" --hisat3n_rna_ref "~/Ref/mm10/mm10_ucsc_with_chrL" --genome "~/Ref/mm10/mm10_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/mm10/mm10_ucsc.nochrM.sizes" --gtf "~/Ref/mm10/annotations/gencode.vM23.annotation.gtf" > mct_config.ini
 ```
 
-## (3). Demultiplex
+## Demultiplex
 ```shell
 # m3c
 yap demultiplex --fastq_pattern "Pool_Remind1_m3c/*.fastq.gz" -o mapping/Pool_Remind1_m3c -j 16 --aligner hisat3n --config_path m3c_config.ini
@@ -53,7 +53,7 @@ yap demultiplex --fastq_pattern "Pool_Remind1_m3c/*.fastq.gz" -o mapping/Pool_Re
  yap-gcp run_demultiplex --fq_dir="Pool_Remind1_mC" --outdir="mapping/Pool_Remind1_mC" --gcp=False --n_jobs=16 --print_only=True 
 ```
 
-## (4). Run mapping
+## Run mapping
 ```shell
 sh mapping/snakemake/qsub/snakemake_cmd.txt # old yap pipeline
 # or new yap-gcp pipeline
@@ -62,6 +62,9 @@ yap-gcp run_mapping --workd="mapping/Pool_Remind1_m3c" --gcp=False --config_path
 yap-gcp run_mapping --workd="mapping" --gcp=False --config_path="m3c_config.ini" --aligner='bismark' --n_jobs=64 --print_only=True
 sh mapping/snakemake/qsub/snakemake_cmd.txt
 ```
+
+## Workflow
+<img src="doc/files/snm3c_dag.svg" title="DAG for snm3c" width="800px">
 
 ### (5) yap vs yap-gcp: example on m3c
 ```shell

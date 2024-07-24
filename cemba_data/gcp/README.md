@@ -1,4 +1,5 @@
-### (1). Demultiplex
+# Workflow
+## (1). Demultiplex
 ```shell
 wget https://raw.githubusercontent.com/DingWB/cemba_data/master/cemba_data/gcp/smk/demultiplex.Snakefile
 # Open an GCP VM machine and run the following code:
@@ -47,7 +48,7 @@ run: |
 sky spot launch -n demultiplex -y run_demultiplex.yaml
 ```
 
-### (2). Merge lanes
+## (2). Merge lanes
 ```shell
 wget https://raw.githubusercontent.com/DingWB/cemba_data/master/cemba_data/gcp/smk/merge_lanes.Snakefile
 
@@ -63,7 +64,7 @@ snakemake -s merge_lanes.smk --use-conda \
 ```
 
 
-## 2 Run on GCP
+# 2 Run on GCP
 ```shell
 yap-gcp yap_pipeline --fq_dir="gs://mapping_example/fastq/novaseq_fastq" \
 --remote_prefix='mapping_example' --outdir='novaseq_mapping' --env_name='yap' \
@@ -155,7 +156,7 @@ yap-gcp yap_pipeline --fq_dir="gs://nemo-tmp-4mxgixf-salk010/raw" \
 ```
 
 
-## Run YAP pipeline on test datasets
+# Run YAP pipeline on test datasets
 ### Download example fastq (cell level)
 ```shell
 pip install pyfigshare
@@ -173,7 +174,7 @@ for fq in `ls ${cwd}/fastq/*.fq.gz | grep -v "trimmed"`; do
 done;
 ```
 
-### Prepare mapping config files
+## Prepare mapping config files
 ```
 yap default-mapping-config --mode m3c --barcode_version V2 --bismark_ref "~/Ref/hg38/hg38_ucsc_with_chrL.bismark1" --genome "~/Ref/hg38/hg38_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/hg38/hg38_ucsc.main.chrom.sizes" > m3c_config_bismark.ini
 
@@ -182,7 +183,7 @@ yap default-mapping-config --mode m3c --barcode_version V2 --genome "~/Ref/hg38/
 yap default-mapping-config --mode m3c-mhap --barcode_version V2 --genome "~/Ref/hg38/hg38_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/hg38/hg38_ucsc.main.chrom.sizes" --hisat3n_dna_ref  "~/Ref/hg38/hg38_ucsc_with_chrL" --cpg_path "~/Ref/hg38/annotations/hg38_CpG.gz" > m3c-mhap_config_hisat3n.ini
 ```
 
-### Run mapping
+## Run mapping
 ```shell
 yap-gcp run_mapping --workd="bismark_mapping" --fastq_server="local" --gcp=False --config_path="m3c_config_bismark.ini" --aligner='bismark' --n_jobs=4 --print_only=True
 cat bismark_mapping/snakemake/qsub/snakemake_cmd.txt # sh
@@ -192,7 +193,7 @@ cat hisat3n_mapping/snakemake/qsub/snakemake_cmd.txt # sh to run
 ```
 
 
-## Run yap-gcp on fastq stored on SRA / GEO or other ftp server
+# Run yap-gcp on fastq stored on SRA / GEO or other ftp server
 ```shell
 figshare download 26210798 -f HBA_snm3C_phenotype.tsv
 ```
@@ -216,7 +217,15 @@ for donor,df1 in df.groupby('source_name_ch1'):
         df2.to_csv(os.path.join(outdir,"CELL_IDS"),sep='\t',index=False)
 ```
 
-### Run mapping (download cell fastq directly from ftp server and delete it after it is no longer needed)
+## Run mapping (download cell fastq directly from ftp server and delete it after it is no longer needed)
 ```shell
 yap-gcp run_mapping --workd="h1930001" --fastq_server='ftp' --gcp=False --config_path="m3c-mhap_config_hisat3n.ini" --aligner='hisat3n' --n_jobs=4 --total_memory_gb=20 --print_only=True
+```
+
+
+# Generate DAG graph
+```shell
+mamba install graphviz #required to run dot
+snakemake --config fastq_server='ftp' --dag mhap/HBA_220218_H1930001_CX46_BNST_3C_1_P3-3-O5-K5.mhap.gz allc/HBA_220218_H1930001_CX46_BNST_3C_1_P3-3-O5-K5.allc.tsv.gz hic/HBA_220218_H1930001_CX46_BNST_3C_1_P3-3-O5-K5.hisat3n_dna.all_reads.3C.contact.tsv.gz > 1
+dot -Tsvg 1 > snm3c_dag.svg
 ```
