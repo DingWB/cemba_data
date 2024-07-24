@@ -216,7 +216,7 @@ for donor,df1 in df.groupby('source_name_ch1'):
         df2.to_csv(os.path.join(outdir,"CELL_IDS"),sep='\t',index=False)
 ```
 
-### Run mapping (download cell fastq directly from ftp server and delete it after sort_fq is done)
+### Run mapping (download cell fastq directly from ftp server and delete it after it is no longer needed)
 ```shell
 yap-gcp run_mapping --workd="h1930001" --fastq_server='ftp' --gcp=False --config_path="m3c-mhap_config_hisat3n.ini" --aligner='hisat3n' --n_jobs=4 --total_memory_gb=20 --print_only=True
 ```
