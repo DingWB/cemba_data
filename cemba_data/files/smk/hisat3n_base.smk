@@ -79,10 +79,12 @@ for dir in [bam_dir,allc_dir]:
 # print(f"allc_dir: {os.path.abspath(allc_dir)}")
 
 if config["fastq_server"]=='gcp' or config["gcp"]:
+    print("gcp")
     from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
     GS = GSRemoteProvider()
     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
 elif config["fastq_server"]=='ftp':
+    print("ftp")
     from snakemake.remote.FTP import RemoteProvider as FTPRemoteProvider
     FTP = FTPRemoteProvider()
     fastq_dir = os.path.abspath(workflow.default_remote_prefix + "/fastq") if config["gcp"] else "fastq"
