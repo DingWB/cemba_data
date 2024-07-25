@@ -84,7 +84,7 @@ if config["fastq_server"]=='gcp' or config["gcp"]:
     GS = GSRemoteProvider()
     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] =os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
 elif config["fastq_server"]=='ftp':
-    print("ftp")
+    # print("ftp")
     from snakemake.remote.FTP import RemoteProvider as FTPRemoteProvider
     FTP = FTPRemoteProvider()
     fastq_dir = os.path.abspath(workflow.default_remote_prefix + "/fastq") if config["gcp"] else "fastq"
