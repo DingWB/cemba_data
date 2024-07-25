@@ -45,8 +45,8 @@ module hisat3n:
         os.path.join(PACKAGE_DIR,"files","smk",'hisat3n.smk')
     config: config
 
-# use rule * from hisat3n exclude trim as hisat3n_*
-use rule * from hisat3n exclude unique_reads_allc,hisat_3n_pair_end_mapping_dna_mode,index_bam as hisat3n_*
+# use rule * from hisat3n exclude dedup,unique_reads_allc,hisat_3n_pair_end_mapping_dna_mode,index_bam as hisat3n_*
+use rule sort_fq,trim,unique_reads_cgn_extraction from hisat3n as hisat3n_*
 
 rule hisat_3n_pair_end_mapping_dna_mode:
     input:
@@ -61,6 +61,7 @@ rule hisat_3n_pair_end_mapping_dna_mode:
         mem_mb=14000
     shell: # -q 10 will filter out multi-aligned reads
         """
+        mkdir -p {bam_dir}
         hisat-3n {config[hisat3n_dna_reference]} -q  -1 {input.R1} -2 {input.R2} \
 --directional-mapping-reverse --base-change C,T {repeat_index_flag} \
 --no-spliced-alignment --no-temp-splicesite -t  --new-summary \

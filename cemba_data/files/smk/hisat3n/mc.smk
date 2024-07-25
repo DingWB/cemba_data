@@ -41,8 +41,8 @@ module hisat3n:
         os.path.join(PACKAGE_DIR,"files","smk",'hisat3n.smk')
     config: config
 
-# use rule * from hisat3n exclude trim as hisat3n_*
-use rule * from hisat3n exclude unique_reads_allc,hisat_3n_pair_end_mapping_dna_mode,index_bam as hisat3n_*
+# use rule * from hisat3n exclude unique_reads_allc,hisat_3n_pair_end_mapping_dna_mode,index_bam as hisat3n_*
+use rule sort_fq,trim,unique_reads_cgn_extraction from hisat3n as hisat3n_*
 
 rule hisat_3n_pair_end_mapping_dna_mode:
     input:
