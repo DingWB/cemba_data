@@ -75,8 +75,8 @@ for dir in [bam_dir,allc_dir]:
     if not os.path.exists(dir):
         os.mkdir(dir)
 
-print(f"bam_dir: {os.path.abspath(bam_dir)}")
-print(f"allc_dir: {os.path.abspath(allc_dir)}")
+# print(f"bam_dir: {os.path.abspath(bam_dir)}")
+# print(f"allc_dir: {os.path.abspath(allc_dir)}")
 
 if config["fastq_server"]=='gcp' or config["gcp"]:
     from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
