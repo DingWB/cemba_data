@@ -13,7 +13,7 @@ include:
 # sort the fastq files so that R1 and R2 are in the same order
 rule sort_fq:
     input:
-        fq=get_fastq_path(),
+        fq=input_fq_path,
     output:
         fq=local(temp("fastq/{cell_id}-{read_type}_sort.fq")),
     threads:
