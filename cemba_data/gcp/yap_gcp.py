@@ -174,7 +174,7 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 						barcode_version="V2",env_name='base',
 						tmp_dir="demultiplex_gcp_tmp",disk_size=3072,
 						region='us-west1',keep_remote=False,
-						fastq_server='local',gcp=False,
+						fastq_server='gcp',gcp=True,
 						skypilot_template=None,n_jobs=16,job_name="demultiplex",
 						image="bican",output='run_demultiplex.yaml'):
 	"""
@@ -288,7 +288,7 @@ def prepare_mapping(workd="gs://mapping_example/test_gcp",
 					tmp_dir="mapping_gcp_tmp",disk_size=500,
 					chunk_size=None,separated=True,  n_node=12,image="bican",
 					region='us-west1',keep_remote=False,
-					fastq_server='local',gcp=False,
+					fastq_server='gcp',gcp=True,
 					skypilot_template=None,job_name='mapping',
 					env_name='base',n_jobs=64):
 	"""
@@ -492,7 +492,7 @@ def yap_pipeline(
 	remote_prefix='bican',outdir='salk010_test',
 	barcode_version="V2", env_name='base',
 	region='us-west1', keep_remote=False,
-	fastq_server='gcp',gcp=False,
+	fastq_server='gcp',gcp=True,
 	n_jobs1=16,n_jobs2=64,separated=True,
 	image="bican",demultiplex_template=None,
 	mapping_template=None, genome="~/Ref/hg38_Broad/hg38.fa",
