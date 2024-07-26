@@ -223,7 +223,7 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 	if not os.path.exists(workdir):
 		os.makedirs(workdir)
 	CMD=f"yap-gcp run_demultiplex --fq_dir {fq_dir} --remote_prefix {remote_prefix} --outdir {outdir} \
---barcode_version {barcode_version} --fastq_server {fastq_server}\
+--barcode_version {barcode_version} --fastq_server {fastq_server} \
 --gcp {gcp} --region {region} --keep_remote {keep_remote} --n_jobs {n_jobs}"
 	if not env_name is None:
 		CMD=f"conda activate {env_name} \n  "+ CMD
