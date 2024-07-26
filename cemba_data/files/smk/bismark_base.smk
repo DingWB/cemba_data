@@ -47,5 +47,3 @@ def get_fastq_path():
         return GS.remote("gs://" + workflow.default_remote_prefix + "/fastq/{cell_id}-{read_type}.fq.gz")
     else: # local
         return local("fastq/{cell_id}-{read_type}.fq.gz")
-
-input_fq_path=get_fastq_path()

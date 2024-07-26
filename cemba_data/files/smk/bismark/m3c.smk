@@ -42,7 +42,7 @@ rule summary:
 # Trim reads
 rule trim:
     input:
-        fq=input_fq_path, #local("fastq/{cell_id}-{read_type}.fq.gz") if local_fastq else GS.remote("gs://"+workflow.default_remote_prefix+"/fastq/{cell_id}-{read_type}.fq.gz")
+        fq=get_fastq_path(), #local("fastq/{cell_id}-{read_type}.fq.gz") if local_fastq else GS.remote("gs://"+workflow.default_remote_prefix+"/fastq/{cell_id}-{read_type}.fq.gz")
     output:
         fq=local(temp("fastq/{cell_id}-{read_type}.trimmed.fq.gz")),
         stats="fastq/{cell_id}-{read_type}.trimmed.stats.tsv"

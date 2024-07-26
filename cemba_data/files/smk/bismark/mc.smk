@@ -39,7 +39,7 @@ rule summary:
 # Trim reads
 rule trim:
     input:
-        fq=input_fq_path,
+        fq=get_fastq_path(),
     output:
         fq=local(temp("fastq/{cell_id}-{read_type}.trimmed.fq.gz")),
         stats="fastq/{cell_id}-{read_type}.trimmed.stats.tsv"
