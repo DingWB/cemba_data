@@ -222,7 +222,7 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 	workdir = os.path.abspath(os.path.expanduser(tmp_dir))
 	if not os.path.exists(workdir):
 		os.makedirs(workdir)
-	CMD=f"yap-remote run_demultiplex --fq_dir {fq_dir} --remote_prefix {remote_prefix} --outdir {outdir} \
+	CMD=f"yap-gcp run_demultiplex --fq_dir {fq_dir} --remote_prefix {remote_prefix} --outdir {outdir} \
 --barcode_version {barcode_version} --fastq_server {fastq_server}\
 --gcp {gcp} --region {region} --keep_remote {keep_remote} --n_jobs {n_jobs}"
 	if not env_name is None:
@@ -379,7 +379,7 @@ def prepare_mapping(workd="gs://mapping_example/test_gcp",
 	with open(skypilot_template) as f:
 		template = f.read()
 	if not separated:
-		CMD = f'yap-remote run_mapping --workd {workd} \
+		CMD = f'yap-gcp run_mapping --workd {workd} \
 --config_path "mapping_config.ini" --aligner {aligner} \
 --fastq_server {fastq_server} --gcp {gcp} --region {region} \
 --keep_remote {keep_remote} --n_jobs {n_jobs} \
@@ -394,7 +394,7 @@ def prepare_mapping(workd="gs://mapping_example/test_gcp",
 		print(f"Or: \nsky launch -y -n {job_name} {output}")
 	else:
 		for rank in range(n_node):
-			CMD = f'yap-remote run_mapping --workd {workd} \
+			CMD = f'yap-gcp run_mapping --workd {workd} \
 --config_path "mapping_config.ini" --aligner {aligner} \
 --fastq_server {fastq_server} --gcp {gcp} --region {region} \
 --keep_remote {keep_remote} --n_jobs {n_jobs} \
@@ -506,7 +506,7 @@ def yap_pipeline(
 	if not mapping_template is None:
 		mapping_template=os.path.expanduser(mapping_template)
 
-	cmd=f'conda activate {env_name} && yap-remote prepare_demultiplex --fq_dir {fq_dir} --remote_prefix {remote_prefix} \
+	cmd=f'conda activate {env_name} && yap-gcp prepare_demultiplex --fq_dir {fq_dir} --remote_prefix {remote_prefix} \
 --outdir {outdir} --barcode_version {barcode_version} --env_name {env_name} \
 --region {region} --keep_remote {keep_remote} --fastq_server {fastq_server} --gcp {gcp} \
 --skypilot_template {demultiplex_template} --n_jobs {n_jobs1} \
@@ -520,7 +520,7 @@ def yap_pipeline(
 --bismark_ref "{bismark_ref}" --genome "{genome}" \
 --chrom_size_path "{chrom_size_path}" \
 --hisat3n_dna_ref  "{hisat3n_dna_ref}" > config.ini')
-	cmd=f'conda activate {env_name} && yap-remote prepare_mapping --workd {workd} \
+	cmd=f'conda activate {env_name} && yap-gcp prepare_mapping --workd {workd} \
 --config_path config.ini --aligner {aligner} --separated {separated} \
 --tmp_dir mapping_gcp_tmp --n_node {n_node} --image {image} \
 --region {region} --keep_remote {keep_remote} --fastq_server {fastq_server} --gcp {gcp} \
