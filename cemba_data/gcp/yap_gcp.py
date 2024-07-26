@@ -492,7 +492,7 @@ def yap_pipeline(
 	remote_prefix='bican',outdir='salk010_test',
 	barcode_version="V2", env_name='base',
 	region='us-west1', keep_remote=False,
-	fastq_server='local',gcp=False,
+	fastq_server='gcp',gcp=False,
 	n_jobs1=16,n_jobs2=64,separated=True,
 	image="bican",demultiplex_template=None,
 	mapping_template=None, genome="~/Ref/hg38_Broad/hg38.fa",
