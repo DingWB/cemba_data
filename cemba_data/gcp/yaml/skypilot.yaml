@@ -27,7 +27,7 @@ setup: |
     # Please copy the reference from GCP bucket to VM machine if the program need ref
     # For demultiplex, this step can be skipped
     ## gcsfuse --implicit-dirs 20230621_cosmx /gcs 
-    # mkdir -p ~/Ref/hg38_Broad && gsutil -m cp -n gs://wubin_ref/hg38_Broad/* ~/Ref/hg38_Broad/
+    # mkdir -p ~/Ref/hg38 && gsutil -m cp -n gs://wubin_ref/hg38/* ~/Ref/hg38/
 
     ## Install hisat-3n (For demultiplex, this step can be skipped)
     # mkdir -p ~/Software && cd ~/Software

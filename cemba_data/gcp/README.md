@@ -1,5 +1,6 @@
 # Run on GCP
 ```shell
+yap-gcp get_demultiplex_skypilot_yaml > demultiplex.yaml # vim
 yap-gcp yap_pipeline --fq_dir="gs://mapping_example/fastq/novaseq_fastq" \
 --remote_prefix='mapping_example' --outdir='novaseq_mapping' --env_name='yap' \
 --n_jobs1=16 --n_jobs2=60 \
@@ -12,16 +13,6 @@ yap-gcp yap_pipeline --fq_dir="gs://mapping_example/fastq/novaseq_fastq" \
 --chrom_size_path='~/Ref/hg38/hg38_ucsc.main.chrom.sizes' \
 --aligner='hisat-3n' > run.sh
 source run.sh
-
-yap-gcp run_mapping --workd="mapping/mCT" --gcp=False --config_path="mct_config.ini" --aligner='hisat-3n' --n_jobs=64 --print_only True | grep "^snakemake" > run_mct_mapping.sh
-yap sbatch --project_name mapping --command_file_path run_mct_mapping.sh --queue shared --max_jobs 4 --dry_run --working_dir ./ --time_str 1
-# or
-split -n l/8 -d run_mct_mapping.sh run_mct_mapping.
-for i in {0..7}; do 
-  echo "run_mct_mapping.0${i}"
-  Pbsgen -name mapping_${i} -c 64 -d 2 -m 90 -p shared -submit sh run_mct_mapping.0${i}
-#  Pbsgen -name mapping_${i} -c 64 -d 2 -m 90 -p shared sh run_mct_mapping.0${i}
-done;
 ```
 
 # Testing pipeline
