@@ -335,7 +335,7 @@ def write_sbatch_commands(output_dir, cores_per_job, script_dir, total_mem_mb, q
 	return f'{outdir}/snakemake/sbatch/snakemake_{queue}_cmd.txt'
 
 def prepare_qsub(name, snakemake_dir, total_jobs, cores_per_job, total_memory_gb,fastq_server):
-	memory_gb_per_core = int(total_memory_gb / cores_per_job)
+	memory_gb_per_core = int(total_memory_gb / cores_per_job) if not total_memory_gb is None else 5
 	output_dir = snakemake_dir.parent
 	qsub_dir = snakemake_dir / 'qsub'
 	qsub_dir.mkdir(exist_ok=True)
@@ -358,7 +358,7 @@ yap qsub \
 --working_dir {qsub_dir} \
 --project_name y{name} \
 --total_cpu {int(cores_per_job * total_jobs)} \
---qsub_global_parms "-pe smp={cores_per_job};-l h_vmem={memory_gb_per_core}"
+--qsub_global_parms "-pe smp={cores_per_job};-l h_vmem={memory_gb_per_core}G"
 """
 	qsub_total_path = qsub_dir / 'qsub.sh'
 	with open(qsub_total_path, 'w') as f:
@@ -471,7 +471,7 @@ def prepare_sbatch(name, snakemake_dir, queue,total_memory_gb=None):
 	print('#' * 40 + '\n')
 	return
 
-def prepare_run(output_dir, total_jobs=1, cores_per_job=10, total_memory_gb=None,
+def prepare_run(output_dir, total_jobs=12, cores_per_job=10, total_memory_gb=None,
 				name=None,fastq_server='local'):
 	config = get_configuration(output_dir / 'mapping_config.ini')
 	mode = config['mode']
