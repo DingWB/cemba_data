@@ -335,7 +335,7 @@ def write_sbatch_commands(output_dir, cores_per_job, script_dir, total_mem_mb, q
 	return f'{outdir}/snakemake/sbatch/snakemake_{queue}_cmd.txt'
 
 def prepare_qsub(name, snakemake_dir, total_jobs, cores_per_job, total_memory_gb,fastq_server):
-	memory_gb_per_core = total_memory_gb / cores_per_job
+	memory_gb_per_core = int(total_memory_gb / cores_per_job)
 	output_dir = snakemake_dir.parent
 	qsub_dir = snakemake_dir / 'qsub'
 	qsub_dir.mkdir(exist_ok=True)
