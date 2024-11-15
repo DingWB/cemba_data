@@ -139,33 +139,20 @@ rule bam_to_mhap:
         bam="bam/{cell_id}.hisat3n_dna.unique_align.deduped.bam",
         bai="bam/{cell_id}.hisat3n_dna.unique_align.deduped.bam.bai"
     output:
-        mhap="mhap/{cell_id}.mhap.gz",
-        tbi="mhap/{cell_id}.mhap.gz.tbi"
+        mhap1="mhap/{cell_id}.CG.mhap.gz",
+        tbi1="mhap/{cell_id}.CG.mhap.gz.tbi",
+        mhap2="mhap/{cell_id}.CH.mhap.gz",
+        tbi2="mhap/{cell_id}.CH.mhap.gz.tbi"
     params:
-        cpgPath=os.path.expanduser(config['cpg_path']),
+        CpGPath=os.path.expanduser(config.get('CpG_path',None)),
+        CHNPath=os.path.expanduser(config.get('CHN_path',None)),
     resources:
         mem_mb=400
     run:
         from cemba_data.mapping.pipelines import bam2mhap
         if not os.path.exists(mhap_dir):
             os.mkdir(mhap_dir)
-        outfile=output.mhap[:-3] #"allc/{cell_id}.mhap", will be bgzipped and tabix indexed in mhap
-        bam2mhap(bam_path=input.bam,cpg_path=params.cpgPath,output=outfile)
-
-# rule stat_mhap_gene:
-#     input: #sorted .mhap.gz
-#         mhap="mhap/{cell_id}.mhap.gz",
-#         tbi="mhap/{cell_id}.mhap.gz.tbi"
-#     output:
-#         gene_stat="mhap/{cell_id}.mhap.gene.stat.tsv.gz",
-#     params:
-#         cpgPath=os.path.expanduser(config['cpg_path']),
-#         geneBedPath=os.path.expanduser(config['gene_bed_path']),
-#     resources:
-#         mem_mb=400
-#     run:
-#         from cemba_data.mapping.pipelines import stat_mhap
-#         if not os.path.exists(mhap_dir):
-#             os.mkdir(mhap_dir)
-#         stat_mhap(mhap_path=input.mhap,cpg_path=params.cpgPath,
-#                 region=None,bed=params.geneBedPath,output=output.gene_stat)
+        outfile1 = output.mhap1[:-3]  #"allc/{cell_id}.mhap", will be bgzipped and tabix indexed in mhap
+        bam2mhap(bam_path=input.bam,annotation=params.CpGPath,output=outfile1)
+        outfile2 = output.mhap2[:-3]
+        bam2mhap(bam_path=input.bam,annotation=params.CHNPath,output=outfile2)

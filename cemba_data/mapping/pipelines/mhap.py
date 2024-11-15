@@ -37,7 +37,7 @@ def _bismark_is_read1(read):
 def _hisat3n_is_read1(read):
 	return read.is_read1
 
-def bam2mhap(bam_path=None,cpg_path="~/Ref/hg38/annotations/hg38_CpG.gz",
+def bam2mhap(bam_path=None,annotation="~/Ref/hg38/annotations/hg38_CpG.gz",
 		 output="test.mhap",method=None):
 	"""
 	convert bam into .mhap.gz, similar to:
@@ -50,7 +50,8 @@ def bam2mhap(bam_path=None,cpg_path="~/Ref/hg38/annotations/hg38_CpG.gz",
 	Parameters
 	----------
 	bam_path :
-	cpg_path :
+	annotation :
+		path to CpG, CHN, CHH, or CHG annotation path.
 	output :
 
 	Returns
@@ -87,22 +88,22 @@ def bam2mhap(bam_path=None,cpg_path="~/Ref/hg38/annotations/hg38_CpG.gz",
 		ct_read_func = _is_forward_read
 		is_read1_func = _hisat3n_is_read1
 	fbam = pysam.AlignmentFile(os.path.expanduser(bam_path), 'rb')
-	cpg = pysam.TabixFile(os.path.expanduser(cpg_path)) # positions is 1-based
-	for chrom in cpg.contigs:
+	f = pysam.TabixFile(os.path.expanduser(annotation)) # positions is 1-based
+	for chrom in f.contigs:
 		cytosine_positions = set(
-			[int(line.split('\t')[1]) for line in cpg.fetch(chrom)])  # 1-based
+			[int(line.split('\t')[1]) for line in f.fetch(chrom)])  # 1-based
 		if len(cytosine_positions) == 0:  # cytosine_positions is 1-based, pos of C
 			continue
 		print(chrom)
-		R = [] #positions=[int(line.split('\t')[1]) for line in cpg.fetch(chrom,read.pos+1,read.aend)]
+		R = [] #positions=[int(line.split('\t')[1]) for line in f.fetch(chrom,read.pos+1,read.aend)]
 		pre_pos,pre_ct_read,pre_read1=None,None,None
 		for read in fbam.fetch(chrom):
 			if 'D' in read.cigarstring or 'I' in read.cigarstring or read.cigarstring.count('M') != 1:
-				continue
+				continue # skip the reads with Delete, Insertion or other indel or variation
 			if sum([cigar[1] for cigar in read.cigar]) != len(read.seq):
 				continue
 			if sum([cigar[1] for cigar in read.cigar if cigar[0]==0]) != len(read.positions):
-				continue # if read.is_secondary: #not read.is_proper_pair:
+				continue # cigar: 0 means Match, if read.is_secondary: #not read.is_proper_pair:
 			# read.pos is 0-based, read.aend = read.pos+1 + cigar length - 1 # 1-based
 			ct_read = ct_read_func(read)
 			is_read1=is_read1_func(read)
@@ -121,7 +122,8 @@ def bam2mhap(bam_path=None,cpg_path="~/Ref/hg38/annotations/hg38_CpG.gz",
 				read.is_forward=True # to be consistent with bismark: if read.get_tag('XG')=='GA', then, it must be reverse strand, elsewise, it is forward strand (mapped to C/T reference)
 			else: # G/A read, C must be not in the last base pair
 				# positions = read.positions[i:i + cigar[1]][:-1] #exclude the potential C in the last base pair
-				positions = read.positions[:-1]
+				# positions = read.positions[:-1]
+				positions = read.positions # 20241114 keep the last potential C
 				read.is_forward = False #to be consistent with bismark
 			overlapped_cytosine_idx = [idx for idx,pos in enumerate(positions) if pos+1 in cytosine_positions] #set(positions).intersection(set(cytosine_positions))
 			# overlapped_cytosine_idx is the index for C
@@ -144,7 +146,7 @@ def bam2mhap(bam_path=None,cpg_path="~/Ref/hg38/annotations/hg38_CpG.gz",
 		os.system(f"touch {output}")
 	os.system(f"bgzip {output} && tabix -b 2 -e 3 {output}.gz")
 	fbam.close()
-	cpg.close()
+	f.close()
 
 if __name__ == "__main__":
 	fire.core.Display = lambda lines, out: print(*lines, file=out)

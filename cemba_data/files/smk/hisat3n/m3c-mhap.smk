@@ -59,16 +59,21 @@ rule bam_to_mhap:
         bam=local(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam"),
         bai=local(bam_dir + "/{cell_id}.hisat3n_dna.all_reads.deduped.bam.bai")
     output:
-        mhap="mhap/{cell_id}.mhap.gz",
-        tbi="mhap/{cell_id}.mhap.gz.tbi"
+        mhap1="mhap/{cell_id}.CG.mhap.gz",
+        tbi1="mhap/{cell_id}.CG.mhap.gz.tbi",
+        mhap2="mhap/{cell_id}.CH.mhap.gz",
+        tbi2="mhap/{cell_id}.CH.mhap.gz.tbi"
     params:
-        cpgPath=os.path.expanduser(config['cpg_path']),
+        CpGPath=os.path.expanduser(config.get('CpG_path',None)),
+        CHNPath=os.path.expanduser(config.get('CHN_path',None)),
     resources:
         mem_mb=400
     run:
         from cemba_data.mapping.pipelines import bam2mhap
         if not os.path.exists(mhap_dir):
             os.mkdir(mhap_dir)
-        outfile=output.mhap[:-3] #"allc/{cell_id}.mhap", will be bgzipped and tabix indexed in mhap
-        bam2mhap(bam_path=input.bam,cpg_path=params.cpgPath,output=outfile)
+        outfile1=output.mhap1[:-3] #"allc/{cell_id}.mhap", will be bgzipped and tabix indexed in mhap
+        bam2mhap(bam_path=input.bam,annotation=params.CpGPath,output=outfile1)
+        outfile2 = output.mhap2[:-3]
+        bam2mhap(bam_path=input.bam,annotation=params.CHNPath,output=outfile2)
 
