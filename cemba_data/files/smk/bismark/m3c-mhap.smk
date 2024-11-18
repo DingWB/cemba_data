@@ -213,18 +213,24 @@ rule bam_to_mhap:
         bam="bam/{cell_id}.mC.bam",
         bai="bam/{cell_id}.mC.bam.bai"
     output:
-        mhap="mhap/{cell_id}.mhap.gz",
-        tbi="mhap/{cell_id}.mhap.gz.tbi"
+		mhap1="mhap/{cell_id}.CG.mhap.gz",
+		tbi1="mhap/{cell_id}.CG.mhap.gz.tbi",
+		mhap2="mhap/{cell_id}.CH.mhap.gz",
+		tbi2="mhap/{cell_id}.CH.mhap.gz.tbi"
     params:
-        cpgPath=os.path.expanduser(config['cpgPath']),
+        annotation=os.path.expanduser(config.get('annotation_path',None)),
     resources:
         mem_mb=500
     run:
-        from cemba_data.mapping.pipelines import bam2mhap
-        if not os.path.exists(mhap_dir):
-            os.mkdir(mhap_dir)
-        outfile=output.mhap[:-3]
-        bam2mhap(bam_path=input.bam,cpg_path=params.cpgPath,output=outfile)
+		from cemba_data.mapping.pipelines import bam2mhap
+		if not os.path.exists(mhap_dir):
+			os.mkdir(mhap_dir)
+		outfile1 = output.mhap1[:-3]  #"allc/{cell_id}.mhap", will be bgzipped and tabix indexed in mhap
+		bam2mhap(bam_path=input.bam,annotation=params.annotation,
+			output=outfile1,pattern="CGN")
+		outfile2 = output.mhap2[:-3]
+		bam2mhap(bam_path=input.bam,annotation=params.annotation,
+			output=outfile2,pattern="CHN")
 
 # CGN extraction from ALLC
 rule cgn_extraction:

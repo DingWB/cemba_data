@@ -64,8 +64,7 @@ rule bam_to_mhap:
         mhap2="mhap/{cell_id}.CH.mhap.gz",
         tbi2="mhap/{cell_id}.CH.mhap.gz.tbi"
     params:
-        CpGPath=os.path.expanduser(config.get('CpG_path',None)),
-        CHNPath=os.path.expanduser(config.get('CHN_path',None)),
+        annotation=os.path.expanduser(config.get('annotation_path',None)),
     resources:
         mem_mb=400
     run:
@@ -73,7 +72,9 @@ rule bam_to_mhap:
         if not os.path.exists(mhap_dir):
             os.mkdir(mhap_dir)
         outfile1=output.mhap1[:-3] #"allc/{cell_id}.mhap", will be bgzipped and tabix indexed in mhap
-        bam2mhap(bam_path=input.bam,annotation=params.CpGPath,output=outfile1)
+        bam2mhap(bam_path=input.bam,annotation=params.annotation,
+			output=outfile1,pattern="CGN")
         outfile2 = output.mhap2[:-3]
-        bam2mhap(bam_path=input.bam,annotation=params.CHNPath,output=outfile2)
+        bam2mhap(bam_path=input.bam,annotation=params.annotation,
+			output=outfile2,pattern="CHN")
 
