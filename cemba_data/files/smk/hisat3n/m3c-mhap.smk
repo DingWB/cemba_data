@@ -34,10 +34,10 @@ rule summary:
         expand("allc/{cell_id}.allc.tsv.gz.tbi",cell_id=CELL_IDS),
 
         # mhap
-		expand("mhap/{cell_id}.CG.mhap.gz", cell_id=CELL_IDS),
-		expand("mhap/{cell_id}.CG.mhap.gz.tbi",cell_id=CELL_IDS),
-		expand("mhap/{cell_id}.CH.mhap.gz",cell_id=CELL_IDS),
-		expand("mhap/{cell_id}.CH.mhap.gz.tbi",cell_id=CELL_IDS),
+        expand("mhap/{cell_id}.CG.mhap.gz", cell_id=CELL_IDS),
+        expand("mhap/{cell_id}.CG.mhap.gz.tbi",cell_id=CELL_IDS),
+        expand("mhap/{cell_id}.CH.mhap.gz",cell_id=CELL_IDS),
+        expand("mhap/{cell_id}.CH.mhap.gz.tbi",cell_id=CELL_IDS),
 
         # allc-CGN
         expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz.tbi", cell_id=CELL_IDS, mcg_context=mcg_context),
@@ -75,8 +75,8 @@ rule bam_to_mhap:
             os.mkdir(mhap_dir)
         outfile1=output.mhap1[:-3] #"allc/{cell_id}.mhap", will be bgzipped and tabix indexed in mhap
         bam2mhap(bam_path=input.bam,annotation=params.annotation,
-			output=outfile1,pattern="CGN")
+            output=outfile1,pattern="CGN")
         outfile2 = output.mhap2[:-3]
         bam2mhap(bam_path=input.bam,annotation=params.annotation,
-			output=outfile2,pattern="CHN")
+            output=outfile2,pattern="CHN")
 

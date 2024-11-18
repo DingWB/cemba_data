@@ -18,24 +18,24 @@ if not os.path.exists(mhap_dir):
 # the summary rule is the final target
 rule summary:
     input:
-		expand("allc/{cell_id}.allc.tsv.gz", cell_id=CELL_IDS),
-		# also add all the stats path here, so they won't be deleted until summary is generated
-		expand("allc/{cell_id}.allc.tsv.gz.count.csv", cell_id=CELL_IDS),
-		# mhap
-		expand("mhap/{cell_id}.CG.mhap.gz",cell_id=CELL_IDS),
-		expand("mhap/{cell_id}.CG.mhap.gz.tbi",cell_id=CELL_IDS),
-		expand("mhap/{cell_id}.CH.mhap.gz",cell_id=CELL_IDS),
-		expand("mhap/{cell_id}.CH.mhap.gz.tbi",cell_id=CELL_IDS),
-		# allc-CGN
-		expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz.tbi",cell_id=CELL_IDS,mcg_context=mcg_context),
-		expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz",cell_id=CELL_IDS,mcg_context=mcg_context),
+        expand("allc/{cell_id}.allc.tsv.gz", cell_id=CELL_IDS),
+        # also add all the stats path here, so they won't be deleted until summary is generated
+        expand("allc/{cell_id}.allc.tsv.gz.count.csv", cell_id=CELL_IDS),
+        # mhap
+        expand("mhap/{cell_id}.CG.mhap.gz",cell_id=CELL_IDS),
+        expand("mhap/{cell_id}.CG.mhap.gz.tbi",cell_id=CELL_IDS),
+        expand("mhap/{cell_id}.CH.mhap.gz",cell_id=CELL_IDS),
+        expand("mhap/{cell_id}.CH.mhap.gz.tbi",cell_id=CELL_IDS),
+        # allc-CGN
+        expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz.tbi",cell_id=CELL_IDS,mcg_context=mcg_context),
+        expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz",cell_id=CELL_IDS,mcg_context=mcg_context),
 
-		expand("fastq/{cell_id}-{read_type}.trimmed.stats.tsv",cell_id=CELL_IDS,read_type=['R1','R2']),
-		expand("bam/{cell_id}-{read_type}.merged.deduped.matrix.txt",cell_id=CELL_IDS,read_type=['R1','R2']),
-		local(expand(bam_dir+"/{cell_id}-{read_type}.merged.filter.bam",cell_id=CELL_IDS,read_type=['R1','R2'])),
-		local(expand(bam_dir+"/{cell_id}-{read_type}.merged.deduped.bam",cell_id=CELL_IDS,read_type=['R1','R2'])),
-		expand("hic/{cell_id}.3C.contact.tsv.gz", cell_id=CELL_IDS),
-		expand("hic/{cell_id}.3C.contact.tsv.counts.txt", cell_id=CELL_IDS)
+        expand("fastq/{cell_id}-{read_type}.trimmed.stats.tsv",cell_id=CELL_IDS,read_type=['R1','R2']),
+        expand("bam/{cell_id}-{read_type}.merged.deduped.matrix.txt",cell_id=CELL_IDS,read_type=['R1','R2']),
+        local(expand(bam_dir+"/{cell_id}-{read_type}.merged.filter.bam",cell_id=CELL_IDS,read_type=['R1','R2'])),
+        local(expand(bam_dir+"/{cell_id}-{read_type}.merged.deduped.bam",cell_id=CELL_IDS,read_type=['R1','R2'])),
+        expand("hic/{cell_id}.3C.contact.tsv.gz", cell_id=CELL_IDS),
+        expand("hic/{cell_id}.3C.contact.tsv.counts.txt", cell_id=CELL_IDS)
     output:
         "MappingSummary.csv.gz"
     params:
@@ -215,24 +215,24 @@ rule bam_to_mhap:
         bam="bam/{cell_id}.mC.bam",
         bai="bam/{cell_id}.mC.bam.bai"
     output:
-		mhap1="mhap/{cell_id}.CG.mhap.gz",
-		tbi1="mhap/{cell_id}.CG.mhap.gz.tbi",
-		mhap2="mhap/{cell_id}.CH.mhap.gz",
-		tbi2="mhap/{cell_id}.CH.mhap.gz.tbi"
+        mhap1="mhap/{cell_id}.CG.mhap.gz",
+        tbi1="mhap/{cell_id}.CG.mhap.gz.tbi",
+        mhap2="mhap/{cell_id}.CH.mhap.gz",
+        tbi2="mhap/{cell_id}.CH.mhap.gz.tbi"
     params:
         annotation=os.path.expanduser(config.get('annotation_path',None)),
     resources:
         mem_mb=500
     run:
-		from cemba_data.mapping.pipelines import bam2mhap
-		if not os.path.exists(mhap_dir):
-			os.mkdir(mhap_dir)
-		outfile1 = output.mhap1[:-3]  #"allc/{cell_id}.mhap", will be bgzipped and tabix indexed in mhap
-		bam2mhap(bam_path=input.bam,annotation=params.annotation,
-			output=outfile1,pattern="CGN")
-		outfile2 = output.mhap2[:-3]
-		bam2mhap(bam_path=input.bam,annotation=params.annotation,
-			output=outfile2,pattern="CHN")
+        from cemba_data.mapping.pipelines import bam2mhap
+        if not os.path.exists(mhap_dir):
+            os.mkdir(mhap_dir)
+        outfile1 = output.mhap1[:-3]  #"allc/{cell_id}.mhap", will be bgzipped and tabix indexed in mhap
+        bam2mhap(bam_path=input.bam,annotation=params.annotation,
+            output=outfile1,pattern="CGN")
+        outfile2 = output.mhap2[:-3]
+        bam2mhap(bam_path=input.bam,annotation=params.annotation,
+            output=outfile2,pattern="CHN")
 
 # CGN extraction from ALLC
 rule cgn_extraction:
