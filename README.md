@@ -20,6 +20,7 @@ pip install git+https://github.com/DingWB/cemba_data
 
 # reinstall
 pip uninstall -y cemba_data && pip install git+https://github.com/DingWB/cemba_data
+
 ```
 
 # Documentation

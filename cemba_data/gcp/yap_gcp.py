@@ -582,7 +582,7 @@ def cell_qc(workd="gs://bican/salk010",
 			f.write(cmd+'\n')
 	f.close()
 
-def start_from_cel_bam(
+def start_from_cell_bam(
 	indir="bam",bam_pattern="*.hisat3n_dna.all_reads.deduped.bam",
 	output_dir="gs://mapping_example/mapping",
 	gcp=True,region='us-west1',keep_remote=False,
