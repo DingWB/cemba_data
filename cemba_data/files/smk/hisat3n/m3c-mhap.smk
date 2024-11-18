@@ -34,8 +34,10 @@ rule summary:
         expand("allc/{cell_id}.allc.tsv.gz.tbi",cell_id=CELL_IDS),
 
         # mhap
-        expand("mhap/{cell_id}.mhap.gz", cell_id=CELL_IDS),
-        expand("mhap/{cell_id}.mhap.gz.tbi",cell_id=CELL_IDS),
+        expand("mhap/{cell_id}.CG.mhap.gz", cell_id=CELL_IDS),
+        expand("mhap/{cell_id}.CG.mhap.gz.tbi",cell_id=CELL_IDS),
+		expand("mhap/{cell_id}.CH.mhap.gz",cell_id=CELL_IDS),
+		expand("mhap/{cell_id}.CH.mhap.gz.tbi",cell_id=CELL_IDS),
 
         # allc-CGN
         expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz.tbi", cell_id=CELL_IDS, mcg_context=mcg_context),
