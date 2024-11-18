@@ -34,8 +34,8 @@ rule summary:
         expand("allc/{cell_id}.allc.tsv.gz.tbi",cell_id=CELL_IDS),
 
         # mhap
-        expand("mhap/{cell_id}.CG.mhap.gz", cell_id=CELL_IDS),
-        expand("mhap/{cell_id}.CG.mhap.gz.tbi",cell_id=CELL_IDS),
+		expand("mhap/{cell_id}.CG.mhap.gz", cell_id=CELL_IDS),
+		expand("mhap/{cell_id}.CG.mhap.gz.tbi",cell_id=CELL_IDS),
 		expand("mhap/{cell_id}.CH.mhap.gz",cell_id=CELL_IDS),
 		expand("mhap/{cell_id}.CH.mhap.gz.tbi",cell_id=CELL_IDS),
 

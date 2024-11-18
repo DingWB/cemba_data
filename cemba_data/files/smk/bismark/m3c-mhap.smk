@@ -18,24 +18,24 @@ if not os.path.exists(mhap_dir):
 # the summary rule is the final target
 rule summary:
     input:
-        expand("allc/{cell_id}.allc.tsv.gz", cell_id=CELL_IDS),
-        # also add all the stats path here, so they won't be deleted until summary is generated
-        expand("allc/{cell_id}.allc.tsv.gz.count.csv", cell_id=CELL_IDS),
-        # mhap
-        expand("mhap/{cell_id}.CG.mhap.gz",cell_id=CELL_IDS),
-        expand("mhap/{cell_id}.CG.mhap.gz.tbi",cell_id=CELL_IDS),
+		expand("allc/{cell_id}.allc.tsv.gz", cell_id=CELL_IDS),
+		# also add all the stats path here, so they won't be deleted until summary is generated
+		expand("allc/{cell_id}.allc.tsv.gz.count.csv", cell_id=CELL_IDS),
+		# mhap
+		expand("mhap/{cell_id}.CG.mhap.gz",cell_id=CELL_IDS),
+		expand("mhap/{cell_id}.CG.mhap.gz.tbi",cell_id=CELL_IDS),
 		expand("mhap/{cell_id}.CH.mhap.gz",cell_id=CELL_IDS),
 		expand("mhap/{cell_id}.CH.mhap.gz.tbi",cell_id=CELL_IDS),
-        # allc-CGN
-        expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz.tbi",cell_id=CELL_IDS,mcg_context=mcg_context),
-        expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz",cell_id=CELL_IDS,mcg_context=mcg_context),
+		# allc-CGN
+		expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz.tbi",cell_id=CELL_IDS,mcg_context=mcg_context),
+		expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz",cell_id=CELL_IDS,mcg_context=mcg_context),
 
-        expand("fastq/{cell_id}-{read_type}.trimmed.stats.tsv",cell_id=CELL_IDS,read_type=['R1','R2']),
-        expand("bam/{cell_id}-{read_type}.merged.deduped.matrix.txt",cell_id=CELL_IDS,read_type=['R1','R2']),
-        local(expand(bam_dir+"/{cell_id}-{read_type}.merged.filter.bam",cell_id=CELL_IDS,read_type=['R1','R2'])),
-        local(expand(bam_dir+"/{cell_id}-{read_type}.merged.deduped.bam",cell_id=CELL_IDS,read_type=['R1','R2'])),
-        expand("hic/{cell_id}.3C.contact.tsv.gz", cell_id=CELL_IDS),
-        expand("hic/{cell_id}.3C.contact.tsv.counts.txt", cell_id=CELL_IDS)
+		expand("fastq/{cell_id}-{read_type}.trimmed.stats.tsv",cell_id=CELL_IDS,read_type=['R1','R2']),
+		expand("bam/{cell_id}-{read_type}.merged.deduped.matrix.txt",cell_id=CELL_IDS,read_type=['R1','R2']),
+		local(expand(bam_dir+"/{cell_id}-{read_type}.merged.filter.bam",cell_id=CELL_IDS,read_type=['R1','R2'])),
+		local(expand(bam_dir+"/{cell_id}-{read_type}.merged.deduped.bam",cell_id=CELL_IDS,read_type=['R1','R2'])),
+		expand("hic/{cell_id}.3C.contact.tsv.gz", cell_id=CELL_IDS),
+		expand("hic/{cell_id}.3C.contact.tsv.counts.txt", cell_id=CELL_IDS)
     output:
         "MappingSummary.csv.gz"
     params:
