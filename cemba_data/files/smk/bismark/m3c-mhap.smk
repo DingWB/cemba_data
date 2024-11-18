@@ -220,7 +220,7 @@ rule bam_to_mhap:
         mhap2="mhap/{cell_id}.CH.mhap.gz",
         tbi2="mhap/{cell_id}.CH.mhap.gz.tbi"
     params:
-        annotation=os.path.expanduser(config.get('annotation_path',None)),
+        annotation=os.path.expanduser(annotation_path)
     resources:
         mem_mb=500
     run:
