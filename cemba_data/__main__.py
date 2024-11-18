@@ -424,24 +424,10 @@ def print_default_config_register_subparser(subparser):
 	)
 
 	parser.add_argument(
-		"--cpg_path",
+		"--annotation_path",
 		type=str,
 		required=False,
-		help="[-mhap only] Path to the cpg.gz"
-	)
-
-	parser.add_argument(
-		"--gene_bed_path",
-		type=str,
-		required=False,
-		help="[-mhap only] Path to the gene bdy region bed path"
-	)
-
-	parser.add_argument(
-		"--promoter_bed_path",
-		type=str,
-		required=False,
-		help="[-mhap only] Path to the promoter region bed path"
+		help="[-mhap only] Path to the *_allc.gz"
 	)
 
 	parser.set_defaults(nome=False)
