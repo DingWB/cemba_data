@@ -406,6 +406,7 @@ def mapping_stats(output_dir=None,fastq_dir=None,mode='m3c',barcode_version='V2'
 		fastq_dir = output_dir / 'fastq'
 	else:
 		fastq_dir=pathlib.Path(fastq_dir).absolute()
+	mode=mode.split('-')[0]
 	if mode == 'mc':
 		final_df = mc_mapping_stats(output_dir,fastq_dir,mode,mc_stat_feature,mc_stat_alias,num_upstr_bases)
 	elif mode == 'mct':

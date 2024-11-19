@@ -51,7 +51,7 @@ def bam2mhap(bam_path=None,annotation="~/Ref/hg38/annotations/hg38_allc.gz",
 	----------
 	bam_path :
 	annotation :
-		path to CpG, CHN, CHH, or CHG annotation path.
+		path to *_allc annotation path.
 	output :
 
 	Returns
