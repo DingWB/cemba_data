@@ -1,19 +1,19 @@
 Field	Purpose	Comment
 cell	The unique identifier for each cell.	
-InputReadPairs	Total number of read pairs.	
-InputReadPairsBP	Total number of base pairs.	
-TrimmedReadPairs	Total number of trimmed read pairs.	
-R1WithAdapters	Number of R1 reads trimmed to remove Illumina adapter.	
+InputReadPairs	Total number of reads input into Cutadapt for processing.
+InputReadPairsBP	Total number of base pairs in the input reads.
+TrimmedReadPairs	Number of reads that were written to the output after trimming and filtering
+R1WithAdapters	Number of reads that contained adapter sequences that were detected and trimmed.
 R1QualTrimBP	Number of R1 base pairs trimmed due to low base quality.	
 R1TrimmedReadsBP	Number of R1 base pairs remaining after adapter and quality trimming.	
-R2WithAdapters	Number of R2 reads trimmed to remove Illumina adapter.	
+R2WithAdapters	Number of reads from the second mate in paired-end reads that contained adapter sequences and were trimmed.
 R2QualTrimBP	Number of R2 base pairs trimmed due to low base quality.	
 R2TrimmedReadsBP	Number of R2 base pairs remaining after adapter and quality trimming.	
-UniqueMappedReads	Number of uniquely mapped reads.	
-UniqueMappingRate	Rate of unique read mapping.	
+UniqueMappedReads	Number of uniquely mapped reads: PEUniqueMappedReadPairs (Aligned concordantly or discordantly 0 time) + PEDiscordantlyUniqueMappedReadPairs (Aligned discordantly 1 time) + SEUniqueMappedReads (Aligned 1 time unpaired reads)
+UniqueMappingRate	Rate of unique read mapping (total_reads = ReadPairsMappedInPE * 2 + ReadsMappedInSE)
 MultiMappedReads	Number of multimapped reads.	
 MultiMappingRate	Rate of multimapping.	
-OverallMappingRate	Rate of mapping for all reads.	
+OverallMappingRate	Rate of mapping for all reads (UniqueMappingRate + MultiMappingRate)
 R1UniqueMappedReads	Number of uniquely mapped R1 reads.	
 R1UniqueMappingRate	Rate of unique R1 read mapping.	
 R1MultiMappedReads	Number of multimapped R1 reads.	
