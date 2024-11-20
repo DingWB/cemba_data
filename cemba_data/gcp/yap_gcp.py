@@ -59,7 +59,9 @@ def get_fastq_info(fq_dir,fastq_server='gcp',local_outdir="./"):
 	# df['fastq_path']=df.apply(lambda row:os.path.join(row.indir,'-'.join(row.loc[['plate','multiplex_group','primer_name']].map(str).tolist())+"_"+"_".join(row.loc[['ID','pns','lane','read_type','suffix']].map(str).tolist())+f".{fq_ext}.gz"),axis=1)
 	# df['uid']=df.plate.map(str)+'-'+df.multiplex_group.map(str)+'-'+df.primer_name.map(str) #f'{plate}-{multiplex_group}-{primer_name}')
 	df=df.loc[df.read_type.isin(['R1','R2'])]
-	assert df.groupby(['lane','read_type'])['uid'].nunique().nunique()==1
+	if df.groupby(['lane','read_type'])['uid'].nunique().nunique()!=1:
+		print("Warning: number of uids (or fastq files) are different.")
+		print(df.groupby(['lane','read_type'])['uid'].nunique())
 	df=df.loc[df.read_type=='R1']
 	df.rename(columns={'fastq_path':'R1'},inplace=True)
 	df['R2']=df.R1.apply(lambda x:x.replace('_R1_','_R2_'))
