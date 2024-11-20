@@ -65,7 +65,7 @@ def get_fastq_info(fq_dir,fastq_server='gcp',local_outdir="./"):
 	df=df.loc[df.read_type=='R1']
 	df.rename(columns={'fastq_path':'R1'},inplace=True)
 	df['R2']=df.R1.apply(lambda x:x.replace('_R1_','_R2_'))
-	df.sort_values(['uid','lane'],inplace=True)
+	df.sort_values(['uid','lane','R1'],inplace=True)
 	df.to_csv(outfile,sep='\t',index=False)
 	return df #columns: plate,multiplex_group,primer_name,lane,read_type,R1,uid,R2
 
