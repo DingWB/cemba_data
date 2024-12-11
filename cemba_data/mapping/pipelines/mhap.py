@@ -68,10 +68,10 @@ def bam2mhap(bam_path=None,annotation="~/Ref/hg38/annotations/hg38_allc.gz",
 		else:
 			df.to_csv(output, sep='\t', header=False, index=False, mode='a')
 
-	def get_cytosine_positions(f,chrom,patterns):
+	def get_cytosine_positions(f,chrom,patterns,start=None, end=None):
 		forward_cytosine_pos=[]
 		reverse_cytosine_pos = []
-		for line in f.fetch(chrom):
+		for line in f.fetch(chrom,start,end):
 			values=line.strip().split('\t') #chrom,start,end,context, strand
 			pattern=values[3]
 			if pattern not in patterns:
@@ -122,9 +122,9 @@ def bam2mhap(bam_path=None,annotation="~/Ref/hg38/annotations/hg38_allc.gz",
 	fbam = pysam.AlignmentFile(os.path.expanduser(bam_path), 'rb')
 	f = pysam.TabixFile(os.path.expanduser(annotation)) # for allc.bed.gz, 1-based
 	for chrom in f.contigs:
-		forward_cytosine_pos,reverse_cytosine_pos=get_cytosine_positions(f,chrom,patterns) # 1-based
-		if len(forward_cytosine_pos) == 0 and len(reverse_cytosine_pos)==0:  # cytosine_positions is 1-based, pos of C
-			continue
+		# forward_cytosine_pos,reverse_cytosine_pos=get_cytosine_positions(f,chrom,patterns) # 1-based
+		# if len(forward_cytosine_pos) == 0 and len(reverse_cytosine_pos)==0:  # cytosine_positions is 1-based, pos of C
+		# 	continue
 		print(chrom)
 		R = []
 		pre_pos,pre_ct_read,pre_read1=None,None,None
@@ -136,6 +136,11 @@ def bam2mhap(bam_path=None,annotation="~/Ref/hg38/annotations/hg38_allc.gz",
 			if sum([cigar[1] for cigar in read.cigar if cigar[0]==0]) != len(read.positions):
 				continue # cigar: 0 means Match, if read.is_secondary: #not read.is_proper_pair:
 			# read.pos is 0-based, read.aend = read.pos+1 + cigar length - 1 # 1-based
+			start=max(read.reference_start-2,1) #read.reference_start is 0-based
+			end=read.reference_end+3 # read.reference_end is 1-based
+			forward_cytosine_pos, reverse_cytosine_pos = get_cytosine_positions(f, chrom, patterns,start,end)  # 1-based
+			if len(forward_cytosine_pos) == 0 and len(reverse_cytosine_pos) == 0:  # cytosine_positions is 1-based, pos of C
+				continue
 			ct_read = ct_read_func(read)
 			is_read1=is_read1_func(read)
 			if (read.pos,ct_read,is_read1) == (pre_pos,pre_ct_read,pre_read1):
