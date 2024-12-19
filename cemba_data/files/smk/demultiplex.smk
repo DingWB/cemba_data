@@ -151,7 +151,6 @@ rule run_demultiplex: #{prefixes}-{plates}-{multiplex_groups}-{primer_names}_{pn
         outdir=lambda wildcards: local_outdir+f"/{wildcards.uid}/demultiplex",
         R1=lambda wildcards: local_outdir+f"/{wildcards.uid}/demultiplex/{'{{name}}'}-R1.fq.gz",
         R2=lambda wildcards: local_outdir+f"/{wildcards.uid}/demultiplex/{'{{name}}'}-R2.fq.gz"
-
     # benchmark:
     #         local(local_outdir+"/{uid}/run_demultiplex.benchmark.txt")
     run:

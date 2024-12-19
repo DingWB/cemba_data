@@ -154,3 +154,27 @@ mamba install graphviz #required to run dot
 snakemake --config fastq_server='ftp' --dag mhap/HBA_220218_H1930001_CX46_BNST_3C_1_P3-3-O5-K5.mhap.gz allc/HBA_220218_H1930001_CX46_BNST_3C_1_P3-3-O5-K5.allc.tsv.gz hic/HBA_220218_H1930001_CX46_BNST_3C_1_P3-3-O5-K5.hisat3n_dna.all_reads.3C.contact.tsv.gz > 1
 dot -Tsvg 1 > snm3c_dag.svg
 ```
+
+# Predict Neuron Percentage
+pip install scikit-learn==1.2.2
+```python
+def predict_neuron_percentage(
+    model_path = '/gale/ddn/bican/snm3C/miseq/dev/rfc_model.hba-miseq.joblib',
+    infile="results/MappingSummary-SALK090.csv.gz",
+):
+    import joblib
+    import numpy as np
+    import pandas as pd
+    import sklearn # 1.2.2
+
+    predictor = joblib.load(model_path)
+    # debug
+    df=pd.read_csv(infile,index_col=0)
+    tmp = df[['mCGFrac','mCHFrac','mCCCFrac']].dropna()
+    pred = pd.Series(predictor.predict(tmp), index = tmp.index)
+    df['NeuN-alike'] = ~pred
+    df.loc[df['FinalmCReads']<20, 'NeuN-alike'] = np.nan
+    neun_ratios = df[['Plate','NeuN-alike']].pivot_table(index='Plate', columns='NeuN-alike', aggfunc=len, fill_value=0)
+    tot_neun_ratio = neun_ratios[True].sum()/neun_ratios.sum().sum() #neun_ratios is a df,
+    return tot_neun_ratio
+```
