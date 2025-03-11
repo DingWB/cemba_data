@@ -1,0 +1,46 @@
+name: yap
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python=3.8
+  - pip
+  - parallel
+  - jupyter
+  - snakemake
+  - mamba
+  - natsort
+  - anndata
+  - yaml
+  - biopython
+  - cutadapt
+  - bismark=0.20
+  - bowtie2
+  - bowtie
+  - samtools
+  - picard=3.1.1
+  - bedtools
+  - htslib
+  - pyBigWig
+  - ucsc-bedgraphtobigwig
+  - star=2.7.3a
+  - subread=2.0.1
+  - git
+  - ipython
+  - hdf5
+  - ipykernel
+  - graphviz
+  - fire
+  - papermill
+  - nbconvert-webpdf
+  - Black
+  - gdown=5.1.0
+  - scikit-learn=1.2.2
+  - pip:
+#    - nbconvert[webpdf]
+    - pybedtools==0.9.1
+    - pysam==0.20.0
+    - git+https://github.com/DingWB/cemba_data
+    - git+https://github.com/DingWB/ALLCools
+    - py-trello
