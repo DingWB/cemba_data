@@ -6,7 +6,7 @@ conda config --add channels defaults
 conda config --add channels bioconda
 conda config --add channels conda-forge
 
-mamba env create -f https://raw.githubusercontent.com/DingWB/cemba_data/master/env.yaml
+mamba env create -f https://raw.githubusercontent.com/DingWB/cemba_data/master/yap.yaml
 
 # if failed, try:
 # mamba env create -f https://raw.githubusercontent.com/DingWB/cemba_data/master/env_greedy.yaml
