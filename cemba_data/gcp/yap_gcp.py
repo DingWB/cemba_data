@@ -9,7 +9,6 @@ PACKAGE_DIR=cemba_data.__path__[0]
 from cemba_data.demultiplex.fastq_dataframe import _parse_v2_fastq_path
 from cemba_data.demultiplex import _parse_index_fasta
 from cemba_data.mapping.pipelines import prepare_run
-from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
 from snakemake.remote.FTP import RemoteProvider as FTPRemoteProvider
 import json
 import pathlib
@@ -27,6 +26,7 @@ def make_v2_fastq_df(fq_dir,fastq_server='local'):
 	# For example: UWA7648_CX05_A10_2_P8-1-O4_22F25JLT3_S15_L001_I1_001.fastq.gz
 	# depth = 2
 	if fastq_server=='gcp': #fq_dir="gs://mapping_example/fastq/novaseq_fastq"
+		from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
 		GS = GSRemoteProvider(project=gcp_project)
 		os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
 		bucket_name = fq_dir.replace('gs://', '').split('/')[0]
@@ -145,6 +145,7 @@ def get_random_index(UIDs, barcode_version,local_outdir="./"):
 	return df_index # columns: 'old_uid,read_type,index_name,real_multiplex_group,uid'
 
 def get_fastq_uids(remote_prefix=None):
+	from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
 	GS = GSRemoteProvider(project=gcp_project)
 	uids,cell_ids=GS.glob_wildcards(remote_prefix + "/{uid}/fastq/{cell_id}-R1.fq.gz")
 	bucket_name = remote_prefix.replace('gs://', '').split('/')[0]
@@ -537,6 +538,7 @@ def yap_pipeline(
 		print(f"conda activate {sky_env} && sh {output}")
 
 def check_demultiplex(workd="gs://mapping_example/novaseq_mapping"):
+	from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
 	GS = GSRemoteProvider(project=gcp_project)
 	os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.expanduser(
 		'~/.config/gcloud/application_default_credentials.json')
@@ -557,6 +559,7 @@ def check_demultiplex(workd="gs://mapping_example/novaseq_mapping"):
 def cell_qc(workd="gs://bican/salk010",
 			total_read_pairs_max=6000000,total_read_pairs_min=1,
 			sky_env='sky'):
+	from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
 	gsutil = os.path.join(os.path.abspath(os.path.join(os.path.dirname(sys.executable),'../../')),
 						  f"{sky_env}/bin/gsutil")
 	GS = GSRemoteProvider(project=gcp_project)
