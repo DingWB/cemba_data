@@ -14,7 +14,7 @@ dependencies:
   - anndata
   - yaml
   - biopython
-  - cutadapt
+  - cutadapt=4.7
   - bismark=0.20
   - bowtie2
   - bowtie
