@@ -77,6 +77,7 @@ def make_snakefile(output_dir,aligner="bismark"):
 		snakefile_path=os.path.join(PACKAGE_DIR, f'files/smk/bismark/{mode.lower()}.smk')
 	elif aligner.lower() in ['hisat3n', 'hisat-3n', 'hisat_3n', 'hisat']:
 		snakefile_path = os.path.join(PACKAGE_DIR, f'files/smk/hisat3n/{mode.lower()}.smk')
+		subprocess.run(['touch', f'{output_dir}/snakemake/hisat3n'], check=True)
 	else:
 		raise ValueError(f"Unknown aligner: {aligner}")
 	with open(snakefile_path) as f:

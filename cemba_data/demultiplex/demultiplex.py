@@ -472,7 +472,9 @@ def demultiplex_pipeline(fastq_pattern, output_dir, config_path, cpu, aligner):
 		# or generate by themselves if they want different setting.
 		prepare_run(output_dir)
 	elif aligner.lower() in ('hisat3n', 'hisat-3n', 'hisat_3n', 'hisat'):
-		make_snakefile_hisat3n(output_dir=output_dir)
+		#old / redundant function, replacing with make_snakefile
+		#make_snakefile_hisat3n(output_dir=output_dir)
+		make_snakefile(output_dir=output_dir,aligner="hisat3n")
 		prepare_run(output_dir)
 	else:
 		ValueError(f'Unsupported aligner {aligner}, aligner must be either "hisat3n" or "bismark"')
