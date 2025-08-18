@@ -7,7 +7,12 @@ import pandas as pd
 import seaborn as sns
 from matplotlib.colors import Normalize
 
-
+def get_colormap(cmap):
+    try:
+        return plt.colormaps.get(cmap)  # matplotlib >= 3.5.1?
+    except:
+        return plt.get_cmap(cmap)  # matplotlib <=3.4.3?
+     
 def plot_on_plate(data,
                   hue,
                   groupby,
@@ -88,7 +93,7 @@ def plot_on_plate(data,
     fig = plt.figure(figsize=((6.2 * ncols) * (1 + cbar_frac) * figsize_scale,
                               4 * nrows * figsize_scale))
     gs = fig.add_gridspec(nrows, ncols, wspace=0.1)
-    cmap = copy.copy(mpl.cm.get_cmap("viridis"))
+    cmap = copy.copy(get_colormap("viridis"))
     cmap.set_under(color='#440154')
     cmap.set_over(color='#FDE725')
     cmap.set_bad(color='#FFFFFF')
