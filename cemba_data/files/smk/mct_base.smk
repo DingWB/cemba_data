@@ -75,7 +75,7 @@ for k in REQUIRED_CONFIG:
 if len(missing_key) > 0:
     raise ValueError('Missing required config: {}'.format(missing_key))
 
-# if not gcp:
+# if not config["gcp"]:
 #     # fastq table and cell IDs
 #     fastq_table = validate_cwd_fastq_paths()
 #     CELL_IDS = fastq_table.index.tolist() # CELL_IDS will be writen in the beginning of this snakemake file.
@@ -83,7 +83,7 @@ if len(missing_key) > 0:
 mcg_context = 'CGN' if int(config['num_upstr_bases']) == 0 else 'HCGN'
 #repeat_index_flag = "--repeat" if config['hisat3n_repeat_index_type'] == 'repeat' else "--no-repeat-index"
 repeat_index_flag="--no-repeat-index" #repeat would cause some randomness, get different output (mapping summary) even using the same input and parameters
-allc_mcg_dir=os.path.abspath(workflow.default_remote_prefix+f"/allc-{mcg_context}") if gcp else f"allc-{mcg_context}"
+allc_mcg_dir=os.path.abspath(workflow.default_remote_prefix+f"/allc-{mcg_context}") if config["gcp"] else f"allc-{mcg_context}"
 # print(f"bam_dir: {bam_dir}\n allc_dir: {allc_dir}\n hic_dir: {hic_dir} \n allc_mcg_dir: {allc_mcg_dir}")
 
 for dir in [bam_dir,allc_dir,allc_mcg_dir]:
