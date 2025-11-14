@@ -30,6 +30,7 @@ STAMPEDE2_QUEUES = {
     'skx-normal': 20,
     'skx-large': 3,
     'shared': 1000,
+    'highmem': 1000,
     'wholenode': 1000
 }
 
