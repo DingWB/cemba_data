@@ -179,7 +179,6 @@ def summary_rna_mapping(output_dir):
 	total_star_mapped_reads = _count_reads_by_rg_in_star_bam(output_dir / 'rna_bam/TotalRNAAligned.filtered.bam')
 
 	# feature count summary
-	
 	total_counts = pd.read_csv(output_dir / 'rna_bam/TotalRNAAligned.rna_reads.feature_count.tsv.summary',
 							   sep='\t', index_col=0).T
 	total_counts.index = total_counts.index.map(lambda i: i.split(':')[-1])
