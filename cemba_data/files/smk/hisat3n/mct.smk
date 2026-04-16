@@ -230,8 +230,9 @@ rule feature_count:
     shell: #version 2.0.1, if there is overlap between two records in gtf, then there will be no reads assigned to these two features.
         """
         featureCounts -t {config[feature_type]} -g {config[id_type]} \
--a {config[gtf_path]} -o {output.tsv} --largestOverlap --byReadGroup -T {threads} {input}
+-a {config[gtf_path]} -o {output.tsv} -O --largestOverlap --byReadGroup -T {threads} {input}
         """
+        
 
 rule index_bam:
     input:
