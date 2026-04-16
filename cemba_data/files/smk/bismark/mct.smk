@@ -291,5 +291,5 @@ rule feature_count:
         mem_mb=1000
     shell:
         """
-        featureCounts -t {feature_type} -g {id_type} -a {gtf_path} -o {output.count_tsv} --byReadGroup -T {threads} {input}
+        featureCounts -t {feature_type} -g {id_type} -a {gtf_path} -o {output.count_tsv} --largestOverlap --byReadGroup -T {threads} {input}
         """
