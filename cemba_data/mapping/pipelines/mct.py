@@ -22,7 +22,7 @@ def mct_config_str(config):
         'mc_rate_max_threshold': 0.5,
         'mc_rate_min_threshold': 0.9
     }
-    bool_parameters = {'unmapped_fastq': False}
+    bool_parameters = {'unmapped_fastq': False, 'extract_mcg': False}
 
     str_parameters = {
         'mode': 'mc',

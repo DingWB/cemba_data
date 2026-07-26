@@ -29,6 +29,9 @@ DEFAULT_CONFIG = {
     'post_mapping_script': 'true',
     'feature_type': 'gene',
     'id_type': 'gene_id',
+    # Whether to generate the CGN-merged ALLC (allc-CGN/*.CGN-Merge.allc.tsv.gz).
+    # Off by default; set extract_mcg = True to produce it.
+    'extract_mcg': False,
 }
 REQUIRED_CONFIG = ['hisat_dna_reference', 'hisat_rna_reference', 'gtf_path', 'reference_fasta', 'chrom_size_path']
 if "gcp" not in config:
@@ -89,6 +92,26 @@ allc_mcg_dir=os.path.abspath(workflow.default_remote_prefix+f"/allc-{mcg_context
 for dir in [bam_dir,allc_dir,allc_mcg_dir]:
     if not os.path.exists(dir):
         os.mkdir(dir)
+
+# ==================================================
+# Optional CGN-merged ALLC (allc-CGN) generation
+# ==================================================
+def _coerce_bool(v):
+    if isinstance(v, bool):
+        return v
+    return str(v).strip().lower() in ('true', '1', 'yes', 'y', 't', 'on')
+
+extract_mcg = _coerce_bool(config.get('extract_mcg', False))
+config['extract_mcg'] = extract_mcg
+
+def get_mcg_targets(cell_ids):
+    """CGN-merged ALLC targets, only when extract_mcg is enabled."""
+    if not extract_mcg:
+        return []
+    return (expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz.tbi",
+                   cell_id=cell_ids, mcg_context=mcg_context)
+            + expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz",
+                     cell_id=cell_ids, mcg_context=mcg_context))
 
 def get_fastq_path():
     if config["fastq_server"]=='ftp':

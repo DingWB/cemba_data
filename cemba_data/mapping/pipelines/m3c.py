@@ -33,8 +33,11 @@ def m3c_config_str(config):
         'mc_stat_feature': 'CHN CGN CCC',
         'mc_stat_alias': 'mCH mCG mCCC',
         'chrom_size_path': 'required',
-        'annotation_path':None
+        'annotation_path':None,
+        'mc_format': 'cz',
+        'reference_cz': None
     }
+    bool_parameters = {'generate_mhap': False, 'extract_mcg': False}
     if 'hisat3n_dna_reference' in config and config["hisat3n_dna_reference"]!="CHANGE_THIS_TO_YOUR_HISAT3N_DNA_REFERENCE":
         del str_parameters['bismark_reference']
     else:
@@ -51,6 +54,17 @@ def m3c_config_str(config):
             else:
                 raise ValueError(f'Required parameter {k} not found in config. '
                                  f'You can print the newest mapping config template via "yap default-mapping-config".')
+
+    for k, default in bool_parameters.items():
+        if k in config:
+            v = config[k]
+            if isinstance(v, str):
+                v = v.strip().lower() in ('true', '1', 'yes', 'y', 't', 'on')
+            else:
+                v = bool(v)
+            typed_config[k] = v
+        else:
+            typed_config[k] = default
 
     for k, default in str_parameters.items():
         if k in config:

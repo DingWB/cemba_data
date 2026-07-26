@@ -43,6 +43,81 @@ yap default-mapping-config --mode mct --barcode_version V2 --bismark_ref "~/Ref/
 yap default-mapping-config --mode mct --barcode_version V2 --hisat3n_dna_ref "~/Ref/mm10/mm10_ucsc_with_chrL" --hisat3n_rna_ref "~/Ref/mm10/mm10_ucsc_with_chrL" --genome "~/Ref/mm10/mm10_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/mm10/mm10_ucsc.nochrM.sizes" --gtf "~/Ref/mm10/annotations/gencode.vM23.annotation.gtf" > mct_config.ini
 ```
 
+## Choose the methylation output: allc / cz / mhap
+The `m3c` and `mc` pipelines (both the `bismark` and `hisat-3n` aligners) can
+generate three kinds of per-cell methylation output. Which ones are produced is
+controlled by three parameters in the `[output]` section of the mapping config
+(`.ini`) file:
+
+| parameter | values | meaning |
+| --- | --- | --- |
+| `mc_format` | `allc` / `cz` (**default**) / `both` | `cz` → `cz/<cell>.cz` (cytozip `bam_to_cz`, **default**); `allc` → `allc/<cell>.allc.tsv.gz` (ALLCools `bam-to-allc`); `both` → generate both |
+| `reference_cz` | path to a `.cz` file | **required** when `mc_format` is `cz` or `both` |
+| `extract_mcg` | `False` (**default**) / `True` | generate the CGN-merged ALLC `allc-CGN/<cell>.CGN-Merge.allc.tsv.gz`. **Off by default**; only meaningful when allc output is produced |
+| `generate_mhap` | `False` (**default**) / `True` | also generate `mhap/<cell>.CG.mhap.gz` and `mhap/<cell>.CH.mhap.gz` |
+| `annotation_path` | path to `*_allc.gz` | **required** when `generate_mhap = True` |
+
+### 1. Generate .cz (cytozip) — default
+`cz` is the **default** output. It needs a **reference `.cz`** built once per
+genome with cytozip's `build_ref` (from the genome fasta + chrom_size):
+```shell
+# build the reference .cz once (reuse it for every mapping run)
+czip build_ref -g ~/Ref/hg38/hg38_ucsc_with_chrL.fa \
+  -O ~/Ref/hg38/hg38_ucsc_with_chrL.allc.cz \
+  -s ~/Ref/hg38/hg38_ucsc.main.chrom.sizes -j 20
+```
+Then set in the config:
+```ini
+[output]
+mc_format = cz            ; default; use "both" to also keep allc
+reference_cz = ~/Ref/hg38/hg38_ucsc_with_chrL.allc.cz
+```
+If `reference_cz` is missing or not set while `mc_format` is `cz`/`both`, the
+pipeline prints a warning with the exact `czip build_ref` command to run.
+
+### 2. Generate ALLC instead of / in addition to .cz
+```ini
+[output]
+mc_format = allc          ; or "both" to also generate cz
+```
+
+### 3. Generate the CGN-merged ALLC (allc-CGN)
+`allc-CGN/<cell>.CGN-Merge.allc.tsv.gz` is **no longer produced by default**.
+Enable it explicitly (only meaningful when allc output is generated):
+```ini
+[output]
+mc_format = allc          ; or both
+extract_mcg = True
+```
+
+### 4. Also generate mhap files
+Set `generate_mhap = True` and provide the `*_allc.gz` annotation:
+```ini
+[output]
+generate_mhap = True
+annotation_path = ~/Ref/hg38/annotations/hg38_allc.gz
+```
+
+### Generating the config with these options in one line
+`yap default-mapping-config` forwards any extra `--key value` pairs into the
+config, so you can set the output options directly:
+```shell
+# cz (default) — remember to build the reference .cz first (see above)
+yap default-mapping-config --mode m3c --barcode_version V2 \
+  --hisat3n_dna_ref "~/Ref/hg38/hg38_ucsc_with_chrL" \
+  --genome "~/Ref/hg38/hg38_ucsc_with_chrL.fa" \
+  --chrom_size_path "~/Ref/hg38/hg38_ucsc.main.chrom.sizes" \
+  --reference_cz "~/Ref/hg38/hg38_ucsc_with_chrL.allc.cz" > m3c_config.ini
+
+# allc + allc-CGN + mhap, hisat-3n
+yap default-mapping-config --mode m3c --barcode_version V2 \
+  --hisat3n_dna_ref "~/Ref/hg38/hg38_ucsc_with_chrL" \
+  --genome "~/Ref/hg38/hg38_ucsc_with_chrL.fa" \
+  --chrom_size_path "~/Ref/hg38/hg38_ucsc.main.chrom.sizes" \
+  --mc_format allc --extract_mcg True \
+  --generate_mhap True --annotation_path "~/Ref/hg38/annotations/hg38_allc.gz" > m3c_config.ini
+```
+
 ## Demultiplex
 ```shell
 # m3c

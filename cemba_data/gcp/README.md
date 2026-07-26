@@ -101,19 +101,19 @@ done;
 
 ## Prepare mapping config files
 ```
-yap default-mapping-config --mode m3c-mhap --barcode_version V2 --bismark_ref "~/Ref/hg38/hg38_ucsc_with_chrL.bismark1" --genome "~/Ref/hg38/hg38_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/hg38/hg38_ucsc.main.chrom.sizes" --annotation_path "~/Ref/hg38/annotations/hg38_allc.gz" > m3c-mhap_config_bismark.ini
+yap default-mapping-config --mode m3c --barcode_version V2 --bismark_ref "~/Ref/hg38/hg38_ucsc_with_chrL.bismark1" --genome "~/Ref/hg38/hg38_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/hg38/hg38_ucsc.main.chrom.sizes" --annotation_path "~/Ref/hg38/annotations/hg38_allc.gz" > m3c_config_bismark.ini
 
 yap default-mapping-config --mode m3c --barcode_version V2 --genome "~/Ref/hg38/hg38_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/hg38/hg38_ucsc.main.chrom.sizes" --hisat3n_dna_ref  "~/Ref/hg38/hg38_ucsc_with_chrL" > m3c_config_hisat3n.ini
-# or 
-yap default-mapping-config --mode m3c-mhap --barcode_version V2 --genome "~/Ref/hg38/hg38_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/hg38/hg38_ucsc.main.chrom.sizes" --hisat3n_dna_ref  "~/Ref/hg38/hg38_ucsc_with_chrL" --annotation_path "~/Ref/hg38/annotations/hg38_allc.gz" > m3c-mhap_config_hisat3n.ini
+# or, to also generate mhap files (set generate_mhap True and provide annotation_path)
+yap default-mapping-config --mode m3c --barcode_version V2 --genome "~/Ref/hg38/hg38_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/hg38/hg38_ucsc.main.chrom.sizes" --hisat3n_dna_ref  "~/Ref/hg38/hg38_ucsc_with_chrL" --annotation_path "~/Ref/hg38/annotations/hg38_allc.gz" --generate_mhap True > m3c_mhap_config_hisat3n.ini
 ```
 
 ## Run mapping
 ```shell
-yap-gcp run_mapping --workd="bismark_mapping" --fastq_server="local" --gcp=False --config_path="m3c-mhap_config_bismark.ini" --aligner='bismark' --n_jobs=4 --print_only=True
+yap-gcp run_mapping --workd="bismark_mapping" --fastq_server="local" --gcp=False --config_path="m3c_config_bismark.ini" --aligner='bismark' --n_jobs=4 --print_only=True
 cat bismark_mapping/snakemake/qsub/snakemake_cmd.txt #  add --notemp to keep all temporary files
 
-yap-gcp run_mapping --workd="hisat3n_mapping" --fastq_server="local" --gcp=False --config_path="m3c-mhap_config_hisat3n.ini" --aligner='hisat3n' --n_jobs=4 --print_only=True
+yap-gcp run_mapping --workd="hisat3n_mapping" --fastq_server="local" --gcp=False --config_path="m3c_mhap_config_hisat3n.ini" --aligner='hisat3n' --n_jobs=4 --print_only=True
 cat hisat3n_mapping/snakemake/qsub/snakemake_cmd.txt # sh to run
 ```
 
@@ -144,7 +144,7 @@ for donor,df1 in df.groupby('source_name_ch1'):
 
 ## Run mapping (download cell fastq directly from ftp server and delete it after it is no longer needed)
 ```shell
-yap-gcp run_mapping --workd="h1930001" --fastq_server='ftp' --gcp=False --config_path="m3c-mhap_config_hisat3n.ini" --aligner='hisat3n' --n_jobs=4 --total_memory_gb=20 --print_only=True
+yap-gcp run_mapping --workd="h1930001" --fastq_server='ftp' --gcp=False --config_path="m3c_mhap_config_hisat3n.ini" --aligner='hisat3n' --n_jobs=4 --total_memory_gb=20 --print_only=True
 ```
 
 

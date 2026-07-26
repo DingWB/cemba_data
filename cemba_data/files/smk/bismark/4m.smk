@@ -468,4 +468,4 @@ rule feature_count:
         mem_mb=1000
     shell:
         'featureCounts -t {feature_type} -g {id_type} ' \
-        '-a {gtf_path} -o {output.count} --byReadGroup -T {threads} {input}'
+        '-a {gtf_path} -o {output.count} -O --largestOverlap --fraction --byReadGroup -T {threads} {input}'

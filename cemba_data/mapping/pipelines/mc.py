@@ -16,7 +16,7 @@ def mc_config_str(config):
         'compress_level': 5
     }
 
-    bool_parameters = {'unmapped_fastq': False}
+    bool_parameters = {'unmapped_fastq': False, 'generate_mhap': False, 'extract_mcg': False}
 
     str_parameters = {
         'mode': 'mc',
@@ -30,7 +30,9 @@ def mc_config_str(config):
         'chrom_size_path': 'required',
         'mc_stat_feature': 'CHN CGN CCC',
         'mc_stat_alias': 'mCH mCG mCCC',
-        'annotation_path': None
+        'annotation_path': None,
+        'mc_format': 'cz',
+        'reference_cz': None
     }
     if 'hisat3n_dna_reference' in config and config["hisat3n_dna_reference"]!="CHANGE_THIS_TO_YOUR_HISAT3N_DNA_REFERENCE":
         del str_parameters['bismark_reference']

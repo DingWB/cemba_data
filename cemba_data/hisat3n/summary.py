@@ -3,7 +3,25 @@ import os
 from .stats_parser import *
 
 
-def snmc_summary(outname="MappingSummary.csv.gz",indir="."):
+def _parse_mc_count(indir='.', mc_format='allc'):
+	"""Parse per-cell methylation mC/cov counts, selected by mc_format.
+
+	mc_format='cz'   -> read cytozip bam_to_cz counts (cz/<cell>.cz.count.csv)
+	mc_format='allc' -> read ALLCools bam-to-allc counts (allc/<cell>.allc.tsv.gz.count.csv)
+	mc_format='both' -> read allc (both formats carry identical mc/cov counts).
+	Both count files share the same context-indexed mc/cov layout, so the same
+	parser is used. Reading only the chosen format avoids picking up stale count
+	files left over from a previous run with a different mc_format.
+	"""
+	if str(mc_format).lower() == 'cz':
+		pattern = indir + '/cz/*.cz.count.csv'
+	else:
+		pattern = indir + '/allc/*.allc.tsv.gz.count.csv'
+	return parse_single_stats_set(path_pattern=pattern,
+								  parser=cell_parser_allc_count, indir=indir)
+
+
+def snmc_summary(outname="MappingSummary.csv.gz",indir=".",mc_format='allc'):
 	"""
 	Generate snmC pipeline MappingSummary.csv.gz and save into cwd
 
@@ -35,9 +53,8 @@ def snmc_summary(outname="MappingSummary.csv.gz",indir="."):
 								prefix='MultiAlign',indir=indir)
 	all_stats.append(df)
 
-	# allc count
-	df = parse_single_stats_set(path_pattern=indir+'/allc/*.allc.tsv.gz.count.csv',
-								parser=cell_parser_allc_count,indir=indir)
+	# methylation count (allc/*.allc.tsv.gz.count.csv and/or cz/*.cz.count.csv)
+	df = _parse_mc_count(indir, mc_format)
 	all_stats.append(df)
 
 	# concatenate all stats
@@ -50,7 +67,7 @@ def snmc_summary(outname="MappingSummary.csv.gz",indir="."):
 	return all_stats
 
 
-def snmct_summary(outname="MappingSummary.csv.gz",indir="."):
+def snmct_summary(outname="MappingSummary.csv.gz",indir=".",mc_format='allc'):
 	"""
 	Generate snmCT pipeline MappingSummary.csv.gz and save into cwd
 
@@ -104,9 +121,8 @@ def snmct_summary(outname="MappingSummary.csv.gz",indir="."):
 								parser=cell_parser_reads_mc_frac_profile,indir=indir)
 	all_stats.append(df)
 
-	# allc count
-	df = parse_single_stats_set(path_pattern=indir+'/allc/*.allc.tsv.gz.count.csv',
-								parser=cell_parser_allc_count,indir=indir)
+	# methylation count (allc/*.allc.tsv.gz.count.csv and/or cz/*.cz.count.csv)
+	df = _parse_mc_count(indir, mc_format)
 	all_stats.append(df)
 
 	# feature count
@@ -124,7 +140,7 @@ def snmct_summary(outname="MappingSummary.csv.gz",indir="."):
 	return all_stats
 
 
-def snm3c_summary(outname="MappingSummary.csv.gz",indir="."):
+def snm3c_summary(outname="MappingSummary.csv.gz",indir=".",mc_format='allc'):
 	"""
 	Generate snm3C pipeline MappingSummary.csv.gz and save into cwd
 
@@ -169,9 +185,8 @@ def snm3c_summary(outname="MappingSummary.csv.gz",indir="."):
 								indir=indir)
 	all_stats.append(df)
 
-	# allc count
-	df = parse_single_stats_set(path_pattern=indir+'/allc/*.allc.tsv.gz.count.csv',
-								parser=cell_parser_allc_count,indir=indir)
+	# methylation count (allc/*.allc.tsv.gz.count.csv and/or cz/*.cz.count.csv)
+	df = _parse_mc_count(indir, mc_format)
 	all_stats.append(df)
 	# concatenate all stats
 	all_stats = pd.concat(all_stats, axis=1)

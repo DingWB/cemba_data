@@ -33,9 +33,8 @@ rule summary:
         expand("allc/{cell_id}.allc.tsv.gz",cell_id=CELL_IDS),
         expand("allc/{cell_id}.allc.tsv.gz.tbi",cell_id=CELL_IDS),
 
-        # allc-CGN
-        expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz.tbi", cell_id=CELL_IDS, mcg_context=mcg_context),
-        expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz",cell_id=CELL_IDS,mcg_context=mcg_context)
+        # allc-CGN (only generated when extract_mcg=True)
+        get_mcg_targets(CELL_IDS)
     output:
         csv="MappingSummary.csv.gz"
     run:
@@ -45,7 +44,7 @@ rule summary:
         # generate the final summary
         indir='.' if not config["gcp"] else workflow.default_remote_prefix
         aggregate_feature_counts(indir=indir)
-        snmct_summary(outname=output.csv,indir=indir)
+        snmct_summary(outname=output.csv,indir=indir,mc_format=config.get('mc_format','allc'))
 
         # cleanup
         shell(f"rm -rf {bam_dir}/temp")

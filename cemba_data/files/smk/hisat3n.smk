@@ -310,3 +310,69 @@ rule unique_reads_cgn_extraction:
 --allc_path  {input.allc} --output_prefix {params.prefix} \
 --mc_contexts {mcg_context} --chrom_size_path {config[chrom_size_path]}
         """
+
+# ==================================================
+# Generate CZ (cytozip), alternative/addition to ALLC
+# ==================================================
+rule unique_reads_cz:
+    input:
+        bam=local(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam"),
+        bai=local(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam.bai")
+    output:
+        cz="cz/{cell_id}.cz"
+    threads:
+        1.5
+    resources:
+        mem_mb=1300
+    run:
+        from cytozip import bam_to_cz
+        os.makedirs(cz_dir, exist_ok=True)
+        reference_cz = config.get('reference_cz', None)
+        if reference_cz in (None, '', 'None') or \
+                not os.path.exists(os.path.expanduser(str(reference_cz))):
+            raise FileNotFoundError(
+                "reference_cz is required to generate .cz files. Build one with:\n"
+                f"    czip build_ref -g {config['reference_fasta']} "
+                f"-O <output.allc.cz> -s {config['chrom_size_path']} -j 20\n"
+                "then set 'reference_cz = <output.allc.cz>' in the mapping config.")
+        bam_to_cz(
+            bam_path=input.bam,
+            genome=os.path.expanduser(str(config['reference_fasta'])),
+            output=output.cz,
+            reference=os.path.expanduser(str(reference_cz)),
+            num_upstr_bases=int(config['num_upstr_bases']),
+            num_downstr_bases=int(config['num_downstr_bases']),
+            convert_bam_strandness=True,
+            save_count_df=True)
+
+# ==================================================
+# Generate mhap (optional, enabled by generate_mhap)
+# ==================================================
+rule unique_reads_mhap:
+    input:
+        bam=local(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam"),
+        bai=local(bam_dir+"/{cell_id}.hisat3n_dna.all_reads.deduped.bam.bai")
+    output:
+        mhap_cg="mhap/{cell_id}.CG.mhap.gz",
+        tbi_cg="mhap/{cell_id}.CG.mhap.gz.tbi",
+        mhap_ch="mhap/{cell_id}.CH.mhap.gz",
+        tbi_ch="mhap/{cell_id}.CH.mhap.gz.tbi"
+    resources:
+        mem_mb=400
+    threads:
+        1
+    run:
+        from cemba_data.mapping.pipelines import bam2mhap
+        os.makedirs(mhap_dir, exist_ok=True)
+        annotation = config.get('annotation_path', None)
+        if annotation in (None, '', 'None'):
+            raise ValueError(
+                "generate_mhap=True requires 'annotation_path' (path to the "
+                "*_allc.gz annotation) in the mapping config.")
+        annotation = os.path.expanduser(str(annotation))
+        outfile_cg = output.mhap_cg[:-3]  # strip ".gz"; bgzipped + tabixed by bam2mhap
+        bam2mhap(bam_path=input.bam, annotation=annotation,
+                 output=outfile_cg, pattern="CGN")
+        outfile_ch = output.mhap_ch[:-3]
+        bam2mhap(bam_path=input.bam, annotation=annotation,
+                 output=outfile_ch, pattern="CHN")

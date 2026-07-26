@@ -14,14 +14,11 @@ rule summary:
         expand("bam/{cell_id}.hisat3n_dna_summary.txt", cell_id=CELL_IDS),
         expand("bam/{cell_id}.hisat3n_dna.unique_align.deduped.matrix.txt",cell_id=CELL_IDS),
 
-        # allc
-        expand("allc/{cell_id}.allc.tsv.gz.count.csv", cell_id=CELL_IDS),
-        expand("allc/{cell_id}.allc.tsv.gz",cell_id=CELL_IDS),
-        expand("allc/{cell_id}.allc.tsv.gz.tbi",cell_id=CELL_IDS),
+        # methylation output (allc and/or cz, controlled by config['mc_format'])
+        get_methylation_targets(CELL_IDS),
 
-        # allc-CGN
-        expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz.tbi", cell_id=CELL_IDS, mcg_context=mcg_context),
-        expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz",cell_id=CELL_IDS,mcg_context=mcg_context)
+        # mhap (optional, controlled by config['generate_mhap'])
+        get_mhap_targets(CELL_IDS)
     output:
         csv="MappingSummary.csv.gz"
     run:
@@ -30,7 +27,7 @@ rule summary:
 
         # generate the final summary
         indir='.' if not config["gcp"] else workflow.default_remote_prefix
-        snmc_summary(outname=output.csv,indir=indir)
+        snmc_summary(outname=output.csv,indir=indir,mc_format=config['mc_format'])
 
         # cleanup
         shell(f"rm -rf {bam_dir}/temp")
@@ -127,4 +124,70 @@ rule unique_reads_allc:
 --compress_level {config[compress_level]} --save_count_df \
 --convert_bam_strandness
         """
+
+# ==================================================
+# Generate CZ (cytozip), alternative/addition to ALLC
+# ==================================================
+rule unique_reads_cz:
+    input:
+        bam="bam/{cell_id}.hisat3n_dna.unique_align.deduped.bam",
+        bai="bam/{cell_id}.hisat3n_dna.unique_align.deduped.bam.bai"
+    output:
+        cz="cz/{cell_id}.cz"
+    threads:
+        1.5
+    resources:
+        mem_mb=1300
+    run:
+        from cytozip import bam_to_cz
+        os.makedirs(cz_dir, exist_ok=True)
+        reference_cz = config.get('reference_cz', None)
+        if reference_cz in (None, '', 'None') or \
+                not os.path.exists(os.path.expanduser(str(reference_cz))):
+            raise FileNotFoundError(
+                "reference_cz is required to generate .cz files. Build one with:\n"
+                f"    czip build_ref -g {config['reference_fasta']} "
+                f"-O <output.allc.cz> -s {config['chrom_size_path']} -j 20\n"
+                "then set 'reference_cz = <output.allc.cz>' in the mapping config.")
+        bam_to_cz(
+            bam_path=input.bam,
+            genome=os.path.expanduser(str(config['reference_fasta'])),
+            output=output.cz,
+            reference=os.path.expanduser(str(reference_cz)),
+            num_upstr_bases=int(config['num_upstr_bases']),
+            num_downstr_bases=int(config['num_downstr_bases']),
+            convert_bam_strandness=True,
+            save_count_df=True)
+
+# ==================================================
+# Generate mhap (optional, enabled by generate_mhap)
+# ==================================================
+rule unique_reads_mhap:
+    input:
+        bam="bam/{cell_id}.hisat3n_dna.unique_align.deduped.bam",
+        bai="bam/{cell_id}.hisat3n_dna.unique_align.deduped.bam.bai"
+    output:
+        mhap_cg="mhap/{cell_id}.CG.mhap.gz",
+        tbi_cg="mhap/{cell_id}.CG.mhap.gz.tbi",
+        mhap_ch="mhap/{cell_id}.CH.mhap.gz",
+        tbi_ch="mhap/{cell_id}.CH.mhap.gz.tbi"
+    resources:
+        mem_mb=400
+    threads:
+        1
+    run:
+        from cemba_data.mapping.pipelines import bam2mhap
+        os.makedirs(mhap_dir, exist_ok=True)
+        annotation = config.get('annotation_path', None)
+        if annotation in (None, '', 'None'):
+            raise ValueError(
+                "generate_mhap=True requires 'annotation_path' (path to the "
+                "*_allc.gz annotation) in the mapping config.")
+        annotation = os.path.expanduser(str(annotation))
+        outfile_cg = output.mhap_cg[:-3]  # strip ".gz"; bgzipped + tabixed by bam2mhap
+        bam2mhap(bam_path=input.bam, annotation=annotation,
+                 output=outfile_cg, pattern="CGN")
+        outfile_ch = output.mhap_ch[:-3]
+        bam2mhap(bam_path=input.bam, annotation=annotation,
+                 output=outfile_ch, pattern="CHN")
 

@@ -25,14 +25,11 @@ rule summary:
         expand("hic/{cell_id}.hisat3n_dna.all_reads.3C.contact.tsv.gz",cell_id=CELL_IDS),
         expand("hic/{cell_id}.hisat3n_dna.all_reads.dedup_contacts.tsv.gz",cell_id=CELL_IDS),
 
-        # allc
-        expand("allc/{cell_id}.allc.tsv.gz.count.csv", cell_id=CELL_IDS),
-        expand("allc/{cell_id}.allc.tsv.gz",cell_id=CELL_IDS),
-        expand("allc/{cell_id}.allc.tsv.gz.tbi",cell_id=CELL_IDS),
+        # methylation output (allc and/or cz, controlled by config['mc_format'])
+        get_methylation_targets(CELL_IDS),
 
-        # allc-CGN
-        expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz.tbi", cell_id=CELL_IDS, mcg_context=mcg_context),
-        expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz",cell_id=CELL_IDS,mcg_context=mcg_context)
+        # mhap (optional, controlled by config['generate_mhap'])
+        get_mhap_targets(CELL_IDS)
     output:
         csv="MappingSummary.csv.gz"
     run:
@@ -41,7 +38,7 @@ rule summary:
 
         # generate the final summary
         indir='.' if not config["gcp"] else workflow.default_remote_prefix
-        snm3c_summary(outname=output.csv,indir=indir)
+        snm3c_summary(outname=output.csv,indir=indir,mc_format=config['mc_format'])
 
         # cleanup
         shell(f"rm -rf {bam_dir}/temp")

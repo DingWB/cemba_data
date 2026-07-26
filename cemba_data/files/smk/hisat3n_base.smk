@@ -31,6 +31,19 @@ DEFAULT_CONFIG = {
     # it gets executed before the final summary function.
     # the default command is just a placeholder that has no effect
     'post_mapping_script': 'true',
+    # Methylation output format: 'allc' (ALLCools bam-to-allc),
+    # 'cz' (cytozip bam_to_cz, default), or 'both'.
+    'mc_format': 'cz',
+    # Reference .cz file (built by `czip build_ref`), required when mc_format
+    # is 'cz' or 'both'.
+    'reference_cz': None,
+    # Whether to also generate per-cell .mhap.gz files (bam -> mhap).
+    'generate_mhap': False,
+    # Annotation *_allc.gz path used by bam2mhap, required when generate_mhap.
+    'annotation_path': None,
+    # Whether to generate the CGN-merged ALLC (allc-CGN/*.CGN-Merge.allc.tsv.gz).
+    # Off by default; set extract_mcg = True to produce it.
+    'extract_mcg': False,
 }
 REQUIRED_CONFIG = ['hisat3n_dna_reference', 'reference_fasta', 'chrom_size_path']
 
@@ -45,6 +58,7 @@ allc_dir=os.path.abspath(workflow.default_remote_prefix+"/allc") if config["gcp"
 allc_multi_dir=os.path.abspath(workflow.default_remote_prefix+"/allc-multi") if config["gcp"] else "allc-multi"
 hic_dir=os.path.abspath(workflow.default_remote_prefix+"/hic") if config["gcp"] else "hic"
 mhap_dir=os.path.abspath(workflow.default_remote_prefix+"/mhap") if config["gcp"] else "mhap"
+cz_dir=os.path.abspath(workflow.default_remote_prefix+"/cz") if config["gcp"] else "cz"
 
 local_config = read_mapping_config()
 DEFAULT_CONFIG.update(local_config)
@@ -74,6 +88,85 @@ allc_mcg_dir=os.path.abspath(workflow.default_remote_prefix+f"/allc-{mcg_context
 for dir in [bam_dir,allc_dir]:
     if not os.path.exists(dir):
         os.mkdir(dir)
+
+# ==================================================
+# Methylation output format (allc / cz) and optional mhap generation
+# ==================================================
+def _coerce_bool(v):
+    if isinstance(v, bool):
+        return v
+    return str(v).strip().lower() in ('true', '1', 'yes', 'y', 't', 'on')
+
+mc_format = str(config.get('mc_format', 'allc')).lower()
+if mc_format not in ('allc', 'cz', 'both'):
+    raise ValueError(
+        f"Unknown mc_format {mc_format!r}, choose from 'allc', 'cz', 'both'")
+config['mc_format'] = mc_format
+
+generate_mhap = _coerce_bool(config.get('generate_mhap', False))
+config['generate_mhap'] = generate_mhap
+
+# Whether to generate the CGN-merged ALLC (allc-CGN). Off by default.
+extract_mcg = _coerce_bool(config.get('extract_mcg', False))
+config['extract_mcg'] = extract_mcg
+
+# When .cz output is requested, a reference .cz (built by `czip build_ref`)
+# is required. Warn (and show how to build it) if it is missing so the user
+# can generate it before/while running the pipeline.
+if mc_format in ('cz', 'both'):
+    reference_cz = config.get('reference_cz', None)
+    genome_fasta = config.get('reference_fasta', 'GENOME.fa')
+    chrom_size_path = config.get('chrom_size_path', 'CHROM.sizes')
+    default_ref_cz = os.path.splitext(
+        os.path.expanduser(str(genome_fasta)))[0] + '.allc.cz'
+    if reference_cz in (None, '', 'None'):
+        sys.stderr.write(
+            "\n[WARNING] mc_format=%r requires a reference .cz file but "
+            "'reference_cz' is not set in the mapping config.\n"
+            "Build one from the genome fasta and chrom_size with:\n"
+            "    czip build_ref -g %s -O %s -s %s -j 20\n"
+            "then set 'reference_cz = %s' in the mapping config.\n\n"
+            % (mc_format, genome_fasta, default_ref_cz,
+               chrom_size_path, default_ref_cz))
+    elif not os.path.exists(os.path.expanduser(str(reference_cz))):
+        sys.stderr.write(
+            "\n[WARNING] reference_cz %r does not exist. Build it with:\n"
+            "    czip build_ref -g %s -O %s -s %s -j 20\n\n"
+            % (reference_cz, genome_fasta,
+               os.path.expanduser(str(reference_cz)), chrom_size_path))
+
+
+def get_methylation_targets(cell_ids):
+    """Methylation output targets for the summary rule, based on mc_format."""
+    targets = []
+    if mc_format in ('allc', 'both'):
+        targets += expand("allc/{cell_id}.allc.tsv.gz.count.csv", cell_id=cell_ids)
+        targets += expand("allc/{cell_id}.allc.tsv.gz", cell_id=cell_ids)
+        targets += expand("allc/{cell_id}.allc.tsv.gz.tbi", cell_id=cell_ids)
+        targets += get_mcg_targets(cell_ids)
+    if mc_format in ('cz', 'both'):
+        targets += expand("cz/{cell_id}.cz", cell_id=cell_ids)
+    return targets
+
+
+def get_mcg_targets(cell_ids):
+    """CGN-merged ALLC targets, only when extract_mcg is enabled."""
+    if not extract_mcg:
+        return []
+    return (expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz.tbi",
+                   cell_id=cell_ids, mcg_context=mcg_context)
+            + expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz",
+                     cell_id=cell_ids, mcg_context=mcg_context))
+
+
+def get_mhap_targets(cell_ids):
+    """mhap output targets for the summary rule, enabled by generate_mhap."""
+    if not generate_mhap:
+        return []
+    return (expand("mhap/{cell_id}.CG.mhap.gz", cell_id=cell_ids)
+            + expand("mhap/{cell_id}.CG.mhap.gz.tbi", cell_id=cell_ids)
+            + expand("mhap/{cell_id}.CH.mhap.gz", cell_id=cell_ids)
+            + expand("mhap/{cell_id}.CH.mhap.gz.tbi", cell_id=cell_ids))
 
 # print(f"bam_dir: {os.path.abspath(bam_dir)}")
 # print(f"allc_dir: {os.path.abspath(allc_dir)}")

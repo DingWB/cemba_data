@@ -25,9 +25,8 @@ rule summary:
         expand("allc-multi/{cell_id}.allc_multi.tsv.gz",cell_id=CELL_IDS),
         expand("allc-multi/{cell_id}.allc_multi.tsv.gz.tbi",cell_id=CELL_IDS),
 
-        # allc-CGN
-        expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz.tbi", cell_id=CELL_IDS, mcg_context=mcg_context),
-        expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz",cell_id=CELL_IDS,mcg_context=mcg_context)
+        # allc-CGN (only generated when extract_mcg=True)
+        get_mcg_targets(CELL_IDS)
     output:
         csv="MappingSummary.csv.gz"
     run:
@@ -36,7 +35,7 @@ rule summary:
 
         # generate the final summary
         indir='.' if not config["gcp"] else workflow.default_remote_prefix
-        snmc_summary(outname=output.csv,indir=indir)
+        snmc_summary(outname=output.csv,indir=indir,mc_format=config['mc_format'])
 
         # cleanup
         shell(f"rm -rf {bam_dir}/temp")

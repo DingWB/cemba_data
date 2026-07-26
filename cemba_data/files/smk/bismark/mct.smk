@@ -23,9 +23,8 @@ rule summary:
         # also add all the stats path here,
         # once summary is generated, snakemake will delete these stats
         expand("allc/{cell_id}.allc.tsv.gz.count.csv", cell_id=CELL_IDS),
-        # allc-CGN
-        expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz.tbi",cell_id=CELL_IDS,mcg_context=mcg_context),
-        expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz",cell_id=CELL_IDS,mcg_context=mcg_context),
+        # allc-CGN (only generated when extract_mcg=True)
+        get_mcg_targets(CELL_IDS),
         expand("fastq/{cell_id}-{read_type}.trimmed.stats.txt", cell_id=CELL_IDS,read_type=['R1','R2']),
         expand("bam/{cell_id}-{read_type}.trimmed_bismark_bt2.deduped.matrix.txt", cell_id=CELL_IDS,read_type=['R1','R2']),
         expand("bam/{cell_id}-{read_type}.trimmed_bismark_bt2_SE_report.txt", cell_id=CELL_IDS,read_type=['R1','R2']),
@@ -291,5 +290,5 @@ rule feature_count:
         mem_mb=1000
     shell:
         """
-        featureCounts -t {feature_type} -g {id_type} -a {gtf_path} -o {output.count_tsv} -O --largestOverlap --byReadGroup -T {threads} {input}
+        featureCounts -t {feature_type} -g {id_type} -a {gtf_path} -o {output.count_tsv} -O --largestOverlap --fraction --byReadGroup -T {threads} {input}
         """

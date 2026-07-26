@@ -12,14 +12,19 @@ from .utilities import parse_trim_fastq_stats, parse_trim_fastq_stats_mct, \
 
 # mc
 def mc_mapping_stats(output_dir=None,fastq_dir=None,mode="m3c",mc_stat_feature='CHN CGN CCC',
-					mc_stat_alias='mCH mCG mCCC',num_upstr_bases=0):
+					mc_stat_alias='mCH mCG mCCC',num_upstr_bases=0,mc_format='allc'):
 	"""this may apply to single UID dir, so config is provided as parameter"""
 	output_dir = pathlib.Path(output_dir).absolute()
 	bam_dir = output_dir / 'bam'
 	allc_dir = output_dir / 'allc'
 	cell_stats = []
-	cell_ids = [path.name.split('.')[0]
-				for path in allc_dir.glob(f'*.allc.tsv.gz')]
+	if str(mc_format).lower() == 'cz':
+		# cz output (mc_format='cz'): discover cells from cz/
+		cell_ids = [path.name.split('.')[0]
+					for path in (output_dir / 'cz').glob('*.cz')]
+	else:
+		cell_ids = [path.name.split('.')[0]
+					for path in allc_dir.glob('*.allc.tsv.gz')]
 
 	for cell_id in cell_ids:
 		print(f'Parsing stats of {cell_id}.')
@@ -45,7 +50,7 @@ def mc_mapping_stats(output_dir=None,fastq_dir=None,mode="m3c",mc_stat_feature='
 	mapping_df.index.name = 'cell_id'
 
 	# add allc stats
-	allc_df = generate_allc_stats(output_dir, mc_stat_feature,mc_stat_alias,num_upstr_bases)
+	allc_df = generate_allc_stats(output_dir, mc_stat_feature,mc_stat_alias,num_upstr_bases,mc_format=mc_format)
 	final_df = pd.concat([mapping_df, allc_df], sort=True, axis=1)
 	return final_df
 
@@ -81,7 +86,7 @@ def m3c_count_bams(bam_dir, cell_id, read_type):
 	return pd.Series(read_counts, name=cell_id)
 
 
-def m3c_mapping_stats(output_dir,fastq_dir,mode,mc_stat_feature,mc_stat_alias,num_upstr_bases):
+def m3c_mapping_stats(output_dir,fastq_dir,mode,mc_stat_feature,mc_stat_alias,num_upstr_bases,mc_format='allc'):
 	"""this may apply to single UID dir, so config is provided as parameter"""
 	output_dir = pathlib.Path(output_dir).absolute()
 	#fastq_dir = output_dir / 'fastq'
@@ -116,7 +121,7 @@ def m3c_mapping_stats(output_dir,fastq_dir,mode,mc_stat_feature,mc_stat_alias,nu
 	total_df = pd.DataFrame(cell_stats)
 
 	# add allc stats
-	allc_df = generate_allc_stats(output_dir, mc_stat_feature,mc_stat_alias,num_upstr_bases)
+	allc_df = generate_allc_stats(output_dir, mc_stat_feature,mc_stat_alias,num_upstr_bases,mc_format=mc_format)
 	final_df = pd.concat([total_df, allc_df], sort=True, axis=1)
 	return final_df
 
@@ -228,9 +233,9 @@ def summarize_select_dna_reads(output_dir,mc_rate_max_threshold,dna_cov_min_thre
 	return final_stat
 
 def mct_mapping_stats(output_dir, fastq_dir,mode,mc_stat_feature,mc_stat_alias,num_upstr_bases,
-					  mc_rate_max_threshold,dna_cov_min_threshold):
+					  mc_rate_max_threshold,dna_cov_min_threshold,mc_format='allc'):
 	"""this may apply to single UID dir, so config is provided as parameter"""
-	mc_stats_df = mc_mapping_stats(output_dir, fastq_dir,mode,mc_stat_feature,mc_stat_alias,num_upstr_bases)
+	mc_stats_df = mc_mapping_stats(output_dir, fastq_dir,mode,mc_stat_feature,mc_stat_alias,num_upstr_bases,mc_format=mc_format)
 	select_dna_stats_df = summarize_select_dna_reads(output_dir, mc_rate_max_threshold,dna_cov_min_threshold)
 	rna_stats_df = summary_rna_mapping(output_dir)
 	final_df = pd.concat([mc_stats_df, select_dna_stats_df, rna_stats_df], axis=1)
@@ -288,9 +293,9 @@ def mct_additional_cols(final_df, output_dir):
 
 # 4m
 def _4m_mapping_stats(output_dir,fastq_dir,mode,mc_stat_feature,mc_stat_alias,num_upstr_bases,
-					mc_rate_max_threshold,dna_cov_min_threshold):
+					mc_rate_max_threshold,dna_cov_min_threshold,mc_format='allc'):
 	"""this may apply to single UID dir, so config is provided as parameter"""
-	m3c_stats_df = m3c_mapping_stats(output_dir,fastq_dir,mode,mc_stat_feature,mc_stat_alias,num_upstr_bases)
+	m3c_stats_df = m3c_mapping_stats(output_dir,fastq_dir,mode,mc_stat_feature,mc_stat_alias,num_upstr_bases,mc_format=mc_format)
 	select_dna_stats_df = summarize_select_dna_reads(output_dir, mc_rate_max_threshold,dna_cov_min_threshold)
 	rna_stats_df = summary_rna_mapping(output_dir)
 	final_df = pd.concat([m3c_stats_df, select_dna_stats_df, rna_stats_df], axis=1)
@@ -399,7 +404,7 @@ def get_plate_info(cell_ids, barcode_version="V2"):
 # main function
 def mapping_stats(output_dir=None,fastq_dir=None,mode='m3c',barcode_version='V2',
 				mc_stat_feature='CHN CGN CCC',mc_stat_alias='mCH mCG mCCC',num_upstr_bases=0,
-				mc_rate_max_threshold=0.5,dna_cov_min_threshold=3):
+				mc_rate_max_threshold=0.5,dna_cov_min_threshold=3,mc_format='allc'):
 	"""This is UID level mapping summary, the config file is in parent dir"""
 	print("CWD:",os.getcwd())
 	output_dir = pathlib.Path(output_dir).absolute()
@@ -409,15 +414,15 @@ def mapping_stats(output_dir=None,fastq_dir=None,mode='m3c',barcode_version='V2'
 		fastq_dir=pathlib.Path(fastq_dir).absolute()
 	mode=mode.split('-')[0]
 	if mode == 'mc':
-		final_df = mc_mapping_stats(output_dir,fastq_dir,mode,mc_stat_feature,mc_stat_alias,num_upstr_bases)
+		final_df = mc_mapping_stats(output_dir,fastq_dir,mode,mc_stat_feature,mc_stat_alias,num_upstr_bases,mc_format=mc_format)
 	elif mode == 'mct':
 		final_df = mct_mapping_stats(output_dir,fastq_dir,mode,mc_stat_feature,mc_stat_alias,num_upstr_bases,
-					  mc_rate_max_threshold,dna_cov_min_threshold)
+					  mc_rate_max_threshold,dna_cov_min_threshold,mc_format=mc_format)
 	elif mode == 'm3c':
-		final_df = m3c_mapping_stats(output_dir,fastq_dir,mode,mc_stat_feature,mc_stat_alias,num_upstr_bases)
+		final_df = m3c_mapping_stats(output_dir,fastq_dir,mode,mc_stat_feature,mc_stat_alias,num_upstr_bases,mc_format=mc_format)
 	elif mode == '4m':
 		final_df = _4m_mapping_stats(output_dir,fastq_dir,mode,mc_stat_feature,mc_stat_alias,num_upstr_bases,
-					mc_rate_max_threshold,dna_cov_min_threshold)
+					mc_rate_max_threshold,dna_cov_min_threshold,mc_format=mc_format)
 	else:
 		raise ValueError
 

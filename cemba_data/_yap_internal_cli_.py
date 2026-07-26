@@ -292,6 +292,14 @@ def mapping_summary_internal_subparser(subparser):
         help="dna_cov_min_threshold"
     )
 
+    parser_req.add_argument(
+        "--mc_format",
+        type=str,
+        default='allc',
+        help="methylation output format to summarize: 'allc' (read allc/*count.csv) "
+             "or 'cz' (read cz/*.cz.count.csv)"
+    )
+
 def split_read_internal_subparser(subparser):
     parser = subparser.add_parser('m3c-split-reads',
                                   formatter_class=argparse.ArgumentDefaultsHelpFormatter,

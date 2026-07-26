@@ -123,10 +123,24 @@ def parse_deduplicate_stat(stat_path):
     return dedup_result_series
 
 
-def generate_allc_stats(output_dir, mc_stat_feature,mc_stat_alias,num_upstr_bases):
+def generate_allc_stats(output_dir, mc_stat_feature,mc_stat_alias,num_upstr_bases, mc_format='allc'):
     output_dir = pathlib.Path(output_dir).absolute()
-    allc_list = list(output_dir.glob('allc/*tsv.gz'))
-    allc_stats_dict = {p.name.split('.')[0]: p for p in output_dir.glob('allc/*count.csv')}
+    # Select the methylation count files by the chosen output format:
+    #   mc_format='cz' -> cytozip bam_to_cz counts (cz/<cell>.cz.count.csv)
+    #   otherwise      -> ALLCools bam-to-allc counts (allc/<cell>.*count.csv)
+    # Both share the same context-indexed mc/cov/genome_cov layout. Reading
+    # only the chosen format avoids picking up stale count files from a
+    # previous run with a different mc_format.
+    if str(mc_format).lower() == 'cz':
+        allc_list = []  # no tabix allc -> lambda spike-in stats unavailable in cz mode
+        allc_stats_dict = {p.name.split('.')[0]: p for p in output_dir.glob('cz/*count.csv')}
+    else:
+        allc_list = list(output_dir.glob('allc/*tsv.gz'))
+        allc_stats_dict = {p.name.split('.')[0]: p for p in output_dir.glob('allc/*count.csv')}
+
+    # no methylation count files at all (e.g. run failed) -> nothing to add
+    if len(allc_stats_dict) == 0:
+        return pd.DataFrame()
 
     # patterns = config['mc_stat_feature'].split(' ')
     # patterns_alias = config['mc_stat_alias'].split(' ')

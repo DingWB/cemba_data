@@ -33,9 +33,8 @@ rule summary:
         expand("allc/{cell_id}.allc.tsv.gz",cell_id=CELL_IDS),
         expand("allc/{cell_id}.allc.tsv.gz.tbi",cell_id=CELL_IDS),
 
-        # allc-CGN
-        expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz.tbi", cell_id=CELL_IDS, mcg_context=mcg_context),
-        expand("allc-{mcg_context}/{cell_id}.{mcg_context}-Merge.allc.tsv.gz",cell_id=CELL_IDS,mcg_context=mcg_context)
+        # allc-CGN (only generated when extract_mcg=True)
+        get_mcg_targets(CELL_IDS)
     output:
         csv="MappingSummary.csv.gz"
     run:
@@ -45,7 +44,7 @@ rule summary:
         # generate the final summary
         indir='.' if not config["gcp"] else workflow.default_remote_prefix
         aggregate_feature_counts(indir=indir)
-        snmct_summary(outname=output.csv,indir=indir)
+        snmct_summary(outname=output.csv,indir=indir,mc_format=config.get('mc_format','allc'))
 
         # cleanup
         shell(f"rm -rf {bam_dir}/temp")
@@ -227,10 +226,10 @@ rule feature_count:
         1
     resources:
         mem_mb=1000
-    shell: #version 2.0.1, if there is overlap between two records in gtf, then there will be no reads assigned to these two features.
+    shell: # -O --largestOverlap --fraction: a read overlapping multiple features is assigned to the feature(s) with the largest overlap; ties (e.g. a gene fully contained in a larger one) are split as fractional 1/n counts.
         """
         featureCounts -t {config[feature_type]} -g {config[id_type]} \
--a {config[gtf_path]} -o {output.tsv} -O --largestOverlap --byReadGroup -T {threads} {input}
+-a {config[gtf_path]} -o {output.tsv} -O --largestOverlap --fraction --byReadGroup -T {threads} {input}
         """
         
 

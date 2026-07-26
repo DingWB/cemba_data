@@ -26,9 +26,9 @@ def read_mapping_config(cwd: str = '.'):
                 tried.append(path)
                 if pathlib.Path(path).exists():
                     yaml_path = path
-    default_path = f'~/mapping_config.yaml'
-    if pathlib.Path(default_path).exists():
-        yaml_path = default_path
+    default_path = pathlib.Path('~/mapping_config.yaml').expanduser()
+    if default_path.exists():
+        yaml_path = str(default_path)
 
     ini_path = None
     for name in ['config', 'mapping_config']:
@@ -61,8 +61,9 @@ def validate_cwd_fastq_paths(cwd: str = '.'):
     """
     # get all fastq file paths
     fastq_paths = [p
-                   for p in pathlib.Path(f'{cwd}/fastq/').glob('*.[fq.gz][fastq.gz]')
-                   if 'trim' not in p.name]
+                   for p in pathlib.Path(f'{cwd}/fastq/').glob('*')
+                   if p.name.endswith(('.fq.gz', '.fastq.gz', '.fq', '.fastq'))
+                   and 'trim' not in p.name]
 
     # parse cell id and match fastq pairs
     fastq_pattern = re.compile(r'(?P<cell_id>.+)(-|_)(?P<read_type>(R1|R2|r1|r2)).(fastq|fq)(.gz)*')
