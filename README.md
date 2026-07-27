@@ -43,7 +43,7 @@ yap default-mapping-config --mode mct --barcode_version V2 --bismark_ref "~/Ref/
 yap default-mapping-config --mode mct --barcode_version V2 --hisat3n_dna_ref "~/Ref/mm10/mm10_ucsc_with_chrL" --hisat3n_rna_ref "~/Ref/mm10/mm10_ucsc_with_chrL" --genome "~/Ref/mm10/mm10_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/mm10/mm10_ucsc.nochrM.sizes" --gtf "~/Ref/mm10/annotations/gencode.vM23.annotation.gtf" > mct_config.ini
 ```
 
-## Choose the methylation output: allc / cz / mhap
+## Choose the methylation output: allc / cz
 The `m3c` and `mc` pipelines (both the `bismark` and `hisat-3n` aligners) can
 generate three kinds of per-cell methylation output. Which ones are produced is
 controlled by three parameters in the `[output]` section of the mapping config
@@ -54,8 +54,6 @@ controlled by three parameters in the `[output]` section of the mapping config
 | `mc_format` | `allc` / `cz` (**default**) / `both` | `cz` → `cz/<cell>.cz` (cytozip `bam_to_cz`, **default**); `allc` → `allc/<cell>.allc.tsv.gz` (ALLCools `bam-to-allc`); `both` → generate both |
 | `reference_cz` | path to a `.cz` file | **required** when `mc_format` is `cz` or `both` |
 | `extract_mcg` | `False` (**default**) / `True` | generate the CGN-merged ALLC `allc-CGN/<cell>.CGN-Merge.allc.tsv.gz`. **Off by default**; only meaningful when allc output is produced |
-| `generate_mhap` | `False` (**default**) / `True` | also generate `mhap/<cell>.CG.mhap.gz` and `mhap/<cell>.CH.mhap.gz` |
-| `annotation_path` | path to `*_allc.gz` | **required** when `generate_mhap = True` |
 
 ### 1. Generate .cz (cytozip) — default
 `cz` is the **default** output. It needs a **reference `.cz`** built once per
@@ -90,14 +88,6 @@ mc_format = allc          ; or both
 extract_mcg = True
 ```
 
-### 4. Also generate mhap files
-Set `generate_mhap = True` and provide the `*_allc.gz` annotation:
-```ini
-[output]
-generate_mhap = True
-annotation_path = ~/Ref/hg38/annotations/hg38_allc.gz
-```
-
 ### Generating the config with these options in one line
 `yap default-mapping-config` forwards any extra `--key value` pairs into the
 config, so you can set the output options directly:
@@ -109,13 +99,12 @@ yap default-mapping-config --mode m3c --barcode_version V2 \
   --chrom_size_path "~/Ref/hg38/hg38_ucsc.main.chrom.sizes" \
   --reference_cz "~/Ref/hg38/hg38_ucsc_with_chrL.allc.cz" > m3c_config.ini
 
-# allc + allc-CGN + mhap, hisat-3n
+# allc + allc-CGN, hisat-3n
 yap default-mapping-config --mode m3c --barcode_version V2 \
   --hisat3n_dna_ref "~/Ref/hg38/hg38_ucsc_with_chrL" \
   --genome "~/Ref/hg38/hg38_ucsc_with_chrL.fa" \
   --chrom_size_path "~/Ref/hg38/hg38_ucsc.main.chrom.sizes" \
-  --mc_format allc --extract_mcg True \
-  --generate_mhap True --annotation_path "~/Ref/hg38/annotations/hg38_allc.gz" > m3c_config.ini
+  --mc_format allc --extract_mcg True > m3c_config.ini
 ```
 
 ## Demultiplex
