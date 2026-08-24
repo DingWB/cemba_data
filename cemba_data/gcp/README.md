@@ -178,3 +178,69 @@ def predict_neuron_percentage(
     tot_neun_ratio = neun_ratios[True].sum()/neun_ratios.sum().sum() #neun_ratios is a df,
     return tot_neun_ratio
 ```
+
+# Changelog
+
+## Fix: hisat-3n mapping-rate denominator (`cell_parser_hisat_summary`)
+
+**File:** `cemba_data/hisat3n/stats_parser.py`
+
+**What changed**
+
+```python
+# before
+total_reads = report_dict['ReadPairsMappedInPE'] * 2 + report_dict['ReadsMappedInSE']
+# after
+total_reads = report_dict['ReadPairsMappedInPE'] * 2
+```
+
+`total_reads` is the denominator for `UniqueMappingRate`, `MultiMappingRate`,
+and `OverallMappingRate`.
+
+**Why**
+
+The paired-end hisat-3n mapping runs in mixed mode. Mixed mode is the default
+in hisat-3n/bowtie2 and is only disabled by passing `--no-mixed`; the pipeline
+does not pass that flag, so mixed mode stays on. As a result the `--new-summary`
+output has two blocks:
+
+- `Total pairs: P`   -> `ReadPairsMappedInPE`
+- `Total unpaired reads: U`  -> `ReadsMappedInSE`
+
+In mixed mode, when a pair fails to align concordantly/discordantly, hisat-3n
+splits it and re-tries each mate as an unpaired read. Therefore `U = 2 * Z`,
+where `Z` is the number of pairs that failed to align as a pair. These unpaired
+reads are **not new reads**; they are a subset of the original `P * 2` mates,
+re-attempted individually.
+
+The total number of distinct input mates satisfies the invariant:
+
+```
+P * 2 = (P - Z) * 2   [mates aligned as pairs]
+      + U             [mates re-tried as unpaired], with U = 2 * Z
+```
+
+So the correct denominator is `P * 2`. The old formula `P * 2 + U` double-counts
+the failed-pair mates (`2 * Z`), inflating the denominator and systematically
+**deflating every mapping rate**.
+
+**Impact by pipeline**
+
+The fix lives in a single shared parser (`cell_parser_hisat_summary`), so it
+applies everywhere that function is used:
+
+- `mc`  -> DNA summary (`*.hisat3n_dna_summary.txt`)
+- `mct` -> DNA summary + RNA summary (`*.hisat3n_rna_summary.txt`)
+- `m3c` -> DNA summary (`*.hisat3n_dna_summary.txt`)
+
+For `mc` / `mct`, most pairs map concordantly, so `Z` (and the inflation) is
+small and the previous under-reporting was mild. For `m3c`, many read pairs span
+a chromatin ligation junction and fail PE mapping, so `Z` is large and the
+under-reporting was severe (e.g. `UniqueMappingRate` around 35%). Note that for
+`m3c` the PE `UniqueMappingRate` is still expected to be low by design: the
+reads that fail PE mapping are split at enzyme cut sites and recovered later by
+the single-end split-read re-alignment (`*.hisat3n_dna_split_reads_summary.R1/R2.txt`),
+which is independent of this denominator fix.
+
+The single-end split-read parser (`cell_parser_hisat_se_summary`) uses
+`Total reads` as its denominator and was never affected.

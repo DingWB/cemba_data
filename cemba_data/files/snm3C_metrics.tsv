@@ -10,7 +10,7 @@ R2WithAdapters	Number of R2 reads in which Cutadapt detected and trimmed adapter
 R2QualTrimBP	Number of R2 bases trimmed off due to low base quality.	Source: cutadapt `qualtrim2_bp`.
 R2TrimmedReadsBP	Total R2 base pairs remaining after adapter + quality trimming.	Source: cutadapt `out2_bp`.
 UniqueMappedReads	Number of uniquely mapped reads from the initial paired-end hisat-3n alignment of trimmed reads.	= 2 x (concordantly 1 time pairs) + 2 x (discordantly 1 time pairs) + (unpaired Aligned 1 time reads). Parsed from `*.hisat3n_dna_summary.txt`.
-UniqueMappingRate	Percent of uniquely mapped reads in the paired-end hisat-3n run, relative to total input reads (read pairs x 2 + unpaired reads).	100 x UniqueMappedReads / total_reads.
+UniqueMappingRate	Percent of uniquely mapped reads in the paired-end hisat-3n run, relative to total input reads (read pairs x 2).	100 x UniqueMappedReads / total_reads. total_reads = read pairs x 2; the SE 'Total unpaired reads' are mates of pairs that failed PE mapping, i.e. a subset of read pairs x 2, so they are NOT added to the denominator. Note: the same cell_parser_hisat_summary formula is used for the mc and mct pipelines too, on both the DNA (`*.hisat3n_dna_summary.txt`) and RNA (`*.hisat3n_rna_summary.txt`) paired-end summaries, not only snm3C.
 MultiMappedReads	Number of multi-mapped reads in the paired-end hisat-3n run.	= 2 x (concordantly >1 times pairs) + (unpaired Aligned >1 times reads).
 MultiMappingRate	Percent of multi-mapped reads in the paired-end hisat-3n run, relative to total input reads.	100 x MultiMappedReads / total_reads.
 OverallMappingRate	Overall mapped percentage in the paired-end hisat-3n run.	= UniqueMappingRate + MultiMappingRate.

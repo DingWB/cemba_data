@@ -45,8 +45,11 @@ def cell_parser_hisat_summary(stat_path):
 				report_dict[v] = 0
 
 		report_dict = pd.Series(report_dict).astype(int)
-		total_reads = report_dict[f'ReadPairsMappedInPE'] * 2 + report_dict[
-			'ReadsMappedInSE']
+		# 'Total unpaired reads' (ReadsMappedInSE) are the mates of pairs that
+		# failed to align as a pair, re-tried individually in mixed mode. They are
+		# a subset of 'Total pairs' x 2, so the true input read count is just x2.
+		total_reads = report_dict[f'ReadPairsMappedInPE'] * 2
+		# total_reads = report_dict[f'ReadPairsMappedInPE'] * 2 + report_dict[f'ReadsMappedInSE']
 		unique_mapped_reads = report_dict[f'PEUniqueMappedReadPairs'] * 2 + \
 							  report_dict[f'PEDiscordantlyUniqueMappedReadPairs'] * 2 + \
 							  report_dict[f'SEUniqueMappedReads']
