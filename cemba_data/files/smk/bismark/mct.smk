@@ -183,6 +183,7 @@ rule allc:
                 --num_upstr_bases {num_upstr_bases} \
                 --num_downstr_bases {num_downstr_bases} \
                 --compress_level {compress_level} \
+                --chroms {chrom_size_path} \
                 --save_count_df
         """
 

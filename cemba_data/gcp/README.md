@@ -87,7 +87,7 @@ yap-gcp yap_pipeline --fq_dir="gs://nemo-tmp-4mxgixf-salk010/raw" \
 pip install pyfigshare
 # setup the token: https://github.com/DingWB/pyfigshare?tab=readme-ov-file#1-setup-token
 
-figshare download 26210798 -o yap_example -c 2 -f fastq
+figshare download 26210798 -o yap_example --cpu 2 --folder fastq
 cd yap_example
 mkdir -p bismark_mapping/bismark/fastq
 mkdir -p hisat3n_mapping/hisat3n/fastq

@@ -6,8 +6,11 @@ import pathlib
 import os,sys
 import numpy as np
 import pandas as pd
+from pysam import TabixFile
 
 from .stats_col_names import COL_NAMES
+
+LAMBDA_CHROM = 'chrL'
 
 
 def cell_parser_hisat_summary(stat_path):
@@ -146,6 +149,21 @@ def cell_parser_cutadapt_trim_stats(path):
 	return cell_records
 
 
+def _find_c_pos(contexts, path):
+	"""Return the index of the cytosine within ALLC contexts (= num_upstr_bases)."""
+	try:
+		assert contexts.map(lambda a: len(a)).unique().size == 1
+		c_pos = None
+		for i in range(0, len(contexts[0])):
+			if contexts.str[i].unique().size == 1:
+				c_pos = i
+		assert c_pos is not None
+		assert c_pos != len(contexts[0])
+	except AssertionError:
+		raise AssertionError(f'Do not understand the mC context in {path}')
+	return c_pos
+
+
 def cell_parser_allc_count(path):
 	path = pathlib.Path(path)
 	cell_id = path.name.split('.')[0]
@@ -159,17 +177,7 @@ def cell_parser_allc_count(path):
 	allc_counts = allc_counts.loc[allc_counts.index.map(
 		lambda a: 'N' not in a)].copy()
 
-	# find out which position is the C
-	try:
-		assert allc_counts.index.map(lambda a: len(a)).unique().size == 1
-		c_pos = None
-		for i in range(0, len(allc_counts.index[0])):
-			if allc_counts.index.str[i].unique().size == 1:
-				c_pos = i
-		assert c_pos is not None
-		assert c_pos != len(allc_counts.index[0])
-	except AssertionError:
-		raise AssertionError(f'Do not understand the mC context in {path}')
+	c_pos = _find_c_pos(allc_counts.index, path)
 
 	# get mC context
 	mc_context = pd.Series(allc_counts.index.str[c_pos + 1] == 'G').map({
@@ -191,10 +199,8 @@ def cell_parser_allc_count(path):
 	if c_pos > 0:
 		is_ccc &= np.array(allc_counts.index.str[c_pos - 1] != 'G')
 
-	try:
-		ccc_mc, ccc_cov = np.ravel(allc_counts.loc[is_ccc, ['mc', 'cov']].values)
-	except ValueError:
-		ccc_mc, ccc_cov = 0, 0
+	# NOMe has several HCCC rows (ACCC/CCCC/TCCC), so sum instead of unpacking one row
+	ccc_mc, ccc_cov = allc_counts.loc[is_ccc, ['mc', 'cov']].sum().values
 
 	mc_context_sum = pd.concat([
 		pd.DataFrame({
@@ -214,6 +220,76 @@ def cell_parser_allc_count(path):
 		cell_records[f'{mc_type}{count_type}'] = count
 	cell_records = pd.Series(cell_records, name=cell_id, dtype='O')
 	return cell_records
+
+
+def cell_parser_allc_lambda(path):
+	"""Per-context mC/cov/frac on the lambda spike-in (chrL) of one cell's ALLC."""
+	path = pathlib.Path(path)
+	cell_id = path.name.split('.')[0]
+
+	# infer num_upstr_bases from the companion count table; default 0
+	c_pos = 0
+	count_path = pathlib.Path(f'{path}.count.csv')
+	if count_path.exists():
+		contexts = pd.read_csv(count_path, index_col=0).index
+		contexts = contexts[~contexts.str.contains('N')]
+		if len(contexts) > 0:
+			c_pos = _find_c_pos(contexts, count_path)
+
+	mc = dict.fromkeys(['CA', 'CC', 'CT', 'CG'], 0)
+	cov = dict.fromkeys(['CA', 'CC', 'CT', 'CG'], 0)
+	with TabixFile(str(path)) as allc:
+		if LAMBDA_CHROM not in allc.contigs:
+			return pd.Series([], dtype='O', name=cell_id)
+		for line in allc.fetch(LAMBDA_CHROM):
+			context, _mc, _cov = line.split('\t')[3:6]
+			# NOMe: skip GpC sites methylated by M.CviPI
+			if c_pos > 0 and context[c_pos - 1] == 'G':
+				continue
+			dinuc = context[c_pos:c_pos + 2]
+			if dinuc in mc:
+				mc[dinuc] += int(_mc)
+				cov[dinuc] += int(_cov)
+	return _lambda_records(mc, cov, cell_id)
+
+
+def _lambda_records(mc, cov, cell_id):
+	for name, members in [('CH', ['CA', 'CC', 'CT']), ('CY', ['CC', 'CT'])]:
+		mc[name] = sum(mc[m] for m in members)
+		cov[name] = sum(cov[m] for m in members)
+
+	records = {}
+	for ctx in ['CA', 'CC', 'CT', 'CH', 'CY', 'CG']:
+		records[f'Lambda{ctx}mC'] = mc[ctx]
+		records[f'Lambda{ctx}Cov'] = cov[ctx]
+		records[f'Lambda{ctx}Frac'] = mc[ctx] / cov[ctx] if cov[ctx] > 0 else 0
+	return pd.Series(records, name=cell_id, dtype='O')
+
+
+def cell_parser_cz_lambda(path):
+	"""Lambda spike-in (chrL) stats from the lambda_mc/lambda_cov columns of a cytozip <cell>.cz.count.csv."""
+	path = pathlib.Path(path)
+	cell_id = path.name.split('.')[0]
+	counts = pd.read_csv(path, index_col=0)
+	if 'lambda_cov' not in counts.columns:
+		return pd.Series([], dtype='O', name=cell_id)
+
+	c_pos = 0
+	contexts = counts.index[~counts.index.str.contains('N')]
+	if len(contexts) > 0:
+		c_pos = _find_c_pos(contexts, path)
+
+	mc = dict.fromkeys(['CA', 'CC', 'CT', 'CG'], 0)
+	cov = dict.fromkeys(['CA', 'CC', 'CT', 'CG'], 0)
+	for context, _mc, _cov in zip(counts.index, counts['lambda_mc'], counts['lambda_cov']):
+		# NOMe: skip GpC sites methylated by M.CviPI
+		if c_pos > 0 and context[c_pos - 1] == 'G':
+			continue
+		dinuc = context[c_pos:c_pos + 2]
+		if dinuc in mc:
+			mc[dinuc] += int(_mc)
+			cov[dinuc] += int(_cov)
+	return _lambda_records(mc, cov, cell_id)
 
 
 def cell_parser_reads_mc_frac_profile(path):

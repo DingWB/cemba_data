@@ -544,6 +544,36 @@ def summary_register_subparser(subparser):
 	return
 
 
+def mc_summary_register_subparser(subparser):
+	parser = subparser.add_parser('mc-summary',
+								  formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+								  help="Per-cell mC summary (mCH/mCG/mCCC, GenomeCov, LambdaCYFrac etc.) "
+									   "of single-cell ALLC or .cz files.")
+	parser.add_argument('--input', '-i', type=str, nargs='+', default=None,
+						help='*.allc.tsv.gz / *.cz files, a directory, a glob, or a text file '
+							 'listing one path per line.')
+	parser.add_argument('--output', '-o', type=str, default='mc_summary.csv.gz',
+						help='Output csv path (.gz to compress).')
+	parser.add_argument('--output_dir', type=str, default=None,
+						help='yap mapping output dir; used when --input is not given.')
+	parser.add_argument('--mc_format', type=str, default='auto', choices=['auto', 'allc', 'cz'],
+						help='Which files to collect from --output_dir.')
+	parser.add_argument('--config_path', type=str, default=None,
+						help='Mapping config .ini to read mc_stat_feature/alias, num_upstr_bases '
+							 'and reference_cz from.')
+	parser.add_argument('--reference_cz', type=str, default=None,
+						help='Reference .cz, needed for .cz files without <file>.count.csv.')
+	parser.add_argument('--mc_stat_feature', type=str, default='CHN CGN CCC')
+	parser.add_argument('--mc_stat_alias', type=str, default='mCH mCG mCCC')
+	parser.add_argument('--num_upstr_bases', type=int, default=0)
+	parser.add_argument('--lambda_chrom', type=lambda s: None if s in ('None', '') else s,
+						default='chrL', help="Lambda spike-in contig ('None' to disable).")
+	parser.add_argument('--no_count_csv', dest='use_count_csv', action='store_false',
+						help='Ignore <file>.count.csv and recompute from the data.')
+	parser.add_argument('--cpu', type=int, default=1)
+	return
+
+
 def mc_bulk_subparser(subparser):
 	parser = subparser.add_parser('mc-bulk',
 								  formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -804,6 +834,7 @@ def main():
 	update_snakemake_register_subparser(subparsers)
 	start_from_cell_fastq_register_subparser(subparsers)
 	summary_register_subparser(subparsers)
+	mc_summary_register_subparser(subparsers)
 	mc_bulk_subparser(subparsers)
 	snm3c_imputation_subparser(subparsers)
 	snm3c_dataset_subparser(subparsers)
@@ -849,6 +880,10 @@ def main():
 		from .mapping import start_from_cell_fastq as func
 	elif cur_command == 'summary':
 		from cemba_data.mapping import final_summary as func
+	elif cur_command == 'mc-summary':
+		from cemba_data.mapping.stats.utilities import mc_file_summary as func
+		if args_vars['input'] is not None and len(args_vars['input']) == 1:
+			args_vars['input'] = args_vars['input'][0]
 	elif cur_command == 'mc-bulk':
 		from cemba_data.bulk import prepare_mc_bulk as func
 	elif cur_command == 'm3c-impute':

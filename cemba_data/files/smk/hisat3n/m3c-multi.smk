@@ -108,6 +108,6 @@ rule multi_reads_allc:
 --cpu {threads} --num_upstr_bases {config[num_upstr_bases]} \
 --num_downstr_bases {config[num_downstr_bases]} \
 --compress_level {config[compress_level]} --save_count_df \
---min_mapq 0 --convert_bam_strandness
+--chroms {config[chrom_size_path]} --min_mapq 0 --convert_bam_strandness
         """
 

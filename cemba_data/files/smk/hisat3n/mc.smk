@@ -122,7 +122,7 @@ rule unique_reads_allc:
 --num_upstr_bases {config[num_upstr_bases]} \
 --num_downstr_bases {config[num_downstr_bases]} \
 --compress_level {config[compress_level]} --save_count_df \
---convert_bam_strandness
+--chroms {config[chrom_size_path]} --convert_bam_strandness
         """
 
 # ==================================================
@@ -157,6 +157,7 @@ rule unique_reads_cz:
             num_upstr_bases=int(config['num_upstr_bases']),
             num_downstr_bases=int(config['num_downstr_bases']),
             convert_bam_strandness=True,
+            chroms=os.path.expanduser(str(config['chrom_size_path'])),
             save_count_df=True)
 
 # ==================================================

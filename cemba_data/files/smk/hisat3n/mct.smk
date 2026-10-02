@@ -265,6 +265,6 @@ rule unique_reads_allc:
 --cpu {threads} --num_upstr_bases {config[num_upstr_bases]} \
 --num_downstr_bases {config[num_downstr_bases]} \
 --compress_level {config[compress_level]} --save_count_df \
---convert_bam_strandness
+--chroms {config[chrom_size_path]} --convert_bam_strandness
         """
 

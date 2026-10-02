@@ -173,6 +173,8 @@ rule merge_mc_bam:
         """
 
 # generate ALLC
+# no --convert_bam_strandness: bismark SE flags already match the converted strand
+# (identical calls to bam_to_cz(convert_bam_strandness=True), without a temp BAM)
 rule allc:
     input:
         bam="bam/{cell_id}.mC.bam",
@@ -196,6 +198,7 @@ rule allc:
 --num_upstr_bases {num_upstr_bases} \
 --num_downstr_bases {num_downstr_bases} \
 --compress_level {compress_level} \
+--chroms {chrom_size_path} \
 --save_count_df
         """
 
@@ -230,6 +233,7 @@ rule bam_to_cz:
             num_upstr_bases=int(num_upstr_bases),
             num_downstr_bases=int(num_downstr_bases),
             convert_bam_strandness=True,
+            chroms=os.path.expanduser(str(chrom_size_path)),
             save_count_df=True)
 
 # ==================================================

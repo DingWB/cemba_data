@@ -136,7 +136,7 @@ rule unique_reads_allc:
 --num_upstr_bases {config[num_upstr_bases]} \
 --num_downstr_bases {config[num_downstr_bases]} \
 --compress_level {config[compress_level]} --save_count_df \
---convert_bam_strandness
+--chroms {config[chrom_size_path]} --convert_bam_strandness
         """
 
 rule dedup_multi_bam: #dedup_unique_bam is included in mc.smk
@@ -187,5 +187,5 @@ rule multi_reads_allc: #unique reads allc is included in rule: mc_unique_reads_a
 --num_upstr_bases {config[num_upstr_bases]} \
 --num_downstr_bases {config[num_downstr_bases]} \
 --compress_level {config[compress_level]} --save_count_df \
---min_mapq 0 --convert_bam_strandness
+--chroms {config[chrom_size_path]} --min_mapq 0 --convert_bam_strandness
         """

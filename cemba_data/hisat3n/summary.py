@@ -21,6 +21,18 @@ def _parse_mc_count(indir='.', mc_format='allc'):
 								  parser=cell_parser_allc_count, indir=indir)
 
 
+def _parse_lambda(indir='.', mc_format='allc'):
+	"""Lambda spike-in (chrL) stats from tabix-indexed ALLC, or from the lambda_mc/lambda_cov columns of cz/*.cz.count.csv for mc_format='cz'."""
+	if str(mc_format).lower() == 'cz':
+		df = parse_single_stats_set(path_pattern=indir + '/cz/*.cz.count.csv',
+									parser=cell_parser_cz_lambda, indir=indir)
+		return df.fillna(0)
+	df = parse_single_stats_set(path_pattern=indir + '/allc/*.allc.tsv.gz',
+								parser=cell_parser_allc_lambda, indir=indir)
+	# cells without any chrL record get 0, same as the Bismark pipeline
+	return df.fillna(0)
+
+
 def snmc_summary(outname="MappingSummary.csv.gz",indir=".",mc_format='allc'):
 	"""
 	Generate snmC pipeline MappingSummary.csv.gz and save into cwd
@@ -56,6 +68,7 @@ def snmc_summary(outname="MappingSummary.csv.gz",indir=".",mc_format='allc'):
 	# methylation count (allc/*.allc.tsv.gz.count.csv and/or cz/*.cz.count.csv)
 	df = _parse_mc_count(indir, mc_format)
 	all_stats.append(df)
+	all_stats.append(_parse_lambda(indir, mc_format))
 
 	# concatenate all stats
 	all_stats = pd.concat(all_stats, axis=1)
@@ -124,6 +137,7 @@ def snmct_summary(outname="MappingSummary.csv.gz",indir=".",mc_format='allc'):
 	# methylation count (allc/*.allc.tsv.gz.count.csv and/or cz/*.cz.count.csv)
 	df = _parse_mc_count(indir, mc_format)
 	all_stats.append(df)
+	all_stats.append(_parse_lambda(indir, mc_format))
 
 	# feature count
 	df = parse_single_stats_set(path_pattern=indir+'/bam/*.feature_count.tsv.summary',
@@ -188,6 +202,7 @@ def snm3c_summary(outname="MappingSummary.csv.gz",indir=".",mc_format='allc'):
 	# methylation count (allc/*.allc.tsv.gz.count.csv and/or cz/*.cz.count.csv)
 	df = _parse_mc_count(indir, mc_format)
 	all_stats.append(df)
+	all_stats.append(_parse_lambda(indir, mc_format))
 	# concatenate all stats
 	all_stats = pd.concat(all_stats, axis=1)
 	all_stats.index.name = 'cell'

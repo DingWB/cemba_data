@@ -1,6 +1,4 @@
 import pathlib
-from collections import defaultdict
-from pysam import TabixFile
 import pandas as pd
 
 from ...utilities import parse_mc_pattern
@@ -132,7 +130,7 @@ def generate_allc_stats(output_dir, mc_stat_feature,mc_stat_alias,num_upstr_base
     # only the chosen format avoids picking up stale count files from a
     # previous run with a different mc_format.
     if str(mc_format).lower() == 'cz':
-        allc_list = []  # no tabix allc -> lambda spike-in stats unavailable in cz mode
+        allc_list = []  # lambda stats come from the lambda_* columns of cz count.csv
         allc_stats_dict = {p.name.split('.')[0]: p for p in output_dir.glob('cz/*count.csv')}
     else:
         allc_list = list(output_dir.glob('allc/*tsv.gz'))
@@ -140,6 +138,9 @@ def generate_allc_stats(output_dir, mc_stat_feature,mc_stat_alias,num_upstr_base
 
     # no methylation count files at all (e.g. run failed) -> nothing to add
     if len(allc_stats_dict) == 0:
+        import warnings
+        warnings.warn(f'no {mc_format} count tables found under {output_dir}; '
+                      f'MappingSummary will lack mC / Lambda columns')
         return pd.DataFrame()
 
     # patterns = config['mc_stat_feature'].split(' ')
@@ -174,9 +175,11 @@ def generate_allc_stats(output_dir, mc_stat_feature,mc_stat_alias,num_upstr_base
     final_df = pd.concat(cell_records, axis=1, sort=True).reindex(allc_stats_dict.keys())
     final_df['GenomeCov'] = cell_genome_cov
 
-    # add lambda DNA mCY fraction and coverage
-    # lambda_frac = get_allc_lambda_frac(allc_list, config['num_upstr_bases'])
-    lambda_frac = get_allc_lambda_frac(allc_list, num_upstr_bases)
+    # add lambda DNA stats (Lambda{CA,CC,CT,CH,CY,CG}{mC,Cov,Frac})
+    if str(mc_format).lower() == 'cz':
+        lambda_frac = get_cz_lambda_frac(list(allc_stats_dict.values()), num_upstr_bases)
+    else:
+        lambda_frac = get_allc_lambda_frac(allc_list, num_upstr_bases)
     for col, data in lambda_frac.items():
         final_df[col] = data
 
@@ -184,31 +187,94 @@ def generate_allc_stats(output_dir, mc_stat_feature,mc_stat_alias,num_upstr_base
     return final_df
 
 
-def get_allc_lambda_frac(allc_list, num_upstr_bases):
-    num_upstr_bases = int(num_upstr_bases)
-    records = {}
-    for path in allc_list:
-        mc_counts = defaultdict(int)
-        cov_counts = defaultdict(int)
-        with TabixFile(str(path)) as allc:
-            cell = pathlib.Path(path).name.split('.')[0]
-            try:
-                for line in allc.fetch('chrL'):
-                    chrom, pos, strand, context, mc, cov, _ = line.split('\t')
-                    # this will lead to only four contexts: CA, CC, CT, CG
-                    context = context[num_upstr_bases:num_upstr_bases + 2]
-                    mc_counts[context] += int(mc)
-                    cov_counts[context] += int(cov)
-                df = pd.DataFrame({'mc': pd.Series(mc_counts), 'cov': pd.Series(cov_counts)})
-                df = df.reindex(['CG', 'CC', 'CT', 'CA']).fillna(0)  # reindex to make all four context exist
-                cy_cov = df.loc['CT', 'cov'] + df.loc['CC', 'cov']
-                if cy_cov > 0:
-                    cy_frac = (df.loc['CT', 'mc'] + df.loc['CC', 'mc']) / cy_cov
-                else:
-                    cy_frac = 0
-                records[cell] = {'LambdaCYFrac': cy_frac, 'LambdaCYCov': cy_cov}
-            except ValueError:
-                # no chrL lines
-                records[cell] = {'LambdaCYFrac': 0, 'LambdaCYCov': 0}
-    records = pd.DataFrame(records).T
-    return records
+def _lambda_table(paths, parser):
+    from ...hisat3n.stats_parser import _lambda_records
+    rows = {}
+    for path in paths:
+        cell = pathlib.Path(path).name.split('.')[0]
+        record = parser(path)
+        if record.empty:  # no chrL in this cell
+            zeros = dict.fromkeys(['CA', 'CC', 'CT', 'CG'], 0)
+            record = _lambda_records(zeros, dict(zeros), cell)
+        rows[cell] = record
+    return pd.DataFrame(rows).T
+
+
+def get_allc_lambda_frac(allc_list, num_upstr_bases=None):
+    """Lambda (chrL) stats of tabix-indexed ALLC files; the C position is inferred from each count table."""
+    from ...hisat3n.stats_parser import cell_parser_allc_lambda
+    return _lambda_table(allc_list, cell_parser_allc_lambda)
+
+
+def get_cz_lambda_frac(count_list, num_upstr_bases=None):
+    """Same as get_allc_lambda_frac, from the lambda_mc/lambda_cov columns of cytozip <cell>.cz.count.csv."""
+    from ...hisat3n.stats_parser import cell_parser_cz_lambda
+    return _lambda_table(count_list, cell_parser_cz_lambda)
+
+
+def mc_file_summary(input=None, output='mc_summary.csv.gz', output_dir=None,
+                    mc_format='auto', config_path=None, reference_cz=None,
+                    mc_stat_feature='CHN CGN CCC', mc_stat_alias='mCH mCG mCCC',
+                    num_upstr_bases=0, lambda_chrom='chrL', use_count_csv=True, cpu=1):
+    """
+    MappingSummary-style mC table for a set of single-cell ALLC / .cz files.
+
+    One row per cell with ``{alias}mC/Cov/Frac`` (default mCH, mCG, mCCC),
+    ``GenomeCov`` and the lambda spike-in stats
+    ``Lambda{CA,CC,CT,CH,CY,CG}{mC,Cov,Frac}`` (incl. ``LambdaCYFrac``,
+    ``LambdaCYCov``). Counts come from ``<file>.count.csv`` when present,
+    otherwise they are recomputed from the file (via ``cytozip.mc_summary``).
+
+    Parameters
+    ----------
+    input : list or str, optional
+        ``*.allc.tsv.gz`` / ``*.cz`` paths: a list, directory, glob,
+        comma-separated string, or a text file listing one path per line.
+    output : str or None
+        Output csv path (``.gz`` compresses); None to only return the table.
+    output_dir : str, optional
+        A yap mapping output directory; used when ``input`` is None to pick
+        ``allc/*.allc.tsv.gz`` or ``cz/*.cz`` according to ``mc_format``.
+    mc_format : {'auto', 'allc', 'cz'}
+        File type to collect from ``output_dir``; 'auto' prefers cz/ if present.
+    config_path : str, optional
+        Mapping config .ini; when given, ``mc_stat_feature``,
+        ``mc_stat_alias``, ``num_upstr_bases`` and ``reference_cz`` are read
+        from it (explicit ``reference_cz`` still wins).
+    reference_cz : str, optional
+        Reference .cz, needed for .cz files without ``.count.csv``.
+    cpu : int
+        Number of parallel processes.
+
+    Returns
+    -------
+    pandas.DataFrame indexed by cell_id.
+    """
+    from cytozip import mc_summary
+    from ...utilities import get_configuration
+
+    if config_path is not None:
+        config = get_configuration(config_path)
+        mc_stat_feature = config.get('mc_stat_feature', mc_stat_feature)
+        mc_stat_alias = config.get('mc_stat_alias', mc_stat_alias)
+        num_upstr_bases = int(config.get('num_upstr_bases', num_upstr_bases))
+        if reference_cz is None and config.get('reference_cz', '') not in ('', 'None'):
+            reference_cz = config['reference_cz']
+
+    if input is None:
+        if output_dir is None:
+            raise ValueError('provide either input or output_dir')
+        output_dir = pathlib.Path(output_dir).expanduser().absolute()
+        cz_files = sorted(output_dir.glob('cz/*.cz'))
+        allc_files = sorted(output_dir.glob('allc/*.allc.tsv.gz'))
+        fmt = str(mc_format).lower()
+        if fmt == 'auto':
+            fmt = 'cz' if cz_files else 'allc'
+        input = [str(p) for p in (cz_files if fmt == 'cz' else allc_files)]
+        if not input:
+            raise FileNotFoundError(f'no {fmt} files found under {output_dir}')
+
+    return mc_summary(input=input, reference=reference_cz, output=output,
+                      mc_stat_feature=mc_stat_feature, mc_stat_alias=mc_stat_alias,
+                      num_upstr_bases=num_upstr_bases, lambda_chrom=lambda_chrom,
+                      use_count_csv=use_count_csv, jobs=cpu)
