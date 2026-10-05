@@ -548,29 +548,26 @@ def mc_summary_register_subparser(subparser):
 	parser = subparser.add_parser('mc-summary',
 								  formatter_class=argparse.ArgumentDefaultsHelpFormatter,
 								  help="Per-cell mC summary (mCH/mCG/mCCC, GenomeCov, LambdaCYFrac etc.) "
-									   "of single-cell ALLC or .cz files.")
+									   "of single-cell ALLC files.")
 	parser.add_argument('--input', '-i', type=str, nargs='+', default=None,
-						help='*.allc.tsv.gz / *.cz files, a directory, a glob, or a text file '
+						help='*.allc.tsv.gz files (tabix-indexed), a directory, a glob, or a text file '
 							 'listing one path per line.')
 	parser.add_argument('--output', '-o', type=str, default='mc_summary.csv.gz',
 						help='Output csv path (.gz to compress).')
 	parser.add_argument('--output_dir', type=str, default=None,
-						help='yap mapping output dir; used when --input is not given.')
-	parser.add_argument('--mc_format', type=str, default='auto', choices=['auto', 'allc', 'cz'],
-						help='Which files to collect from --output_dir.')
+						help='yap mapping output dir; its allc/*.allc.tsv.gz are used when --input is not given.')
 	parser.add_argument('--config_path', type=str, default=None,
-						help='Mapping config .ini to read mc_stat_feature/alias, num_upstr_bases '
-							 'and reference_cz from.')
-	parser.add_argument('--reference_cz', type=str, default=None,
-						help='Reference .cz, needed for .cz files without <file>.count.csv.')
-	parser.add_argument('--mc_stat_feature', type=str, default='CHN CGN CCC')
-	parser.add_argument('--mc_stat_alias', type=str, default='mCH mCG mCCC')
-	parser.add_argument('--num_upstr_bases', type=int, default=0)
-	parser.add_argument('--lambda_chrom', type=lambda s: None if s in ('None', '') else s,
-						default='chrL', help="Lambda spike-in contig ('None' to disable).")
-	parser.add_argument('--no_count_csv', dest='use_count_csv', action='store_false',
-						help='Ignore <file>.count.csv and recompute from the data.')
-	parser.add_argument('--cpu', type=int, default=1)
+						help='Mapping config .ini to read mc_stat_feature/alias and num_upstr_bases from.')
+	parser.add_argument('--mc_stat_feature', type=str, default='CHN CGN CCC',
+						help='Space-separated IUPAC context patterns.')
+	parser.add_argument('--mc_stat_alias', type=str, default='mCH mCG mCCC',
+						help='Space-separated column prefixes for --mc_stat_feature.')
+	parser.add_argument('--num_upstr_bases', type=int, default=None,
+						help='Bases upstream of C (1 for NOMe); inferred from each .count.csv if omitted.')
+	parser.add_argument('--overwrite', action='store_true',
+						help='Regenerate {cell_id}.allc.tsv.gz.count.csv from the ALLC even if it exists '
+							 '(missing ones are always generated; the old genome_cov is kept).')
+	parser.add_argument('--cpu', type=int, default=1, help='Parallel processes (one file each).')
 	return
 
 

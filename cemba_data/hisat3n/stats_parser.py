@@ -222,19 +222,22 @@ def cell_parser_allc_count(path):
 	return cell_records
 
 
-def cell_parser_allc_lambda(path):
-	"""Per-context mC/cov/frac on the lambda spike-in (chrL) of one cell's ALLC."""
+def cell_parser_allc_lambda(path, c_pos=None):
+	"""Per-context mC/cov/frac on the lambda spike-in (chrL) of one cell's ALLC.
+
+	c_pos (= num_upstr_bases) is inferred from the companion count table when None (0 if absent).
+	"""
 	path = pathlib.Path(path)
 	cell_id = path.name.split('.')[0]
 
-	# infer num_upstr_bases from the companion count table; default 0
-	c_pos = 0
-	count_path = pathlib.Path(f'{path}.count.csv')
-	if count_path.exists():
-		contexts = pd.read_csv(count_path, index_col=0).index
-		contexts = contexts[~contexts.str.contains('N')]
-		if len(contexts) > 0:
-			c_pos = _find_c_pos(contexts, count_path)
+	if c_pos is None:
+		c_pos = 0
+		count_path = pathlib.Path(f'{path}.count.csv')
+		if count_path.exists():
+			contexts = pd.read_csv(count_path, index_col=0).index
+			contexts = contexts[~contexts.str.contains('N')]
+			if len(contexts) > 0:
+				c_pos = _find_c_pos(contexts, count_path)
 
 	mc = dict.fromkeys(['CA', 'CC', 'CT', 'CG'], 0)
 	cov = dict.fromkeys(['CA', 'CC', 'CT', 'CG'], 0)

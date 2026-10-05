@@ -1,4 +1,6 @@
+import os
 import pathlib
+import numpy as np
 import pandas as pd
 
 from ...utilities import parse_mc_pattern
@@ -143,37 +145,9 @@ def generate_allc_stats(output_dir, mc_stat_feature,mc_stat_alias,num_upstr_base
                       f'MappingSummary will lack mC / Lambda columns')
         return pd.DataFrame()
 
-    # patterns = config['mc_stat_feature'].split(' ')
-    # patterns_alias = config['mc_stat_alias'].split(' ')
-    patterns = mc_stat_feature.split(' ')
-    patterns_alias = mc_stat_alias.split(' ')
-    pattern_translate = {k: v for k, v in zip(patterns, patterns_alias)}
-
-    # real all cell stats
-    total_stats = []
-    for cell_id, path in allc_stats_dict.items():
-        allc_stat = pd.read_csv(path, index_col=0)
-        allc_stat['cell_id'] = cell_id
-        total_stats.append(allc_stat)
-    total_stats = pd.concat(total_stats)
-    cell_genome_cov = pd.Series(total_stats.set_index('cell_id')['genome_cov'].to_dict())
-    # aggregate into patterns
-    cell_records = []
-    for pattern in pattern_translate.keys():
-        contexts = parse_mc_pattern(pattern)
-        pattern_stats = total_stats[total_stats.index.isin(contexts)]
-        cell_level_data = pattern_stats.groupby('cell_id')[['mc', 'cov']].sum()
-        cell_level_data['frac'] = cell_level_data['mc'] / cell_level_data['cov']
-
-        # prettify col name
-        _pattern = pattern_translate[pattern]
-        cell_level_data = cell_level_data.rename(
-            columns={'frac': f'{_pattern}Frac',
-                     'mc': f'{_pattern}mC',
-                     'cov': f'{_pattern}Cov'})
-        cell_records.append(cell_level_data)
-    final_df = pd.concat(cell_records, axis=1, sort=True).reindex(allc_stats_dict.keys())
-    final_df['GenomeCov'] = cell_genome_cov
+    count_tables = {cell_id: pd.read_csv(path, index_col=0)
+                    for cell_id, path in allc_stats_dict.items()}
+    final_df = _mc_pattern_table(count_tables, mc_stat_feature, mc_stat_alias)
 
     # add lambda DNA stats (Lambda{CA,CC,CT,CH,CY,CG}{mC,Cov,Frac})
     if str(mc_format).lower() == 'cz':
@@ -184,6 +158,30 @@ def generate_allc_stats(output_dir, mc_stat_feature,mc_stat_alias,num_upstr_base
         final_df[col] = data
 
     final_df.index.name = 'cell_id'
+    return final_df
+
+
+def _mc_pattern_table(count_tables, mc_stat_feature, mc_stat_alias):
+    """{alias}mC/Cov/Frac and GenomeCov per cell from {cell_id: count.csv-layout table}."""
+    pattern_translate = dict(zip(mc_stat_feature.split(), mc_stat_alias.split()))
+    total_stats = []
+    for cell_id, table in count_tables.items():
+        table = table.copy()
+        table['cell_id'] = cell_id
+        total_stats.append(table)
+    total_stats = pd.concat(total_stats)
+    cell_genome_cov = pd.Series(total_stats.set_index('cell_id')['genome_cov'].to_dict())
+    cell_records = []
+    for pattern, alias in pattern_translate.items():
+        contexts = parse_mc_pattern(pattern)
+        pattern_stats = total_stats[total_stats.index.isin(contexts)]
+        cell_level_data = pattern_stats.groupby('cell_id')[['mc', 'cov']].sum()
+        cell_level_data['frac'] = cell_level_data['mc'] / cell_level_data['cov']
+        cell_level_data = cell_level_data.rename(
+            columns={'frac': f'{alias}Frac', 'mc': f'{alias}mC', 'cov': f'{alias}Cov'})
+        cell_records.append(cell_level_data)
+    final_df = pd.concat(cell_records, axis=1, sort=True).reindex(list(count_tables))
+    final_df['GenomeCov'] = cell_genome_cov
     return final_df
 
 
@@ -212,69 +210,156 @@ def get_cz_lambda_frac(count_list, num_upstr_bases=None):
     return _lambda_table(count_list, cell_parser_cz_lambda)
 
 
-def mc_file_summary(input=None, output='mc_summary.csv.gz', output_dir=None,
-                    mc_format='auto', config_path=None, reference_cz=None,
+def _resolve_allc_inputs(input):
+    """Expand an ALLC path / list / directory / glob / comma-separated string / path-list file into ALLC paths."""
+    import glob
+    if isinstance(input, (list, tuple)):
+        paths = [str(p) for p in input]
+    else:
+        s = os.path.expanduser(str(input))
+        if os.path.isdir(s):
+            paths = sorted(glob.glob(os.path.join(s, '*.allc.tsv.gz')))
+        elif any(ch in s for ch in '*?['):
+            paths = sorted(glob.glob(s))
+        elif ',' in s:
+            paths = [p for p in s.split(',') if p]
+        elif s.endswith(('.gz', '.bgz')):
+            paths = [s]
+        else:
+            # text file listing one path per line (first tab-separated column)
+            with open(s) as f:
+                paths = [line.split('\t')[0].strip() for line in f if line.strip()]
+    if not paths:
+        raise ValueError(f'no ALLC files found from {input!r}')
+    paths = [os.path.abspath(os.path.expanduser(p)) for p in paths]
+    not_allc = [p for p in paths if not p.endswith(('.gz', '.bgz'))]
+    if not_allc:
+        raise ValueError(f'mc_file_summary only accepts bgzipped ALLC files, got {not_allc[:3]}')
+    return paths
+
+
+def _allc_cell_stats(args):
+    """(cell_id, count table, lambda record) of one ALLC; writes ``<allc>.count.csv`` when missing."""
+    from ...hisat3n.stats_parser import cell_parser_allc_lambda, _lambda_records
+    path, overwrite, num_upstr_bases = args
+    cell_id = pathlib.Path(path).name.split('.')[0]
+    count_path = f'{path}.count.csv'
+    if not overwrite and os.path.exists(count_path):
+        table = pd.read_csv(count_path, index_col=0)
+        if 'genome_cov' not in table.columns:
+            table['genome_cov'] = np.nan
+    else:
+        parts = []
+        for chunk in pd.read_csv(path, sep='\t', header=None, usecols=[3, 4, 5],
+                                 dtype={3: str}, chunksize=5_000_000):
+            chunk.columns = ['context', 'mc', 'cov']
+            parts.append(chunk.groupby('context')[['mc', 'cov']].sum())
+        table = (pd.concat(parts).groupby(level=0).sum().astype('int64') if parts
+                 else pd.DataFrame(columns=['mc', 'cov'], dtype='int64'))
+        table.index.name = None
+        table['mc_rate'] = table['mc'] / table['cov']
+        # genome_cov needs every covered position (not in an ALLC): keep the old value if any
+        genome_cov = np.nan
+        if os.path.exists(count_path):
+            old = pd.read_csv(count_path, index_col=0)
+            if 'genome_cov' in old.columns and len(old):
+                genome_cov = old['genome_cov'].iloc[0]
+        table['genome_cov'] = genome_cov
+        try:
+            table.to_csv(count_path)
+        except OSError as e:
+            import warnings
+            warnings.warn(f'could not write {count_path}: {e}')
+    lam = cell_parser_allc_lambda(path, c_pos=num_upstr_bases)
+    if lam.empty:  # no chrL in this cell
+        zeros = dict.fromkeys(['CA', 'CC', 'CT', 'CG'], 0)
+        lam = _lambda_records(zeros, dict(zeros), cell_id)
+    return cell_id, table, lam
+
+
+def mc_file_summary(input=None, output='mc_summary.csv.gz', output_dir=None, config_path=None,
                     mc_stat_feature='CHN CGN CCC', mc_stat_alias='mCH mCG mCCC',
-                    num_upstr_bases=0, lambda_chrom='chrL', use_count_csv=True, cpu=1):
+                    num_upstr_bases=None, overwrite=False, cpu=1):
     """
-    MappingSummary-style mC table for a set of single-cell ALLC / .cz files.
+    MappingSummary-style mC table for a set of single-cell ALLC files.
 
     One row per cell with ``{alias}mC/Cov/Frac`` (default mCH, mCG, mCCC),
-    ``GenomeCov`` and the lambda spike-in stats
+    ``GenomeCov`` and the lambda (chrL) spike-in stats
     ``Lambda{CA,CC,CT,CH,CY,CG}{mC,Cov,Frac}`` (incl. ``LambdaCYFrac``,
-    ``LambdaCYCov``). Counts come from ``<file>.count.csv`` when present,
-    otherwise they are recomputed from the file (via ``cytozip.mc_summary``).
+    ``LambdaCYCov``), computed exactly as in the pipeline MappingSummary.
+    For cytozip ``.cz`` files use ``cytozip.mc_summary`` instead.
+
+    Per-cell mC counts come from ``{cell_id}.allc.tsv.gz.count.csv`` next to
+    each ALLC (written by ``allcools bam-to-allc --save_count_df`` in the
+    pipeline). When it is missing, or ``overwrite=True``, it is generated by
+    summing the ALLC per context and saved in the same layout (``mc``,
+    ``cov``, ``mc_rate``, ``genome_cov``). Lambda stats are always read from
+    chrL via the ``.tbi`` index.
 
     Parameters
     ----------
     input : list or str, optional
-        ``*.allc.tsv.gz`` / ``*.cz`` paths: a list, directory, glob,
-        comma-separated string, or a text file listing one path per line.
+        tabix-indexed ``*.allc.tsv.gz`` files: a single path, a list,
+        a comma-separated string, a glob, a directory (all ``*.allc.tsv.gz``
+        in it), or a text file listing one path per line.
     output : str or None
         Output csv path (``.gz`` compresses); None to only return the table.
     output_dir : str, optional
-        A yap mapping output directory; used when ``input`` is None to pick
-        ``allc/*.allc.tsv.gz`` or ``cz/*.cz`` according to ``mc_format``.
-    mc_format : {'auto', 'allc', 'cz'}
-        File type to collect from ``output_dir``; 'auto' prefers cz/ if present.
+        A yap mapping output directory; used when ``input`` is None to take
+        ``allc/*.allc.tsv.gz``.
     config_path : str, optional
-        Mapping config .ini; when given, ``mc_stat_feature``,
-        ``mc_stat_alias``, ``num_upstr_bases`` and ``reference_cz`` are read
-        from it (explicit ``reference_cz`` still wins).
-    reference_cz : str, optional
-        Reference .cz, needed for .cz files without ``.count.csv``.
+        Mapping config .ini; ``mc_stat_feature``, ``mc_stat_alias`` and
+        ``num_upstr_bases`` are read from it.
+    num_upstr_bases : int, optional
+        Bases upstream of the C in the context (1 for NOMe), used to pick the
+        lambda dinucleotide. None infers it from each ``.count.csv``.
+    overwrite : bool
+        Regenerate every ``.count.csv`` from its ALLC even if it exists. The
+        old ``genome_cov`` is kept, since it cannot be derived from an ALLC;
+        generated tables otherwise have ``genome_cov`` (and ``GenomeCov``) NaN.
     cpu : int
-        Number of parallel processes.
+        Number of parallel processes (one file each).
 
     Returns
     -------
     pandas.DataFrame indexed by cell_id.
     """
-    from cytozip import mc_summary
+    from concurrent.futures import ProcessPoolExecutor
     from ...utilities import get_configuration
 
     if config_path is not None:
         config = get_configuration(config_path)
         mc_stat_feature = config.get('mc_stat_feature', mc_stat_feature)
         mc_stat_alias = config.get('mc_stat_alias', mc_stat_alias)
-        num_upstr_bases = int(config.get('num_upstr_bases', num_upstr_bases))
-        if reference_cz is None and config.get('reference_cz', '') not in ('', 'None'):
-            reference_cz = config['reference_cz']
+        if 'num_upstr_bases' in config:
+            num_upstr_bases = int(config['num_upstr_bases'])
+    if len(mc_stat_feature.split()) != len(mc_stat_alias.split()):
+        raise ValueError('mc_stat_feature and mc_stat_alias must have the same length')
 
     if input is None:
         if output_dir is None:
             raise ValueError('provide either input or output_dir')
-        output_dir = pathlib.Path(output_dir).expanduser().absolute()
-        cz_files = sorted(output_dir.glob('cz/*.cz'))
-        allc_files = sorted(output_dir.glob('allc/*.allc.tsv.gz'))
-        fmt = str(mc_format).lower()
-        if fmt == 'auto':
-            fmt = 'cz' if cz_files else 'allc'
-        input = [str(p) for p in (cz_files if fmt == 'cz' else allc_files)]
-        if not input:
-            raise FileNotFoundError(f'no {fmt} files found under {output_dir}')
+        input = str(pathlib.Path(output_dir).expanduser().absolute() / 'allc' / '*.allc.tsv.gz')
+    paths = _resolve_allc_inputs(input)
+    cell_ids = [pathlib.Path(p).name.split('.')[0] for p in paths]
+    from collections import Counter
+    dup = sorted(c for c, n in Counter(cell_ids).items() if n > 1)
+    if dup:
+        raise ValueError(f'duplicated cell ids in input: {dup[:5]}')
 
-    return mc_summary(input=input, reference=reference_cz, output=output,
-                      mc_stat_feature=mc_stat_feature, mc_stat_alias=mc_stat_alias,
-                      num_upstr_bases=num_upstr_bases, lambda_chrom=lambda_chrom,
-                      use_count_csv=use_count_csv, jobs=cpu)
+    tasks = [(p, overwrite, num_upstr_bases) for p in paths]
+    if cpu > 1 and len(tasks) > 1:
+        with ProcessPoolExecutor(min(cpu, len(tasks))) as executor:
+            results = list(executor.map(_allc_cell_stats, tasks))
+    else:
+        results = [_allc_cell_stats(t) for t in tasks]
+
+    final_df = _mc_pattern_table({cell: table for cell, table, _ in results},
+                                 mc_stat_feature, mc_stat_alias)
+    lambda_df = pd.DataFrame({cell: lam for cell, _, lam in results}).T
+    for col, data in lambda_df.items():
+        final_df[col] = data
+    final_df.index.name = 'cell_id'
+    if output is not None:
+        final_df.to_csv(os.path.abspath(os.path.expanduser(output)))
+    return final_df
