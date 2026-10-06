@@ -562,8 +562,8 @@ def mc_summary_register_subparser(subparser):
 						help='Space-separated IUPAC context patterns.')
 	parser.add_argument('--mc_stat_alias', type=str, default='mCH mCG mCCC',
 						help='Space-separated column prefixes for --mc_stat_feature.')
-	parser.add_argument('--num_upstr_bases', type=int, default=None,
-						help='Bases upstream of C (1 for NOMe); inferred from each .count.csv if omitted.')
+	parser.add_argument('--num_upstr_bases', type=int, default=0,
+						help='Bases upstream of C (1 for NOMe); inferred from each .count.csv if omitted. Default is 0.')
 	parser.add_argument('--overwrite', action='store_true',
 						help='Regenerate {cell_id}.allc.tsv.gz.count.csv from the ALLC even if it exists '
 							 '(missing ones are always generated; the old genome_cov is kept).')

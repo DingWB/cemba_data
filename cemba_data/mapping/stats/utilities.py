@@ -279,7 +279,7 @@ def _allc_cell_stats(args):
 
 def mc_file_summary(input=None, output='mc_summary.csv.gz', output_dir=None, config_path=None,
                     mc_stat_feature='CHN CGN CCC', mc_stat_alias='mCH mCG mCCC',
-                    num_upstr_bases=None, overwrite=False, cpu=1):
+                    num_upstr_bases=0, overwrite=False, cpu=1):
     """
     MappingSummary-style mC table for a set of single-cell ALLC files.
 
