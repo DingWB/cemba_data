@@ -1,10 +1,22 @@
 import pathlib
+import re
 
 import cemba_data
 from ..utilities import MAPPING_MODE_CHOICES
 
 # Load defaults
 PACKAGE_DIR = pathlib.Path(cemba_data.__path__[0])
+
+
+def _set_config_option(config_content, key, value):
+	"""Set `key = value` in the config content, replacing the existing entry if there is one."""
+	pattern = re.compile(rf'^{re.escape(key)}\s*=.*$', flags=re.MULTILINE)
+	new_line = f'{key} = {value}'
+	if pattern.search(config_content):
+		return pattern.sub(new_line, config_content, count=1)
+	if '[output]' not in config_content:
+		config_content = config_content.rstrip('\n') + '\n\n[output]\n'
+	return config_content.rstrip('\n') + f'\n{new_line}\n'
 
 
 def print_default_mapping_config(mode,
@@ -17,6 +29,9 @@ def print_default_mapping_config(mode,
 								 gtf=None,
 								 nome=False,
 								 chrom_size_path=None,
+								 mc_format='allc',
+								 reference_cz=None,
+								 extract_mcg=False,
 								 **kwargs):
 	mode = mode.lower()
 	if mode.split('-')[0] not in MAPPING_MODE_CHOICES:
@@ -108,6 +123,11 @@ def print_default_mapping_config(mode,
 	if not bismark_ref is None:
 		config_content = config_content.replace('CHANGE_THIS_TO_YOUR_BISMARK_REFERENCE_DIR', str(bismark_ref))
 	config_content = config_content.replace('CHANGE_THIS_TO_YOUR_REFERENCE_FASTA', str(genome_fasta))
+
+	config_content = _set_config_option(config_content, 'mc_format', mc_format)
+	config_content = _set_config_option(config_content, 'reference_cz',
+										'' if reference_cz is None else reference_cz)
+	config_content = _set_config_option(config_content, 'extract_mcg', bool(extract_mcg))
 	print(config_content)
 	for key in kwargs:
 		if kwargs[key] is None:

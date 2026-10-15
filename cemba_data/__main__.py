@@ -430,7 +430,37 @@ def print_default_config_register_subparser(subparser):
 		help="[-mhap only] Path to the *_allc.gz"
 	)
 
-	parser.set_defaults(nome=False)
+	parser.add_argument(
+		"--mc_format",
+		type=str,
+		required=False,
+		default='allc',
+		choices=['allc', 'cz', 'both'],
+		help="Methylation output format for each cell. "
+			 "allc: ALLCools bam-to-allc, generate allc/*.allc.tsv.gz; "
+			 "cz: cytozip bam_to_cz, generate cz/*.cz (requires --reference_cz); "
+			 "both: generate both allc and cz outputs"
+	)
+
+	parser.add_argument(
+		"--reference_cz",
+		type=str,
+		required=False,
+		default=None,
+		help="Path to the reference .cz file, required when mc_format is cz or both. "
+			 "Build it once with: czip build_ref -g <genome.fa> -O <reference.allc.cz> "
+			 "-s <chrom_size_path> -j 20"
+	)
+
+	parser.add_argument(
+		"--extract_mcg",
+		dest='extract_mcg',
+		action='store_true',
+		help="Whether to generate the CGN-merged ALLC (allc-CGN/*.CGN-Merge.allc.tsv.gz), "
+			 "only meaningful when allc output is generated."
+	)
+
+	parser.set_defaults(nome=False, extract_mcg=False)
 	return
 
 
