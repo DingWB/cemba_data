@@ -373,10 +373,12 @@ def _parse_cell_id_v2(cell_id):
 	# 384 pos
 	col384 = int(random_index[1:]) - 1
 	row384 = ord(random_index[0]) - 65  # convert A-P to 0-23
+	resolved_multiplex_group=(col384 % 12) // 2 + 1 if 'unknow' not in random_index.lower() else 'NA'
 	record = pd.Series({
 		'Plate': plate,
 		'PCRIndex': pcr_index,
 		'MultiplexGroup': multiplex_group,
+		'ResolvedMultiplexGroup': resolved_multiplex_group,
 		'RandomIndex': random_index,
 		'Col384': col384,
 		'Row384': row384
