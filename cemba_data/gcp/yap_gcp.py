@@ -179,7 +179,8 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 						region='us-west1',keep_remote=False,
 						fastq_server='gcp',gcp=True,
 						skypilot_template=None,n_jobs=16,job_name="demultiplex",
-						image="bican",output='run_demultiplex.yaml'):
+						image="bican",output='run_demultiplex.yaml',
+						total_read_pairs_min=1,total_read_pairs_max=10000000):
 	"""
 		Prepare the skypilot yaml file to run demultiplex on GCP.
 
@@ -217,6 +218,12 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 		default workdir is current dir.
 	output : path
 		output of the generated skypilot yaml file according to the template.
+	total_read_pairs_min : int
+		cells with trimmed read pairs < total_read_pairs_min will be removed,
+		default is 1.
+	total_read_pairs_max : int
+		cells with trimmed read pairs > total_read_pairs_max will be removed,
+		default is 10000000.
 
 	Returns
 	-------
@@ -227,7 +234,8 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 		os.makedirs(workdir)
 	CMD=f"yap-gcp run_demultiplex --fq_dir {fq_dir} --remote_prefix {remote_prefix} --outdir {outdir} \
 --barcode_version {barcode_version} --fastq_server {fastq_server} \
---gcp {gcp} --region {region} --keep_remote {keep_remote} --n_jobs {n_jobs}"
+--gcp {gcp} --region {region} --keep_remote {keep_remote} --n_jobs {n_jobs} \
+--total_read_pairs_min {total_read_pairs_min} --total_read_pairs_max {total_read_pairs_max}"
 	if not env_name is None:
 		CMD=f"conda activate {env_name} \n  "+ CMD
 	if skypilot_template is None:
@@ -252,7 +260,8 @@ def prepare_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 def run_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 						barcode_version="V2",fastq_server='local',
 						gcp=False,region='us-west1',keep_remote=False,
-						n_jobs=16,print_only=False):
+						n_jobs=16,print_only=False,
+						total_read_pairs_min=1,total_read_pairs_max=10000000):
 	"""
 		This function need to be executed on the GCP VM machine. Please see
 		prepare_demultiplex for parameters.
@@ -266,21 +275,26 @@ def run_demultiplex(fq_dir="fastq",remote_prefix="mapping",outdir="test",
 	region :
 	keep_remote :
 	n_jobs :
+	total_read_pairs_min : int
+		cells with trimmed read pairs < total_read_pairs_min will be removed.
+	total_read_pairs_max : int
+		cells with trimmed read pairs > total_read_pairs_max will be removed.
 
 	Returns
 	-------
 
 	"""
 	smk1 = os.path.join(PACKAGE_DIR, 'files/smk/demultiplex.smk')
+	read_pairs_str=f"total_read_pairs_min={int(total_read_pairs_min)} total_read_pairs_max={int(total_read_pairs_max)}"
 	if gcp:
 		# Demultiplex
-		config_str=f'--scheduler greedy --printshellcmds --rerun-incomplete --config fastq_server="{fastq_server}" gcp={gcp} fq_dir="{fq_dir}" outdir="{outdir}" barcode_version="{barcode_version}" '
+		config_str=f'--scheduler greedy --printshellcmds --rerun-incomplete --config fastq_server="{fastq_server}" gcp={gcp} fq_dir="{fq_dir}" outdir="{outdir}" barcode_version="{barcode_version}" {read_pairs_str} '
 		common_str=f"--default-remote-prefix {remote_prefix} --default-remote-provider GS --google-lifesciences-region {region} "
 		if keep_remote:
 			common_str+="--keep-remote "
 		cmd = f"snakemake -s {smk1} {config_str} {common_str} -j {n_jobs} \n  "
 	else:
-		cmd = f'snakemake -s {smk1} --scheduler greedy --printshellcmds --rerun-incomplete --config fastq_server="{fastq_server}" fq_dir="{fq_dir}" outdir="{outdir}" barcode_version="{barcode_version}" -j {n_jobs}'
+		cmd = f'snakemake -s {smk1} --scheduler greedy --printshellcmds --rerun-incomplete --config fastq_server="{fastq_server}" fq_dir="{fq_dir}" outdir="{outdir}" barcode_version="{barcode_version}" {read_pairs_str} -j {n_jobs}'
 
 	print(cmd)
 	if not print_only:
@@ -503,7 +517,7 @@ def yap_pipeline(
 	mode='m3c',bismark_ref='~/Ref/hg38/hg38_ucsc_with_chrL.bismark1',
 	chrom_size_path='~/Ref/hg38_Broad/hg38.chrom.sizes',
 	aligner='hisat-3n',n_node=12,sky_env='sky',disk_size1=3072,
-	disk_size2=500):
+	disk_size2=500,total_read_pairs_min=1,total_read_pairs_max=10000000):
 	if not demultiplex_template is None:
 		demultiplex_template=os.path.expanduser(demultiplex_template)
 	if not mapping_template is None:
@@ -514,6 +528,7 @@ def yap_pipeline(
 --region {region} --keep_remote {keep_remote} --fastq_server {fastq_server} --gcp {gcp} \
 --skypilot_template {demultiplex_template} --n_jobs {n_jobs1} \
 --job_name demultiplex --image {image} --disk_size {disk_size1} \
+--total_read_pairs_min {total_read_pairs_min} --total_read_pairs_max {total_read_pairs_max} \
 --output run_demultiplex.yaml'
 	print(cmd)
 	print(f"conda activate {sky_env} && sky launch -y -i 5 -n demultiplex run_demultiplex.yaml")
