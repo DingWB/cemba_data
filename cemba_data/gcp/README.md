@@ -101,11 +101,11 @@ done;
 
 ## Prepare mapping config files
 ```
-yap default-mapping-config --mode m3c --barcode_version V2 --bismark_ref "~/Ref/hg38/hg38_ucsc_with_chrL.bismark1" --genome "~/Ref/hg38/hg38_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/hg38/hg38_ucsc.main.chrom.sizes" --annotation_path "~/Ref/hg38/annotations/hg38_allc.gz" > m3c_config_bismark.ini
+yap default-mapping-config --mode m3c --barcode_version V2 --bismark_ref "~/Ref/hg38/hg38_ucsc_with_chrL.bismark1" --genome "~/Ref/hg38/hg38_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/hg38/hg38_ucsc.main.chrom.sizes" > m3c_config_bismark.ini
 
 yap default-mapping-config --mode m3c --barcode_version V2 --genome "~/Ref/hg38/hg38_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/hg38/hg38_ucsc.main.chrom.sizes" --hisat3n_dna_ref  "~/Ref/hg38/hg38_ucsc_with_chrL" > m3c_config_hisat3n.ini
-# or, to also generate mhap files (set generate_mhap True and provide annotation_path)
-yap default-mapping-config --mode m3c --barcode_version V2 --genome "~/Ref/hg38/hg38_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/hg38/hg38_ucsc.main.chrom.sizes" --hisat3n_dna_ref  "~/Ref/hg38/hg38_ucsc_with_chrL" --annotation_path "~/Ref/hg38/annotations/hg38_allc.gz" --generate_mhap True > m3c_mhap_config_hisat3n.ini
+# or, to also generate mhap files (sites are taken from --genome)
+yap default-mapping-config --mode m3c --barcode_version V2 --genome "~/Ref/hg38/hg38_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/hg38/hg38_ucsc.main.chrom.sizes" --hisat3n_dna_ref  "~/Ref/hg38/hg38_ucsc_with_chrL" --generate_mhap > m3c_mhap_config_hisat3n.ini
 ```
 
 ## Run mapping

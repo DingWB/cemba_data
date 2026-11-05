@@ -32,6 +32,7 @@ def print_default_mapping_config(mode,
 								 mc_format='allc',
 								 reference_cz=None,
 								 extract_mcg=False,
+								 generate_mhap=False,
 								 **kwargs):
 	mode = mode.lower()
 	if mode.split('-')[0] not in MAPPING_MODE_CHOICES:
@@ -128,6 +129,10 @@ def print_default_mapping_config(mode,
 	config_content = _set_config_option(config_content, 'reference_cz',
 										'' if reference_cz is None else reference_cz)
 	config_content = _set_config_option(config_content, 'extract_mcg', bool(extract_mcg))
+	if generate_mhap:
+		if mode not in ('mc', 'm3c', 'm3c-multi'):
+			raise ValueError(f'generate_mhap is only supported in mc, m3c and m3c-multi modes, got {mode}')
+		config_content = _set_config_option(config_content, 'generate_mhap', True)
 	print(config_content)
 	for key in kwargs:
 		if kwargs[key] is None:

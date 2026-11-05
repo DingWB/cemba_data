@@ -30,7 +30,6 @@ def mc_config_str(config):
         'chrom_size_path': 'required',
         'mc_stat_feature': 'CHN CGN CCC',
         'mc_stat_alias': 'mCH mCG mCCC',
-        'annotation_path': None,
         'mc_format': 'cz',
         'reference_cz': None
     }

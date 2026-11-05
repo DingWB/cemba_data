@@ -41,7 +41,7 @@ for dir in [bam_dir,allc_dir,hic_dir,allc_mcg_dir]:
 
 # ==================================================
 # Methylation output format (allc / cz) and optional mhap generation
-# The bare variables mc_format / reference_cz / generate_mhap / annotation_path
+# The bare variables mc_format / reference_cz / generate_mhap / extract_mcg
 # are written at the top of the generated Snakefile by the *_config_str helpers
 # (see cemba_data/mapping/pipelines/{m3c,mc}.py). Fall back to defaults for
 # modes (mct / 4m) that do not define them.

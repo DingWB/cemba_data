@@ -359,21 +359,14 @@ rule unique_reads_mhap:
         mhap_ch="mhap/{cell_id}.CH.mhap.gz",
         tbi_ch="mhap/{cell_id}.CH.mhap.gz.tbi"
     resources:
-        mem_mb=400
+        mem_mb=1500  # site flags of the largest chromosome (1 byte / bp)
     threads:
         1
     run:
         from cemba_data.mapping.pipelines import bam2mhap
         os.makedirs(mhap_dir, exist_ok=True)
-        annotation = config.get('annotation_path', None)
-        if annotation in (None, '', 'None'):
-            raise ValueError(
-                "generate_mhap=True requires 'annotation_path' (path to the "
-                "*_allc.gz annotation) in the mapping config.")
-        annotation = os.path.expanduser(str(annotation))
-        outfile_cg = output.mhap_cg[:-3]  # strip ".gz"; bgzipped + tabixed by bam2mhap
-        bam2mhap(bam_path=input.bam, annotation=annotation,
-                 output=outfile_cg, pattern="CGN")
-        outfile_ch = output.mhap_ch[:-3]
-        bam2mhap(bam_path=input.bam, annotation=annotation,
-                 output=outfile_ch, pattern="CHN")
+        # one pass for CG and CH; sites come from reference_fasta
+        bam2mhap(bam_path=input.bam,
+                 reference_fasta=os.path.expanduser(str(config['reference_fasta'])),
+                 chroms=os.path.expanduser(str(config['chrom_size_path'])),
+                 outputs={'CGN': output.mhap_cg, 'CHN': output.mhap_ch})

@@ -39,8 +39,6 @@ DEFAULT_CONFIG = {
     'reference_cz': None,
     # Whether to also generate per-cell .mhap.gz files (bam -> mhap).
     'generate_mhap': False,
-    # Annotation *_allc.gz path used by bam2mhap, required when generate_mhap.
-    'annotation_path': None,
     # Whether to generate the CGN-merged ALLC (allc-CGN/*.CGN-Merge.allc.tsv.gz).
     # Off by default; set extract_mcg = True to produce it.
     'extract_mcg': False,

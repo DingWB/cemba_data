@@ -424,13 +424,6 @@ def print_default_config_register_subparser(subparser):
 	)
 
 	parser.add_argument(
-		"--annotation_path",
-		type=str,
-		required=False,
-		help="[-mhap only] Path to the *_allc.gz"
-	)
-
-	parser.add_argument(
 		"--mc_format",
 		type=str,
 		required=False,
@@ -460,7 +453,15 @@ def print_default_config_register_subparser(subparser):
 			 "only meaningful when allc output is generated."
 	)
 
-	parser.set_defaults(nome=False, extract_mcg=False)
+	parser.add_argument(
+		"--generate_mhap",
+		dest='generate_mhap',
+		action='store_true',
+		help="[mc / m3c / m3c-multi only] Also generate per-cell mhap files (mhap/*.CG.mhap.gz, mhap/*.CH.mhap.gz); "
+			 "the sites are taken from --genome."
+	)
+
+	parser.set_defaults(nome=False, extract_mcg=False, generate_mhap=False)
 	return
 
 

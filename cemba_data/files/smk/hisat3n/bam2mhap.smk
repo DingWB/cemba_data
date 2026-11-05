@@ -9,8 +9,11 @@ suffix=config.get("suffix",".hisat3n_dna.all_reads.name_sort.bam")
 CELL_IDS=[os.path.basename(infile).replace(suffix,'') for infile in glob.glob(f"{bam_dir}/*{suffix}")]
 print(len(CELL_IDS))
 
-annotation_dir=os.path.expanduser(config['annotation_dir'])
-annotation_suffix=config.get("annotation_suffix","hg38_allc.gz")
+# CpG / CH sites come from the genome fasta: --config reference_fasta=<genome.fa> [chrom_size_path=<sizes>]
+if "reference_fasta" not in config:
+    raise ValueError("bam2mhap.smk needs --config reference_fasta=<genome fasta the BAMs were aligned to>")
+reference_fasta=os.path.expanduser(config["reference_fasta"])
+chrom_size_path=config.get("chrom_size_path",None)
 
 rule summary:
     input:
@@ -75,17 +78,13 @@ rule bam_to_mhap:
         tbi1="mhap/{cell_id}.CG.mhap.gz.tbi",
         mhap2="mhap/{cell_id}.CH.mhap.gz",
         tbi2="mhap/{cell_id}.CH.mhap.gz.tbi"
-    params:
-        annotation_path=lambda wildcards: os.path.join(annotation_dir,f"{wildcards.cell_id.split('_')[0]}.{annotation_suffix}")
     resources:
-        mem_mb=400
+        mem_mb=1500
     run:
         from cemba_data.mapping.pipelines import bam2mhap
         if not os.path.exists(mhap_dir):
             os.mkdir(mhap_dir)
-        outfile1=output.mhap1[:-3] #"allc/{cell_id}.mhap", will be bgzipped and tabix indexed in mhap
-        bam2mhap(bam_path=input.bam,annotation=params.annotation_path,
-            output=outfile1,pattern="CGN")
-        outfile2 = output.mhap2[:-3]
-        bam2mhap(bam_path=input.bam,annotation=params.annotation_path,
-            output=outfile2,pattern="CHN")
+        bam2mhap(bam_path=input.bam,
+                 reference_fasta=reference_fasta,
+                 chroms=os.path.expanduser(chrom_size_path) if chrom_size_path else None,
+                 outputs={'CGN': output.mhap1, 'CHN': output.mhap2})
