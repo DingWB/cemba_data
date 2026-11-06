@@ -42,10 +42,12 @@ def _determine_reads_conversion(read):
         raise ValueError
 
 
+_COMPLEMENT = {'A': 'T', 'T': 'A', 'G': 'C', 'C': 'G', 'N': 'N'}
+
+
 def _complement(seq):
-    d = {'A': 'T', 'T': 'A', 'G': 'C', 'C': 'G', 'N': 'N'}
     try:
-        return ''.join([d[b] for b in seq])
+        return ''.join([_COMPLEMENT[b] for b in seq])
     except KeyError:
         return seq
 
@@ -114,34 +116,49 @@ def _single_read_mch_level(read, nome=False, frac=False):
     """
     read_conversion = _determine_reads_conversion(read)
 
-    # ref seq is parsed based on read seq and MD tag, and do not depend on reverse or not
-    ref_seq = read.get_reference_sequence().upper()
-    ref_pos = read.get_reference_positions()
-    # use dict instead of string is because ref_seq could contain blocks when skip happen
-    ref_seq_dict = {pos: base for pos, base in zip(ref_pos, ref_seq)}
+    # ref seq is parsed based on read seq and MD tag, and do not depend on reverse or not.
+    # Use the aligned pairs (one pysam call) to build the position -> reference base dict,
+    # so deleted reference bases keep the positions right; zipping get_reference_positions()
+    # (which skips deletions) with get_reference_sequence() (which includes them) would shift
+    # every base after a deletion.
+    aligned_pairs = read.get_aligned_pairs(matches_only=False, with_seq=True)
+    ref_seq_dict = {}
+    for _, ref_pos, ref_base in aligned_pairs:
+        if ref_pos is not None and ref_base is not None:
+            ref_seq_dict[ref_pos] = ref_base.upper()
     read_seq = read.seq.upper()
+
+    # a position can only be a C site in this conversion if the reference base is
+    # C (C->T conversion, forward strand C) or G (G->A conversion, reverse strand C);
+    # _determine_mch_context is False for every other reference base, so skip them early
+    c_base = 'G' if read_conversion == 'GA' else 'C'
+    methylated_pair = c_base + c_base
+    unmethylated_pair = 'GA' if read_conversion == 'GA' else 'CT'
 
     # only count mCH
     mch = 0
     cov = 0
     other_snp = 0
     # read.get_aligned_pairs always return small to large position
-    for read_pos, ref_pos, ref_base in read.get_aligned_pairs(
-            matches_only=True, with_seq=True):
-        read_base = read_seq[read_pos]
-        ref_read_pair = ref_base + read_base
-        ref_read_pair = ref_read_pair.upper()
-        is_mch_context = _determine_mch_context(read_conversion, ref_pos, ref_seq_dict, nome=nome)
-        if is_mch_context:
-            if ref_read_pair in ['CC', 'GG']:  # means unconverted and methylated
-                cov += 1
-                mch += 1
-            elif ref_read_pair in ['CT', 'GA']:  # means converted and un-methylated
-                cov += 1
-            else:
-                # other kinds of SNPs, do not count to cov
-                other_snp += 1
-                pass
+    for read_pos, ref_pos, ref_base in aligned_pairs:
+        if read_pos is None or ref_pos is None:
+            # insertion / soft clip / deletion / skip
+            continue
+        # ref_base is lower case at mismatches
+        ref_base = ref_base.upper()
+        if ref_base != c_base:
+            continue
+        if not _determine_mch_context(read_conversion, ref_pos, ref_seq_dict, nome=nome):
+            continue
+        ref_read_pair = ref_base + read_seq[read_pos]
+        if ref_read_pair == methylated_pair:  # means unconverted and methylated
+            cov += 1
+            mch += 1
+        elif ref_read_pair == unmethylated_pair:  # means converted and un-methylated
+            cov += 1
+        else:
+            # other kinds of SNPs, do not count to cov
+            other_snp += 1
     if frac:
         read_mch_frac = (mch / cov) if cov > 0 else 0
         return read_mch_frac, cov, other_snp

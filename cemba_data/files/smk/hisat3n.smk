@@ -369,4 +369,5 @@ rule unique_reads_mhap:
         bam2mhap(bam_path=input.bam,
                  reference_fasta=os.path.expanduser(str(config['reference_fasta'])),
                  chroms=os.path.expanduser(str(config['chrom_size_path'])),
-                 outputs={'CGN': output.mhap_cg, 'CHN': output.mhap_ch})
+                 outputs={'CGN': output.mhap_cg, 'CHN': output.mhap_ch},
+                 cache_dir=config['mhap_cache_dir'])

@@ -92,7 +92,10 @@ def _demultiplex(fastq_pattern, output_dir, barcode_version, cpu):
 				'uid', 'read_type', 'lane', 'fastq_path'
 			]]
 			new_path = raw_dir / f'{uid}+{lane}+{read_type}.fq.gz'
-			subprocess.run(['ln', '-s', old_path, new_path], check=True)
+			# re-runs: ln -s on an existing link fails, replace it instead
+			if new_path.is_symlink() or new_path.exists():
+				new_path.unlink()
+			new_path.symlink_to(old_path)
 		lanes = list(uid_df['lane'].unique())
 		name_str = '{{name}}'
 

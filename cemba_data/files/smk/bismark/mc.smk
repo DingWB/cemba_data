@@ -212,7 +212,8 @@ rule bam_to_mhap:
         bam2mhap(bam_path=input.bam,
                  reference_fasta=os.path.expanduser(str(reference_fasta)),
                  chroms=os.path.expanduser(str(chrom_size_path)),
-                 outputs={'CGN': output.mhap_cg, 'CHN': output.mhap_ch})
+                 outputs={'CGN': output.mhap_cg, 'CHN': output.mhap_ch},
+                 cache_dir=mhap_cache_dir)
 
 # CGN extraction from ALLC
 rule cgn_extraction:

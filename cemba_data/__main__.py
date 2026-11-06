@@ -461,6 +461,16 @@ def print_default_config_register_subparser(subparser):
 			 "the sites are taken from --genome."
 	)
 
+	parser.add_argument(
+		"--mhap_cache_dir",
+		dest='mhap_cache_dir',
+		type=str,
+		default=None,
+		help="[with --generate_mhap] Directory to cache the mhap site flags of --genome "
+			 "(1 byte / bp, ~3 GB for hg38). Without it, every cell recomputes them (~20-30 s). "
+			 "Shared by all cells of the same genome."
+	)
+
 	parser.set_defaults(nome=False, extract_mcg=False, generate_mhap=False)
 	return
 

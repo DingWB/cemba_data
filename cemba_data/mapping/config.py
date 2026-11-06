@@ -33,6 +33,7 @@ def print_default_mapping_config(mode,
 								 reference_cz=None,
 								 extract_mcg=False,
 								 generate_mhap=False,
+								 mhap_cache_dir=None,
 								 **kwargs):
 	mode = mode.lower()
 	if mode.split('-')[0] not in MAPPING_MODE_CHOICES:
@@ -133,6 +134,8 @@ def print_default_mapping_config(mode,
 		if mode not in ('mc', 'm3c', 'm3c-multi'):
 			raise ValueError(f'generate_mhap is only supported in mc, m3c and m3c-multi modes, got {mode}')
 		config_content = _set_config_option(config_content, 'generate_mhap', True)
+	if mhap_cache_dir is not None:
+		config_content = _set_config_option(config_content, 'mhap_cache_dir', str(mhap_cache_dir))
 	print(config_content)
 	for key in kwargs:
 		if kwargs[key] is None:

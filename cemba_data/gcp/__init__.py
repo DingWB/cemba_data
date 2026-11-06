@@ -16,10 +16,11 @@ def main():
 		'run_demultiplex':run_demultiplex,
 		'prepare_mapping':prepare_mapping,
 		'run_mapping':run_mapping,
+		'start_from_cell_bam':start_from_cell_bam,
 		'yap_pipeline':yap_pipeline,
 		'check_demultiplex':check_demultiplex,
 		'bam2mhap':bam2mhap,
 	},serialize=lambda x:print(x) if not x is None else print(""))
 
-if __name__=="_main__":
+if __name__=="__main__":
 	main()

@@ -128,6 +128,49 @@ yap-gcp run_mapping --workd="mapping" --gcp=False --config_path="m3c_config.ini"
 sh mapping/snakemake/qsub/snakemake_cmd.txt
 ```
 
+### Start from cell-level BAM files (skip demultiplex and fastq -> bam)
+`yap-gcp start_from_cell_bam` runs a snakemake template directly on existing cell BAM files, e.g. to generate mhap
+files from the BAMs of a finished mapping run. It symlinks the BAMs matched by `--bam_pattern` into
+`{output_dir}/Group{i}/bam/` (at most `--n_group` groups), copies the config to `{output_dir}/mapping_config.ini`
+and writes one Snakefile per group; the cell ids are the part of the file names matched by `*`.
+
+The default mapping templates end with the full mapping summary and need the fastq / bam stats of a complete
+mapping run, so starting only from BAMs needs a BAM-only template such as
+[bam2mhap.smk](cemba_data/files/smk/hisat3n/bam2mhap.smk) (hisat-3n BAMs -> `mhap/{cell_id}.CG.mhap.gz` and
+`mhap/{cell_id}.CH.mhap.gz`). It accepts name-sorted `*.hisat3n_dna.all_reads.name_sort.bam` (sorted, deduplicated
+and indexed first) or already deduplicated, position-sorted `*.hisat3n_dna.all_reads.deduped.bam`; the CpG / CH sites
+are taken from `reference_fasta` (and the chromosomes from `chrom_size_path`) in the mapping config.
+```shell
+# mapping config: reference_fasta and chrom_size_path must be the genome the BAMs were aligned to
+yap default-mapping-config --mode m3c --barcode_version V2 \
+  --hisat3n_dna_ref "~/Ref/hg38/hg38_ucsc_with_chrL" \
+  --genome "~/Ref/hg38/hg38_ucsc_with_chrL.fa" \
+  --chrom_size_path "~/Ref/hg38/hg38_ucsc.main.chrom.sizes" > m3c_config.ini
+
+SMK=$(python -c "import cemba_data,os; print(os.path.join(cemba_data.__path__[0],'files/smk/hisat3n/bam2mhap.smk'))")
+
+# local / HPC: write mhap_run/snakemake/qsub/snakemake_cmd.txt (one snakemake command per group), then run it
+# --indir: the directory containing the BAMs (e.g. one {workd}/{uid}/bam of a yap-gcp run, or a folder of symlinks)
+yap-gcp start_from_cell_bam --indir="/path/to/bams" \
+  --bam_pattern="*.hisat3n_dna.all_reads.name_sort.bam" \
+  --output_dir="mhap_run" --gcp=False --config_path="m3c_config.ini" \
+  --snakemake_template="${SMK}" --n_jobs=16 --n_group=64 --print_only=True
+sh mhap_run/snakemake/qsub/snakemake_cmd.txt # or submit each line as a job
+ls mhap_run/Group*/mhap/*.CG.mhap.gz
+
+# GCP: output_dir is the GCS folder that already contains bam/{bam_pattern}; outputs are written there
+yap-gcp start_from_cell_bam --output_dir="gs://bucket/mapping/uid" \
+  --bam_pattern="*.hisat3n_dna.all_reads.name_sort.bam" --gcp=True --region='us-west1' \
+  --config_path="m3c_config.ini" --snakemake_template="${SMK}" --n_jobs=64
+
+# a single directory with bam/*.hisat3n_dna.all_reads.name_sort.bam can also be run without start_from_cell_bam
+snakemake -d mapping/Pool_Remind1_m3c/<uid> -s ${SMK} -j 16 \
+  --config reference_fasta="~/Ref/hg38/hg38_ucsc_with_chrL.fa" chrom_size_path="~/Ref/hg38/hg38_ucsc.main.chrom.sizes"
+```
+- `--bam_pattern`: BAM file name with one `*` (or `{cell_id}`) for the cell id.
+- `--print_only=True` (local): only write the commands; with `--print_only=False` nothing is run locally.
+- `--total_memory_gb`: memory per snakemake command (default `2 * n_jobs` GB).
+
 ## Workflow
 <img src="doc/files/snm3c_dag.svg" title="DAG for snm3c" width="800px">
 

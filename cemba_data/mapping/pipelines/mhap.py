@@ -103,21 +103,36 @@ class _Fasta:
 	def length(self, chrom):
 		return self._fa.get_reference_length(chrom)
 
-	def codes(self, chrom, start, end):
-		"""Base codes (A0 C1 G2 T3 other 4) of [start, end)."""
+	def bases(self, chrom, start, end):
+		"""Lower-cased ASCII bytes (uint8) of [start, end)."""
 		if self._fai is None:
-			return _BASE_LUT[np.frombuffer(self._fa.fetch(chrom, start, end).encode('ascii'), dtype=np.uint8)]
+			raw = np.frombuffer(self._fa.fetch(chrom, start, end).encode('ascii'), dtype=np.uint8)
+			return raw | 0x20
 		_, offset, line_bases, line_width = self._fai[chrom]
 		b0 = offset + (start // line_bases) * line_width + start % line_bases
 		b1 = offset + ((end - 1) // line_bases) * line_width + (end - 1) % line_bases + 1
 		raw = np.fromfile(self.path, dtype=np.uint8, count=b1 - b0, offset=b0)
-		raw = raw[raw > 32]  # drop line breaks (\n, \r)
+		# drop the line breaks: the first (partial) line by its known offset, then full lines by reshaping
+		# (a strided copy, ~2x faster than a boolean mask) and the tail line with a mask
+		first = line_bases - start % line_bases  # bases left on the first line
+		head = raw[:first]
+		rest = raw[first + (line_width - line_bases):] if len(raw) > first else raw[:0]
+		n_full = len(rest) // line_width
+		body = rest[:n_full * line_width].reshape(n_full, line_width)[:, :line_bases].ravel()
+		tail = rest[n_full * line_width:]
+		tail = tail[tail > 32]
+		raw = np.concatenate([head, body, tail]) if len(tail) or len(head) else body
 		if len(raw) != end - start:
 			raise ValueError(f'unexpected FASTA line layout of {chrom} in {self.path}')
-		return _BASE_LUT[raw]
+		return raw | 0x20  # fold case: soft-masked lower case bases are the same site
 
 	def close(self):
 		self._fa.close()
+
+
+_N_BYTE = ord('n')
+_C_BYTE = ord('c')
+_G_BYTE = ord('g')
 
 
 def _flags_from_fasta(fasta, chrom, luts, chunk_size=10_000_000):
@@ -129,16 +144,56 @@ def _flags_from_fasta(fasta, chrom, luts, chunk_size=10_000_000):
 	for start in range(0, length, chunk_size):
 		end = min(start + chunk_size, length)
 		lo, hi = max(start - 2, 0), min(end + 2, length)
-		codes = np.full(end - start + 4, 4, dtype=np.uint8)  # bases at start-2 .. end+1, N outside the chromosome
+		# bases at start-2 .. end+1, 'n' outside the chromosome
+		seq = np.full(end - start + 4, _N_BYTE, dtype=np.uint8)
 		offset = lo - (start - 2)
-		codes[offset:offset + hi - lo] = fasta.codes(chrom, lo, hi)
+		seq[offset:offset + hi - lo] = fasta.bases(chrom, lo, hi)
 		n = end - start
-		mid = codes[2:2 + n]
-		ic = np.flatnonzero(mid == 1)  # top-strand C: context C, +1, +2
-		flags[start + ic] = top_lut[25 + codes[3 + ic] * 5 + codes[4 + ic]]
+		mid = seq[2:2 + n]
+		# only the C / G positions (~20% each) go through the base-code LUT, not the whole chromosome
+		ic = np.flatnonzero(mid == _C_BYTE)  # top-strand C: context C, +1, +2
+		flags[start + ic] = top_lut[25 + _BASE_LUT[seq[3 + ic]] * 5 + _BASE_LUT[seq[4 + ic]]]
 		if use_bottom:
-			ig = np.flatnonzero(mid == 2)  # bottom-strand C (top G): context C, comp(-1), comp(-2)
-			flags[start + ig] = bottom_lut[25 + _COMP[codes[1 + ig]] * 5 + _COMP[codes[ig]]]
+			ig = np.flatnonzero(mid == _G_BYTE)  # bottom-strand C (top G): context C, comp(-1), comp(-2)
+			flags[start + ig] = bottom_lut[25 + _COMP[_BASE_LUT[seq[1 + ig]]] * 5 + _COMP[_BASE_LUT[seq[ig]]]]
+	return flags
+
+
+def _cache_signature(fasta, specs):
+	"""Identifies the site flags of a reference fasta + output contexts (bits) for the on-disk cache."""
+	import hashlib
+	st = os.stat(fasta.path)
+	parts = [f'{st.st_size}:{int(st.st_mtime)}']
+	for spec in specs:
+		parts.append(f'{spec.top_bit}:{spec.bottom_bit}:{",".join(sorted(spec.lut_contexts))}')
+	return hashlib.sha1('|'.join(parts).encode()).hexdigest()[:16]
+
+
+def _load_or_compute_flags(fasta, chrom, luts, cache_dir, signature):
+	"""Site flags of one chromosome, from cache_dir/{fasta name}.{signature}/{chrom}.npy when available.
+
+	Computing the flags of a whole mammalian genome takes ~20-30 s per BAM; the cache (1 byte / bp,
+	~3 GB for hg38) makes it a few seconds and is shared by all cells of the same reference.
+	"""
+	if cache_dir is None:
+		return _flags_from_fasta(fasta, chrom, luts)
+	sub_dir = os.path.join(cache_dir, f'{os.path.basename(fasta.path)}.{signature}')
+	path = os.path.join(sub_dir, f'{chrom}.npy')
+	if os.path.exists(path):
+		try:
+			flags = np.load(path)
+			if len(flags) == fasta.length(chrom):
+				return flags
+		except (OSError, ValueError) as e:
+			print(f'[bam2mhap] ignoring unreadable cache {path}: {e}', file=sys.stderr)
+	flags = _flags_from_fasta(fasta, chrom, luts)
+	try:
+		os.makedirs(sub_dir, exist_ok=True)
+		tmp = f'{path[:-4]}.{os.getpid()}.tmp.npy'  # np.save appends .npy to other suffixes
+		np.save(tmp, flags)
+		os.replace(tmp, path)  # atomic: concurrent cells never see a partial file
+	except OSError as e:
+		print(f'[bam2mhap] could not write cache {path}: {e}', file=sys.stderr)
 	return flags
 
 
@@ -191,7 +246,11 @@ def _strand_func(method):
 
 
 def _read_calls(read, bottom, flags, specs, min_bq, check_context):
-	"""{site: 1/0} per output for one read, using the CIGAR to place every base on the reference."""
+	"""{site: 1/0} per output for one read, using the CIGAR to place every base on the reference.
+
+	A plain python loop over the sites: numpy per-call overhead on the ~1-30 sites of a read
+	is larger than the loop (measured 2x slower when vectorized per block).
+	"""
 	seq = read.query_sequence
 	qual = read.query_qualities
 	blocks = []
@@ -217,15 +276,16 @@ def _read_calls(read, bottom, flags, specs, min_bq, check_context):
 	for spec in specs:
 		bit, off = spec.site(bottom)
 		rule = spec.partner if check_context else None
+		want_partner = rule == 'eq'
 		spec_calls = {}
 		for rs, qs, n in blocks:
 			c0, c1 = max(rs - off, 0), min(rs + n - off, n_flags)
 			if c1 <= c0:
 				continue
-			for h in np.flatnonzero(flags[c0:c1] & bit).tolist():
-				c = c0 + h
-				bp = c + off  # reference position of the called base
-				qp = qs + bp - rs
+			shift = qs - rs + off  # qp = c + shift
+			for c in (flags[c0:c1] & bit).nonzero()[0].tolist():
+				c += c0
+				qp = c + shift
 				if qual is not None and qual[qp] < min_bq:
 					continue
 				base = seq[qp]
@@ -236,10 +296,10 @@ def _read_calls(read, bottom, flags, specs, min_bq, check_context):
 				else:
 					continue
 				if rule is not None:
-					pr = bp + step
+					pr = c + off + step  # reference position of the partner base
 					pq = qp + step if rs <= pr < rs + n else edge.get(pr)
 					# partner outside the aligned read (read end, deletion): keep the call, as ALLC does
-					if pq is not None and (seq[pq] == partner_base) != (rule == 'eq'):
+					if pq is not None and (seq[pq] == partner_base) != want_partner:
 						continue  # SNP / misalignment on the read breaks the context
 				spec_calls[c] = value
 		calls.append(spec_calls)
@@ -261,43 +321,79 @@ class _Fragment:
 			spec_calls.append(read_calls)
 
 
+_HAP_CHARS = '01'
+
+
 def _finalize_fragment(frag, flags, specs, stats):
 	"""Merge the calls of all reads of a fragment and add its mHap records to the counters."""
 	strand = '-' if frag.bottom else '+'
 	for k, spec in enumerate(specs):
-		merged, conflict = {}, set()
-		for read_calls in frag.calls[k]:
-			for c, v in read_calls.items():
-				if merged.setdefault(c, v) != v:
-					conflict.add(c)  # mates disagree: sequenced, but no call
-		sites = sorted(c for c in merged if c not in conflict)
-		if not sites:
-			continue
-		bit, off = spec.site(frag.bottom)
-		lo_c = sites[0]
-		all_sites = np.flatnonzero(flags[lo_c:sites[-1] + 1] & bit)
-		cuts = []
-		if len(all_sites) != len(sites):  # some sites between the first and last call have no call
-			all_sites = (all_sites + lo_c).tolist()
-			rank = {c: i for i, c in enumerate(all_sites)}
-			drop = False
-			for i in range(1, len(sites)):
-				ra, rb = rank[sites[i - 1]], rank[sites[i]]
-				if rb - ra == 1:
-					continue
-				# sequenced (inside a read, e.g. low BQ, deletion, mate conflict) vs. not sequenced (between mates)
-				sequenced = any(s <= m + off < e for m in all_sites[ra + 1:rb] for s, e in frag.spans)
-				if sequenced and not spec.split:
-					drop = True
-					break
-				cuts.append(i)
-			if drop:
-				stats[f'dropped_fragments_{spec.name}'] += 1
+		read_calls_list = frag.calls[k]
+		if len(read_calls_list) == 1:
+			# single alignment (most m3C parts, unpaired reads): nothing to merge
+			merged = read_calls_list[0]
+			if not merged:
 				continue
-		bounds = [0] + cuts + [len(sites)]
-		for lo, hi in zip(bounds[:-1], bounds[1:]):
-			haplotype = ''.join('1' if merged[c] else '0' for c in sites[lo:hi])
-			spec.counter[(sites[lo] + 1, sites[hi - 1] + 1, strand, haplotype)] += 1
+			called = merged
+			sites = sorted(merged)
+		else:
+			if len(read_calls_list) == 2:
+				# a read pair: merge with dict views (C speed) instead of a python loop over the calls
+				a, b = read_calls_list
+				merged = {**a, **b}
+				common = a.keys() & b.keys()
+				conflict = {c for c in common if a[c] != b[c]} if common else None
+			else:
+				merged, conflict = {}, set()
+				for read_calls in read_calls_list:
+					for c, v in read_calls.items():
+						if merged.setdefault(c, v) != v:
+							conflict.add(c)  # mates disagree: sequenced, but no call
+			if conflict:
+				sites = sorted(c for c in merged if c not in conflict)
+				called = set(sites)
+			else:
+				sites = sorted(merged)
+				called = merged
+			if not sites:
+				continue
+		bit, off = spec.site(frag.bottom)
+		lo_c, hi_c = sites[0], sites[-1]
+		pieces = None
+		# a site without a call can only exist between the calls if they are not at consecutive positions
+		if hi_c - lo_c + 1 > len(sites):
+			region = flags[lo_c:hi_c + 1] & bit
+			if np.count_nonzero(region) != len(sites):  # some sites between the first and last call have no call
+				split, spans = spec.split, frag.spans
+				pieces, cur, drop, cut = [], [], False, False
+				for m in (region.nonzero()[0] + lo_c).tolist():
+					if m in called:
+						if cut:
+							pieces.append(cur)
+							cur, cut = [], False
+						cur.append(m)
+						continue
+					if not split:
+						# sequenced (inside a read, e.g. low BQ, deletion, mate conflict) -> drop the fragment,
+						# not sequenced (between mates) -> cut the record
+						mo = m + off
+						for s, e in spans:
+							if s <= mo < e:
+								drop = True
+								break
+						if drop:
+							break
+					cut = True
+				if drop:
+					stats[f'dropped_fragments_{spec.name}'] += 1
+					continue
+				pieces.append(cur)
+		if pieces is None:
+			pieces = [sites]
+		counter = spec.counter
+		for piece in pieces:
+			haplotype = ''.join(map(_HAP_CHARS.__getitem__, [merged[c] for c in piece]))  # calls are 0 / 1 ints
+			counter[(piece[0] + 1, piece[-1] + 1, strand, haplotype)] += 1
 
 
 def _parse_chroms(chroms):
@@ -316,7 +412,7 @@ def _parse_chroms(chroms):
 
 def bam2mhap(bam_path=None, reference_fasta=None, output="test.mhap", method=None, pattern="CGN",
 			 outputs=None, chroms=None, min_mapq=10, min_base_quality=20,
-			 max_frag=1000, split=None, check_context=True):
+			 max_frag=1000, split=None, check_context=True, cache_dir=None):
 	"""
 	Convert a coordinate-sorted bisulfite BAM into bgzipped, tabix-indexed mHap file(s),
 	similar to ``mhaptools convert`` (mHapTools >= 0.11).
@@ -363,6 +459,11 @@ def bam2mhap(bam_path=None, reference_fasta=None, output="test.mhap", method=Non
 		None: drop for CpG outputs, cut for other contexts (dense CH sites would lose many fragments).
 	check_context :
 		skip calls whose context is broken on the read (SNP / misalignment), as mHapTools does.
+	cache_dir :
+		directory to cache the per-chromosome site flags of reference_fasta + outputs as .npy
+		(1 byte / bp, ~3 GB for a human genome). Computing them takes ~20-30 s per BAM for a
+		mammalian genome; with the cache (shared by all cells of a reference) it is a few seconds.
+		None (default): no cache.
 
 	Returns
 	-------
@@ -401,6 +502,11 @@ def bam2mhap(bam_path=None, reference_fasta=None, output="test.mhap", method=Non
 	keep_chroms = _parse_chroms(chroms)
 	fasta = _Fasta(reference_fasta)
 	luts = _context_luts(specs)
+	if cache_dir is not None:
+		cache_dir = os.path.abspath(os.path.expanduser(str(cache_dir)))
+		cache_signature = _cache_signature(fasta, specs)
+	else:
+		cache_signature = None
 	stats = Counter()
 	exclude = 0x4 | 0x100 | 0x200 | 0x400 | 0x800  # unmapped, secondary, QC fail, duplicate, supplementary
 
@@ -413,7 +519,7 @@ def bam2mhap(bam_path=None, reference_fasta=None, output="test.mhap", method=Non
 		if fasta.length(chrom) != length:
 			raise ValueError(f'{chrom} has length {length} in the BAM but '
 							 f'{fasta.length(chrom)} in {reference_fasta}')
-		return _flags_from_fasta(fasta, chrom, luts)
+		return _load_or_compute_flags(fasta, chrom, luts, cache_dir, cache_signature)
 
 	def finish_chrom(chrom, flags, pending, handles):
 		while pending:

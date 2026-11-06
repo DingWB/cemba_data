@@ -60,6 +60,9 @@ if mc_format not in ('allc', 'cz', 'both'):
         f"Unknown mc_format {mc_format!r}, choose from 'allc', 'cz', 'both'")
 generate_mhap = _coerce_bool(globals().get('generate_mhap', False))
 reference_cz = globals().get('reference_cz', None)
+# optional on-disk cache of the mhap site flags of the reference (see bam2mhap cache_dir)
+mhap_cache_dir = globals().get('mhap_cache_dir', None)
+mhap_cache_dir = None if mhap_cache_dir in (None, '', 'None') else os.path.expanduser(str(mhap_cache_dir))
 # Whether to generate the CGN-merged ALLC (allc-CGN). Off by default.
 extract_mcg = _coerce_bool(globals().get('extract_mcg', False))
 

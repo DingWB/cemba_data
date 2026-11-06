@@ -1,4 +1,6 @@
 import os,sys
+import ast
+import shutil
 import pandas as pd
 import cemba_data
 import glob
@@ -21,6 +23,17 @@ try: #gcp
 	gcp_project=D['quota_project_id']
 except:
 	pass
+
+def _copy_mapping_config(config_path, output_dir):
+	"""Copy config_path to {output_dir}/mapping_config.ini; fail loudly if it is missing
+	and skip the copy when it already is that file (re-runs)."""
+	config_path = os.path.abspath(os.path.expanduser(config_path))
+	if not os.path.exists(config_path):
+		raise FileNotFoundError(f"mapping config not found: {config_path}")
+	target = os.path.join(output_dir, 'mapping_config.ini')
+	if os.path.exists(target) and os.path.samefile(config_path, target):
+		return
+	shutil.copyfile(config_path, target)
 
 def make_v2_fastq_df(fq_dir,fastq_server='local'):
 	# For example: UWA7648_CX05_A10_2_P8-1-O4_22F25JLT3_S15_L001_I1_001.fastq.gz
@@ -79,7 +92,7 @@ def get_lanes_info(outdir,barcode_version):
 	#  uid={plate}-{multiplex_group}-{primer_name}
 	if os.path.exists("lane_info.txt"):
 		df1=pd.read_csv("lane_info.txt",sep='\t')
-		df1.fastq_path = df1.fastq_path.apply(lambda x: eval(x))
+		df1.fastq_path = df1.fastq_path.apply(ast.literal_eval)
 		return df1
 	uids,plates,multiple_groups,primer_names,lanes,index_names,read_types=glob_wildcards(os.path.join(outdir,"{uid}/lanes/{plate}-{multiplex_group}-{primer_name}-{lane}-{index_name}-{read_type}.fq.gz"))
 	if len(uids)==0:
@@ -158,7 +171,8 @@ def get_fastq_uids(remote_prefix=None):
 	# files = bucket.list_blobs(prefix=prefix, match_glob='**{-R1.fq.gz,-R1.fastq.gz}')
 	unique_uids=[]
 	for uid in set(uids):
-		mapping_summary=bucket.blob(f"{prefix}/{uid}/MappingSummary.csv.gz")
+		summary_name = f"{uid}/MappingSummary.csv.gz" if prefix is None else f"{prefix}/{uid}/MappingSummary.csv.gz"
+		mapping_summary=bucket.blob(summary_name)
 		if mapping_summary.exists():
 			# b = bucket.get_blob(f"{prefix}/{uid}/MappingSummary.csv.gz")
 			# if b.size > 50: #bytes
@@ -366,7 +380,7 @@ def prepare_mapping(workd="gs://mapping_example/test_gcp",
 		output=os.path.join(outdir,"run_mapping.yaml")
 	else:
 		output = os.path.join(outdir, "run_mapping.sh")
-	os.system(f"cp {config_path} {outdir}/mapping_config.ini")
+	_copy_mapping_config(config_path, outdir)
 	uids=get_fastq_uids(workd)
 	if len(uids)==0:
 		raise ValueError(f"Please check {workd} and make sure this is correct, cause no fastq dirs were detected")
@@ -443,7 +457,7 @@ def run_mapping(workd="gs://mapping_example/test_gcp",
 		output_folder=os.path.expanduser(workd)
 	if not os.path.exists(output_folder):
 		os.makedirs(output_folder,exist_ok=True) #on loal GCP VM machine
-	os.system(f"cp {config_path} {output_folder}/mapping_config.ini")
+	_copy_mapping_config(config_path, output_folder)
 
 	if fastq_server=='gcp':
 		if node_rank < 0:
@@ -574,12 +588,8 @@ def check_demultiplex(workd="gs://mapping_example/novaseq_mapping"):
 def cell_qc(workd="gs://bican/salk010",
 			total_read_pairs_max=6000000,total_read_pairs_min=1,
 			sky_env='sky'):
-	from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
 	gsutil = os.path.join(os.path.abspath(os.path.join(os.path.dirname(sys.executable),'../../')),
 						  f"{sky_env}/bin/gsutil")
-	GS = GSRemoteProvider(project=gcp_project)
-	os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.expanduser(
-		'~/.config/gcloud/application_default_credentials.json')
 	if not os.path.exists("demultiplex.stats.csv"):
 		os.system(f"{gsutil} cp -n {workd}/stats/demultiplex.stats.csv ./")
 	df_cell=pd.read_csv("demultiplex.stats.csv",index_col=0)
@@ -609,46 +619,66 @@ def start_from_cell_bam(
 	config_path="mapping_config.ini",aligner='hisat-3n',
 	n_jobs=64,print_only=False,
 	snakemake_template=None,n_group=64,
-	total_memory_gb=128):
+	total_memory_gb=None):
 	"""
-	start mapping pipeline from bam files.
+	Run a snakemake template on existing cell-level BAM files (skipping demultiplex and
+	fastq -> bam), e.g. generate mhap from BAMs with files/smk/hisat3n/bam2mhap.smk.
+	Cell ids are the part of the BAM file names matched by `*` (or `{cell_id}`) in bam_pattern.
+
 	Parameters
 	----------
 	indir : str
-		for gcp = False (run on local), input_bam should under this folder,
+		local (gcp=False): directory with the input BAM files; they are symlinked into
+		{output_dir}/Group{i}/bam/. Not used when gcp=True.
 	bam_pattern: str
-		wildcard * should be included, for example: *.hisat3n_dna.all_reads.deduped.bam
-	output_dir :path
-		if gcp = False, output_dir is a new output directory,
-		if gcp = True, output_dir is also the input dir, subfolder "bam" should
-		be present under output_dir.
-	gcp :
-	region :
-	keep_remote :
-	config_path :
-	aligner :
-	n_jobs :
-	node_rank :
-	print_only :
-	snakemake_template :
-	n_group :
-	total_memory_gb :
-	pattern: str
-		if not gcp (local), should be under the subfolder, for example:
-		pattern="bam/{cell_id}.hisat3n_dna.all_reads.deduped.bam"
-		if on gcp, pattern="{cell_id}.hisat3n_dna.all_reads.deduped.bam"
+		BAM file name with one `*` (or `{cell_id}`) for the cell id,
+		e.g. "*.hisat3n_dna.all_reads.deduped.bam".
+	output_dir : path
+		gcp=False: new local output directory (Group0, Group1, ... and snakemake/qsub/snakemake_cmd.txt);
+		gcp=True: GCS directory that already contains bam/{bam_pattern}; it is also the output dir.
+	gcp : bool
+		run on GCP (snakemake with the GS remote provider) or locally.
+	region, keep_remote :
+		GCP only: google life sciences region; keep the remote files after the run.
+	config_path : str
+		mapping config .ini (copied to {output_dir}/mapping_config.ini).
+	aligner : str
+		'hisat-3n' or 'bismark', selects the default template files/smk/{aligner}/{mode}.smk.
+	n_jobs : int
+		cores per snakemake run (-j).
+	print_only : bool
+		local: write {output_dir}/snakemake/qsub/snakemake_cmd.txt (one command per group)
+		to be run by the user; nothing is executed locally when print_only=False.
+		gcp: only print the snakemake command.
+	snakemake_template : str
+		snakemake file to run instead of the default mapping template. The default templates
+		end with the full mapping summary and need the other mapping outputs (fastq / bam
+		stats, hic, ...), so starting only from BAMs needs a BAM-only template,
+		e.g. files/smk/hisat3n/bam2mhap.smk.
+	n_group : int
+		local: maximum number of groups (snakemake runs) the cells are split into.
+	total_memory_gb : int
+		local: memory per snakemake run (default 2 * n_jobs GB).
 
 	Returns
 	-------
 
 	"""
+	if '{cell_id}' in bam_pattern:
+		glob_pattern = bam_pattern.replace('{cell_id}', '*')
+		wildcard_pattern = bam_pattern
+	elif bam_pattern.count('*') == 1:
+		glob_pattern = bam_pattern
+		wildcard_pattern = bam_pattern.replace('*', '{cell_id}')
+	else:
+		raise ValueError(f'bam_pattern must contain exactly one * (or {{cell_id}}), got {bam_pattern}')
 	if gcp:
 		output_dir=output_dir.replace("gs://","")
 	else: #local
-		output_dir=os.path.expanduser(output_dir)
+		output_dir=os.path.abspath(os.path.expanduser(output_dir))
 	if not os.path.exists(output_dir):
 		os.makedirs(output_dir,exist_ok=True) #on loal GCP VM machine
-	os.system(f"cp {config_path} {output_dir}/mapping_config.ini")
+	_copy_mapping_config(config_path, output_dir)
 
 	if gcp:
 		common_str = f'--default-resources mem_mb=100 --resources mem_mb=50000 --printshellcmds --scheduler greedy --rerun-incomplete --config gcp=True local_fastq=False -j {n_jobs} --default-remote-provider GS --google-lifesciences-region {region} '
@@ -657,12 +687,14 @@ def start_from_cell_bam(
 
 		make_all_snakefile(output_dir, subdir=None,aligner=aligner, gcp=gcp,
 						   snakemake_template=snakemake_template,
-						   pattern=f"bam/{bam_pattern}")
+						   pattern=f"bam/{wildcard_pattern}")
 		cmd_str = f"--default-remote-prefix {output_dir}"
 		cmd = f"snakemake -s {output_dir}/Snakefile {common_str} {cmd_str}"
 	else: #run on local
 		indir=os.path.abspath(os.path.expanduser(indir))
-		bam_paths = glob.glob(os.path.join(indir,bam_pattern))
+		bam_paths = sorted(glob.glob(os.path.join(indir,glob_pattern)))
+		if len(bam_paths) == 0:
+			raise ValueError(f"No BAM file matches {os.path.join(indir, glob_pattern)}")
 		groups = min(n_group, len(bam_paths)) #how many groups
 		for i, bam_path in enumerate(bam_paths):
 			group_id = i % groups
@@ -671,15 +703,16 @@ def start_from_cell_bam(
 
 			# make symlinks
 			new_bam_path = os.path.join(bam_dir,os.path.basename(bam_path))
-			os.symlink(bam_path,new_bam_path)
+			if not os.path.lexists(new_bam_path):
+				os.symlink(bam_path,new_bam_path)
 
 		for group_id in range(groups):
 			make_all_snakefile(output_dir, f'Group{group_id}', aligner=aligner, gcp=gcp,
 							   snakemake_template=snakemake_template,
-							   pattern=f"bam/{bam_pattern}")
+							   pattern=f"bam/{wildcard_pattern}")
 	print(f"GCP: {gcp}; print_only: {print_only}")
 	if not gcp and print_only:
-		prepare_run(output_dir,cores_per_job=n_jobs,total_memory_gb=total_memory_gb)
+		prepare_run(pathlib.Path(output_dir).absolute(),cores_per_job=n_jobs,total_memory_gb=total_memory_gb)
 	elif gcp:
 		print(cmd)
 		if print_only:

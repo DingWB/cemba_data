@@ -338,25 +338,23 @@ class ReadSplitOverlapGroup:
 def _remove_overlapped_split_read_parts_single_read_type(read_parts):
     """Deal with single read type, use this function inside _remove_overlapped_split_read_parts"""
     final_reads = []
+    # cache the tags once, get_tag is a relatively expensive pysam call
+    read_parts = [(r.reference_length + r.get_tag('AS'), r.get_tag('SS'), r.get_tag('SE'), r)
+                  for r in read_parts]
+    # sort once by score (ascending); the greedy selection below pops the best remaining read
+    read_parts.sort(key=lambda t: t[0])
     while len(read_parts) > 0:
         # step 1. select one read with the highest overall alignment score: ref_len + AS,
         # if read has soft clip or other mismatches, the AS will be negatively impact the score.
         # therefore, wrong slice with artificial soft clipped flanking will not rank on top of correct slice
-        *other_reads, best_read = sorted(
-            read_parts,
-            key=lambda r: r.reference_length + r.get_tag("AS"))
-        best_ss = best_read.get_tag('SS')
-        best_se = best_read.get_tag('SE')
+        _, best_ss, best_se, best_read = read_parts.pop()
 
         # step 2. remove reads that overlap with the best read based on SS SE tags
         # reads with additional parts (usually unaligned and kept as soft clip) will be removed in this step
-        keep_reads = []
-        for read in other_reads:
-            if (read.get_tag('SS') >= best_se) or (read.get_tag('SE') <= best_ss):
-                keep_reads.append(read)
+        # (the remaining list stays sorted, so no re-sort is needed)
+        read_parts = [t for t in read_parts if (t[1] >= best_se) or (t[2] <= best_ss)]
 
-        # step 3. save best read and update read_parts
-        read_parts = keep_reads
+        # step 3. save best read
         final_reads.append(best_read)
     return final_reads
 
@@ -664,8 +662,10 @@ def _contact_to_hic_format(output_prefix):
 
 
 def remove_overlap_read_parts(in_bam_path, out_bam_path):
+    # write BAM ('wb') rather than SAM text: the output is only consumed by samtools merge,
+    # and BAM is several times smaller / faster to write and read back
     with pysam.AlignmentFile(in_bam_path) as bam, \
-            pysam.AlignmentFile(out_bam_path, header=bam.header, mode='w') as out_bam:
+            pysam.AlignmentFile(out_bam_path, header=bam.header, mode='wb') as out_bam:
         count = 0
         cur_read_pair_name = None
         cur_read_parts = []

@@ -6,14 +6,29 @@ bam_dir=os.path.abspath(workflow.default_remote_prefix+"/bam") if gcp else "bam"
 mhap_dir=os.path.abspath(workflow.default_remote_prefix+"/mhap") if gcp else "mhap"
 
 suffix=config.get("suffix",".hisat3n_dna.all_reads.name_sort.bam")
-CELL_IDS=[os.path.basename(infile).replace(suffix,'') for infile in glob.glob(f"{bam_dir}/*{suffix}")]
+if "CELL_IDS" not in globals(): # CELL_IDS is written at the top of the Snakefile by start_from_cell_bam
+    CELL_IDS=[os.path.basename(infile).replace(suffix,'') for infile in glob.glob(f"{bam_dir}/*{suffix}")]
 print(len(CELL_IDS))
 
-# CpG / CH sites come from the genome fasta: --config reference_fasta=<genome.fa> [chrom_size_path=<sizes>]
+# CpG / CH sites come from the genome fasta: --config reference_fasta=<genome.fa> [chrom_size_path=<sizes>],
+# otherwise from the mapping_config.ini next to the Snakefile or the working directory (or their parent)
 if "reference_fasta" not in config:
-    raise ValueError("bam2mhap.smk needs --config reference_fasta=<genome fasta the BAMs were aligned to>")
-reference_fasta=os.path.expanduser(config["reference_fasta"])
+    from cemba_data.utilities import get_configuration
+    for _d in [workflow.basedir, os.path.dirname(workflow.basedir), os.getcwd(), os.path.dirname(os.getcwd())]:
+        if os.path.exists(os.path.join(_d, "mapping_config.ini")):
+            _mapping_config = get_configuration(os.path.join(_d, "mapping_config.ini"))
+            for _k in ["reference_fasta", "chrom_size_path", "mhap_cache_dir"]:
+                if _k in _mapping_config and _k not in config:
+                    config[_k] = _mapping_config[_k]
+            break
+if "reference_fasta" not in config:
+    raise ValueError("bam2mhap.smk needs reference_fasta: --config reference_fasta=<genome fasta the BAMs were aligned to>, "
+                     "or a mapping_config.ini in the working directory")
+reference_fasta=os.path.expanduser(str(config["reference_fasta"]))
 chrom_size_path=config.get("chrom_size_path",None)
+# optional on-disk cache of the site flags: --config mhap_cache_dir=<dir> (or mhap_cache_dir in mapping_config.ini)
+mhap_cache_dir=config.get("mhap_cache_dir",None)
+mhap_cache_dir=None if mhap_cache_dir in (None,"","None") else os.path.expanduser(str(mhap_cache_dir))
 
 rule summary:
     input:
@@ -87,4 +102,5 @@ rule bam_to_mhap:
         bam2mhap(bam_path=input.bam,
                  reference_fasta=reference_fasta,
                  chroms=os.path.expanduser(chrom_size_path) if chrom_size_path else None,
-                 outputs={'CGN': output.mhap1, 'CHN': output.mhap2})
+                 outputs={'CGN': output.mhap1, 'CHN': output.mhap2},
+                 cache_dir=mhap_cache_dir)

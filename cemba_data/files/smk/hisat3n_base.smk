@@ -103,6 +103,9 @@ config['mc_format'] = mc_format
 
 generate_mhap = _coerce_bool(config.get('generate_mhap', False))
 config['generate_mhap'] = generate_mhap
+# optional on-disk cache of the mhap site flags of the reference (see bam2mhap cache_dir)
+_mhap_cache_dir = config.get('mhap_cache_dir', None)
+config['mhap_cache_dir'] = None if _mhap_cache_dir in (None, '', 'None') else os.path.expanduser(str(_mhap_cache_dir))
 
 # Whether to generate the CGN-merged ALLC (allc-CGN). Off by default.
 extract_mcg = _coerce_bool(config.get('extract_mcg', False))

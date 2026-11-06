@@ -34,7 +34,8 @@ def m3c_config_str(config):
         'mc_stat_alias': 'mCH mCG mCCC',
         'chrom_size_path': 'required',
         'mc_format': 'cz',
-        'reference_cz': None
+        'reference_cz': None,
+        'mhap_cache_dir': None
     }
     bool_parameters = {'generate_mhap': False, 'extract_mcg': False}
     if 'hisat3n_dna_reference' in config and config["hisat3n_dna_reference"]!="CHANGE_THIS_TO_YOUR_HISAT3N_DNA_REFERENCE":
