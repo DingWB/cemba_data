@@ -42,6 +42,7 @@ bam2mhap(bam_path='cell.deduped.bam', reference_fasta='hg38.fa', chroms='hg38.ma
          outputs={'CGN': 'cell.CG.mhap.gz', 'CHN': 'cell.CH.mhap.gz'},
          cache_dir='~/Ref/hg38/mhap_cache')  # optional
 ```
-Or from BAMs only (no fastq / allc): `yap-gcp bam2mhap --bam_path ... --reference_fasta ...`, or for a
-directory of cells `yap-gcp start_from_cell_bam --snakemake_template files/smk/hisat3n/bam2mhap.smk`
-(reads `reference_fasta`, `chrom_size_path` and `mhap_cache_dir` from `mapping_config.ini`).
+Or from BAMs only (no fastq / allc): for a directory of cells
+`yap-gcp start_from_cell_bam --bam_pattern "*.hisat3n_dna.all_reads.name_sort.bam" --outputs mhap ...`
+(default template `files/smk/hisat3n/from_bam.smk`; reads `reference_fasta`, `chrom_size_path` and
+`mhap_cache_dir` from `mapping_config.ini`, see the README).

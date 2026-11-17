@@ -612,18 +612,56 @@ def cell_qc(workd="gs://bican/salk010",
 			f.write(cmd+'\n')
 	f.close()
 
+BAM_OUTPUTS = ('allc', 'cz', 'mcg', 'mhap', 'hic')
+
+def _bam_outputs_to_config(outputs):
+	"""Translate `outputs` of start_from_cell_bam ('allc', 'cz', 'mcg', 'mhap', 'hic'; a
+	comma-separated str or a list) into the config switches read by from_bam.smk.
+	None -> {} (follow the mapping config)."""
+	if outputs is None:
+		return {}
+	if isinstance(outputs, str):
+		outputs = outputs.split(',')
+	outputs = {str(o).strip().lower() for o in outputs if str(o).strip()}
+	unknown = outputs - set(BAM_OUTPUTS)
+	if unknown:
+		raise ValueError(f"Unknown outputs {sorted(unknown)}, choose from {BAM_OUTPUTS}")
+	if 'mcg' in outputs:
+		outputs.add('allc') # allc-CGN is extracted from allc
+	mc = outputs & {'allc', 'cz'}
+	mc_format = 'both' if len(mc) == 2 else (mc.pop() if mc else 'none')
+	return {'mc_format': mc_format,
+			'extract_mcg': 'mcg' in outputs,
+			'generate_mhap': 'mhap' in outputs,
+			'generate_hic': 'hic' in outputs}
+
+def _bam_template(aligner):
+	"""files/smk/{aligner}/from_bam.smk, the BAM-only template run by start_from_cell_bam."""
+	if aligner.lower() in ['hisat3n', 'hisat-3n', 'hisat_3n', 'hisat']:
+		subdir = 'hisat3n'
+	elif aligner.lower() == 'bismark':
+		subdir = 'bismark'
+	else:
+		raise ValueError(f"Unknown aligner: {aligner}")
+	path = os.path.join(PACKAGE_DIR, 'files', 'smk', subdir, 'from_bam.smk')
+	if not os.path.exists(path):
+		raise ValueError(f"start_from_cell_bam is not implemented for aligner {aligner} "
+						 f"({path} does not exist)")
+	return path
+
 def start_from_cell_bam(
-	indir="bam",bam_pattern="*.hisat3n_dna.all_reads.deduped.bam",
+	indir="bam",bam_pattern="*.hisat3n_dna.all_reads.name_sort.bam",
 	output_dir="gs://mapping_example/mapping",
 	gcp=True,region='us-west1',keep_remote=False,
 	config_path="mapping_config.ini",aligner='hisat-3n',
 	n_jobs=64,print_only=False,
-	snakemake_template=None,n_group=64,
+	outputs=None,n_group=64,
 	total_memory_gb=None):
 	"""
-	Run a snakemake template on existing cell-level BAM files (skipping demultiplex and
-	fastq -> bam), e.g. generate mhap from BAMs with files/smk/hisat3n/bam2mhap.smk.
-	Cell ids are the part of the BAM file names matched by `*` (or `{cell_id}`) in bam_pattern.
+	Run the post-BAM part of the mapping pipeline on existing cell-level BAM files (skipping
+	demultiplex, trimming and mapping), e.g. to (re)generate allc / cz / mhap / 3C contacts from
+	the BAMs of a finished mapping run. Cell ids are the part of the BAM file names matched by
+	`*` (or `{cell_id}`) in bam_pattern.
 
 	Parameters
 	----------
@@ -631,8 +669,9 @@ def start_from_cell_bam(
 		local (gcp=False): directory with the input BAM files; they are symlinked into
 		{output_dir}/Group{i}/bam/. Not used when gcp=True.
 	bam_pattern: str
-		BAM file name with one `*` (or `{cell_id}`) for the cell id,
-		e.g. "*.hisat3n_dna.all_reads.deduped.bam".
+		BAM file name with one `*` (or `{cell_id}`) for the cell id, e.g.
+		"*.hisat3n_dna.all_reads.name_sort.bam" (kept by the m3c pipeline; sorted and
+		deduplicated first) or an already deduplicated "*.deduped.bam" (used as is).
 	output_dir : path
 		gcp=False: new local output directory (Group0, Group1, ... and snakemake/qsub/snakemake_cmd.txt);
 		gcp=True: GCS directory that already contains bam/{bam_pattern}; it is also the output dir.
@@ -641,20 +680,21 @@ def start_from_cell_bam(
 	region, keep_remote :
 		GCP only: google life sciences region; keep the remote files after the run.
 	config_path : str
-		mapping config .ini (copied to {output_dir}/mapping_config.ini).
+		mapping config .ini (copied to {output_dir}/mapping_config.ini); reference_fasta and
+		chrom_size_path (and reference_cz for cz) must be the genome the BAMs were aligned to.
 	aligner : str
-		'hisat-3n' or 'bismark', selects the default template files/smk/{aligner}/{mode}.smk.
+		'hisat-3n' (or 'bismark'), selects the BAM-only template files/smk/{aligner}/from_bam.smk
+		that is run (only hisat-3n is implemented).
 	n_jobs : int
 		cores per snakemake run (-j).
 	print_only : bool
 		local: write {output_dir}/snakemake/qsub/snakemake_cmd.txt (one command per group)
 		to be run by the user; nothing is executed locally when print_only=False.
 		gcp: only print the snakemake command.
-	snakemake_template : str
-		snakemake file to run instead of the default mapping template. The default templates
-		end with the full mapping summary and need the other mapping outputs (fastq / bam
-		stats, hic, ...), so starting only from BAMs needs a BAM-only template,
-		e.g. files/smk/hisat3n/bam2mhap.smk.
+	outputs : str or list
+		what to generate, any of 'allc', 'cz', 'mcg' (allc-CGN, implies allc), 'mhap', 'hic'
+		(3C contacts, needs the name-sorted BAM), e.g. "mhap" or "allc,mhap".
+		None (default): follow mc_format / extract_mcg / generate_mhap of the mapping config.
 	n_group : int
 		local: maximum number of groups (snakemake runs) the cells are split into.
 	total_memory_gb : int
@@ -672,6 +712,9 @@ def start_from_cell_bam(
 		wildcard_pattern = bam_pattern.replace('*', '{cell_id}')
 	else:
 		raise ValueError(f'bam_pattern must contain exactly one * (or {{cell_id}}), got {bam_pattern}')
+	snakemake_template = _bam_template(aligner)
+	config_overrides = {'input_bam': f"bam/{wildcard_pattern}"}
+	config_overrides.update(_bam_outputs_to_config(outputs))
 	if gcp:
 		output_dir=output_dir.replace("gs://","")
 	else: #local
@@ -687,7 +730,8 @@ def start_from_cell_bam(
 
 		make_all_snakefile(output_dir, subdir=None,aligner=aligner, gcp=gcp,
 						   snakemake_template=snakemake_template,
-						   pattern=f"bam/{wildcard_pattern}")
+						   pattern=f"bam/{wildcard_pattern}",
+						   config_overrides=config_overrides)
 		cmd_str = f"--default-remote-prefix {output_dir}"
 		cmd = f"snakemake -s {output_dir}/Snakefile {common_str} {cmd_str}"
 	else: #run on local
@@ -709,7 +753,8 @@ def start_from_cell_bam(
 		for group_id in range(groups):
 			make_all_snakefile(output_dir, f'Group{group_id}', aligner=aligner, gcp=gcp,
 							   snakemake_template=snakemake_template,
-							   pattern=f"bam/{wildcard_pattern}")
+							   pattern=f"bam/{wildcard_pattern}",
+							   config_overrides=config_overrides)
 	print(f"GCP: {gcp}; print_only: {print_only}")
 	if not gcp and print_only:
 		prepare_run(pathlib.Path(output_dir).absolute(),cores_per_job=n_jobs,total_memory_gb=total_memory_gb)

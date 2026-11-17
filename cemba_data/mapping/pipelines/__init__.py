@@ -91,7 +91,8 @@ def make_snakefile(output_dir,aligner="bismark"):
 	return
 
 def make_all_snakefile(output_dir, subdir=None, aligner="hisat-3n", gcp=True,
-					   snakemake_template=None, pattern="fastq/{cell_id}-R1.fq.gz"):
+					   snakemake_template=None, pattern="fastq/{cell_id}-R1.fq.gz",
+					   config_overrides=None):
 	"""
 
 	Parameters
@@ -104,6 +105,9 @@ def make_all_snakefile(output_dir, subdir=None, aligner="hisat-3n", gcp=True,
 	pattern : str
 		used to get cell_ids
 		fastq/{cell_id}-R1.fq.gz, or "CELL_IDS.tsv"
+	config_overrides : dict
+		snakemake config values written at the top of the Snakefile (config.update(...)),
+		they take precedence over mapping_config.ini and the snakemake --config options.
 
 	Returns
 	-------
@@ -173,8 +177,10 @@ def make_all_snakefile(output_dir, subdir=None, aligner="hisat-3n", gcp=True,
 		cell_ids = glob_wildcards(os.path.join(sub_folder, pattern))[0]
 
 	if len(cell_ids) == 0: # length should be 64
-		raise ValueError(f"No cell fastq were identified under {sub_folder}/fastq")
+		raise ValueError(f"No cell were identified with {os.path.join(sub_folder, pattern)}")
 	cell_id_str = f'CELL_IDS = {cell_ids}\n'
+	if config_overrides:
+		cell_id_str += f'config.update({dict(config_overrides)!r})\n'
 
 	if aligner=="bismark":
 		total_snakefile = config_str + cell_id_str + snake_template
