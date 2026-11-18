@@ -655,7 +655,7 @@ def start_from_cell_bam(
 	gcp=True,region='us-west1',keep_remote=False,
 	config_path="mapping_config.ini",aligner='hisat-3n',
 	n_jobs=64,print_only=False,
-	outputs=None,n_group=64,
+	outputs=None,n_cells_per_group=64,
 	total_memory_gb=None):
 	"""
 	Run the post-BAM part of the mapping pipeline on existing cell-level BAM files (skipping
@@ -695,8 +695,9 @@ def start_from_cell_bam(
 		what to generate, any of 'allc', 'cz', 'mcg' (allc-CGN, implies allc), 'mhap', 'hic'
 		(3C contacts, needs the name-sorted BAM), e.g. "mhap" or "allc,mhap".
 		None (default): follow mc_format / extract_mcg / generate_mhap of the mapping config.
-	n_group : int
-		local: maximum number of groups (snakemake runs) the cells are split into.
+	n_cells_per_group : int
+		local: number of cells per group (default 64); the final group may be smaller.
+		Use a new output directory when changing the grouping. Not used on GCP.
 	total_memory_gb : int
 		local: memory per snakemake run (default 2 * n_jobs GB).
 
@@ -704,6 +705,8 @@ def start_from_cell_bam(
 	-------
 
 	"""
+	if not gcp and (type(n_cells_per_group) is not int or n_cells_per_group < 1):
+		raise ValueError("n_cells_per_group must be a positive integer")
 	if '{cell_id}' in bam_pattern:
 		glob_pattern = bam_pattern.replace('{cell_id}', '*')
 		wildcard_pattern = bam_pattern
@@ -739,9 +742,9 @@ def start_from_cell_bam(
 		bam_paths = sorted(glob.glob(os.path.join(indir,glob_pattern)))
 		if len(bam_paths) == 0:
 			raise ValueError(f"No BAM file matches {os.path.join(indir, glob_pattern)}")
-		groups = min(n_group, len(bam_paths)) #how many groups
+		groups = (len(bam_paths) + n_cells_per_group - 1) // n_cells_per_group
 		for i, bam_path in enumerate(bam_paths):
-			group_id = i % groups
+			group_id = i // n_cells_per_group
 			bam_dir = os.path.join(output_dir,f'Group{group_id}/bam')
 			os.makedirs(bam_dir,exist_ok=True)
 

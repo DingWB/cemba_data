@@ -131,7 +131,8 @@ sh mapping/snakemake/qsub/snakemake_cmd.txt
 ### Start from cell-level BAM files (skip demultiplex and fastq -> bam)
 `yap-gcp start_from_cell_bam` runs the post-BAM part of the pipeline directly on existing cell BAM files, e.g. to
 (re)generate allc / cz / mhap / 3C contacts from the BAMs of a finished mapping run. It symlinks the BAMs matched by
-`--bam_pattern` into `{output_dir}/Group{i}/bam/` (at most `--n_group` groups), copies the config to
+`--bam_pattern` into `{output_dir}/Group{i}/bam/` (`--n_cells_per_group` cells per group, except the last group may
+be smaller), copies the config to
 `{output_dir}/mapping_config.ini` and writes one Snakefile per group; the cell ids are the part of the file names
 matched by `*`. It always runs the BAM-only template [from_bam.smk](cemba_data/files/smk/hisat3n/from_bam.smk),
 which reuses the post-BAM rules of the hisat-3n pipeline, so the outputs are identical to a full mapping run (only
@@ -172,7 +173,7 @@ yap default-mapping-config --mode m3c --barcode_version V2 \
 yap-gcp start_from_cell_bam --indir="/path/to/bams" \
   --bam_pattern="*.hisat3n_dna.all_reads.name_sort.bam" \
   --output_dir="mhap_run" --gcp=False --config_path="m3c_config.ini" \
-  --outputs="mhap" --n_jobs=16 --n_group=64 --print_only=True
+  --outputs="mhap" --n_jobs=16 --n_cells_per_group=64 --print_only=True
 sh mhap_run/snakemake/qsub/snakemake_cmd.txt # or submit each line as a job
 ls mhap_run/Group*/mhap/*.CG.mhap.gz
 
@@ -193,6 +194,7 @@ snakemake -d mapping/Pool_Remind1_m3c/<uid> -s ${SMK} -j 16 \
   --config input_bam="bam/{cell_id}.hisat3n_dna.all_reads.name_sort.bam" mc_format=none generate_mhap=True
 ```
 - `--bam_pattern`: BAM file name with one `*` (or `{cell_id}`) for the cell id (default `*.hisat3n_dna.all_reads.name_sort.bam`).
+- `--n_cells_per_group`: cells per local Snakemake group (default `64`; no effect on GCP). Use a new output directory when changing the grouping.
 - `--outputs`: what to generate (`allc`, `cz`, `mcg`, `mhap`, `hic`, see the table); omit to follow the mapping config.
 - `--aligner`: `hisat-3n` (default); the BAM-only template is not implemented for `bismark` yet.
 - `--print_only=True` (local): only write the commands; with `--print_only=False` nothing is run locally.
