@@ -22,6 +22,7 @@ The post-BAM rules are reused from hisat3n.smk, so the outputs are identical to 
 mapping run; only MappingSummary.csv.gz is not produced (its mapping stats do not exist).
 """
 import os, sys
+from pathlib import Path
 import cemba_data
 from snakemake.io import glob_wildcards
 from cemba_data.hisat3n import read_mapping_config
@@ -79,12 +80,20 @@ if len(TARGETS) == 0:
 if not BAM_DEDUPED:
     TARGETS += expand("bam/{cell_id}.hisat3n_dna.all_reads.deduped.matrix.txt", cell_id=CELL_IDS)
 
+FINISHED = Path("finished")
+
+onstart:
+    if not config["gcp"]:
+        FINISHED.unlink(missing_ok=True)
+
 # the first rule is the default target
 rule summary:
     input:
         TARGETS
     run:
         shell(f"rm -rf {bam_dir}/temp")
+        if not config["gcp"]:
+            FINISHED.touch()
 
 
 module hisat3n:

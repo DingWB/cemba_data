@@ -8,11 +8,7 @@ conda config --add channels conda-forge
 
 mamba env create -f https://raw.githubusercontent.com/DingWB/cemba_data/master/yap.yaml
 
-# if failed, try:
-# mamba env create -f https://raw.githubusercontent.com/DingWB/cemba_data/master/env_greedy.yaml
 conda activate yap
-
-# conda env export > env_greedy.yaml
 ```
 ## To install this latest version:
 ```shell
@@ -20,20 +16,22 @@ pip install git+https://github.com/DingWB/cemba_data
 
 # reinstall
 pip uninstall -y cemba_data && pip install git+https://github.com/DingWB/cemba_data
-
 ```
 
 # Documentation
-## Make sure create the right environment
 
-## Generate config.ini
+The `yap-gcp` workflow has three steps: **(1) create a mapping config, (2) demultiplex, and (3) map**. The examples below use `m3c` and `hisat-3n`. Replace `m3c` with another supported mode, such as `mc` or `mct`, when needed. `hisat-3n` is the default aligner; to use Bismark, provide `--bismark_ref` when creating the config and set `--aligner=bismark` when running mapping.
+
+## 1. Create a mapping config
+
+Create the config once. Replace the example reference paths with your own:
 ```shell
-# m3c
-yap default-mapping-config --mode m3c --barcode_version V2 --bismark_ref "~/Ref/mm10/mm10_ucsc_with_chrL.bismark1" --genome "~/Ref/mm10/mm10_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/mm10/mm10_ucsc.nochrM.sizes" --hisat3n_dna_ref  "~/Ref/mm10/mm10_ucsc_with_chrL" > m3c_config.ini
-
-#mC
-yap default-mapping-config --mode mc --barcode_version V2 --bismark_ref "~/Ref/mm10/mm10_ucsc_with_chrL.bismark1" --genome "~/Ref/mm10/mm10_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/mm10/mm10_ucsc.nochrM.sizes" --hisat3n_dna_ref  "~/Ref/mm10/mm10_ucsc_with_chrL" > mc_config.ini
-# pay attention to the path of reference, should be the same as on the GCP if you are going to run the pipeline on GCP.    
+yap default-mapping-config --mode m3c --barcode_version V2 \
+  --hisat3n_dna_ref ~/Ref/hg38/hg38_ucsc_with_chrL \
+  --genome_fasta ~/Ref/hg38/hg38_ucsc_with_chrL.fa \
+  --chrom_size_path ~/Ref/hg38/hg38_ucsc.main.chrom.sizes \
+  > m3c_config.ini
+# for bismark, add: --bismark_ref "~/Ref/mm10/mm10_ucsc_with_chrL.bismark1"
 
 # mct
 # bismark & STAR for mct (bowtie2)
@@ -41,186 +39,93 @@ yap default-mapping-config --mode mct --barcode_version V2 --bismark_ref "~/Ref/
 
 # hisat-3n for mct    
 yap default-mapping-config --mode mct --barcode_version V2 --hisat3n_dna_ref "~/Ref/mm10/mm10_ucsc_with_chrL" --hisat3n_rna_ref "~/Ref/mm10/mm10_ucsc_with_chrL" --genome "~/Ref/mm10/mm10_ucsc_with_chrL.fa" --chrom_size_path "~/Ref/mm10/mm10_ucsc.nochrM.sizes" --gtf "~/Ref/mm10/annotations/gencode.vM23.annotation.gtf" > mct_config.ini
+
 ```
 
-## Choose the methylation output: allc / cz
-The `m3c` and `mc` pipelines (both the `bismark` and `hisat-3n` aligners) can
-generate three kinds of per-cell methylation output. Which ones are produced is
-controlled by three parameters in the `[output]` section of the mapping config
-(`.ini`) file:
+### Methylation output options
 
-| parameter | values | meaning |
+Set these options in `[output]` in the `.ini`, or pass them to `yap default-mapping-config`:
+
+| Parameter | Options | Meaning |
 | --- | --- | --- |
-| `mc_format` | `allc` / `cz` (**default**) / `both` | `cz` → `cz/<cell>.cz` (cytozip `bam_to_cz`, **default**); `allc` → `allc/<cell>.allc.tsv.gz` (ALLCools `bam-to-allc`); `both` → generate both |
-| `reference_cz` | path to a `.cz` file | **required** when `mc_format` is `cz` or `both` |
-| `extract_mcg` | `False` (**default**) / `True` | generate the CGN-merged ALLC `allc-CGN/<cell>.CGN-Merge.allc.tsv.gz`. **Off by default**; only meaningful when allc output is produced |
+| `mc_format` | `allc`, `cz`, `both` | `allc` writes ALLC files; `cz` writes cytozip `.cz` files; `both` writes both. The config-generation command defaults to `allc`. |
+| `reference_cz` | path to `.cz` | Required when `mc_format` is `cz` or `both`. Build it once per reference genome (command below), then set its path in the config. |
+| `extract_mcg` | `True`, `False` | Generate the CGN-merged ALLC (`allc-CGN/`). Off by default; only applies when ALLC is generated. |
 
-### 1. Generate .cz (cytozip) — default
-`cz` is the **default** output. It needs a **reference `.cz`** built once per
-genome with cytozip's `build_ref` (from the genome fasta + chrom_size):
+Build a reference `.cz` if using `mc_format=cz` or `both`:
 ```shell
-# build the reference .cz once (reuse it for every mapping run)
 czip build_ref -g ~/Ref/hg38/hg38_ucsc_with_chrL.fa \
   -O ~/Ref/hg38/hg38_ucsc_with_chrL.allc.cz \
   -s ~/Ref/hg38/hg38_ucsc.main.chrom.sizes -j 20
 ```
-Then set in the config:
+
+Then set options in `[output]` in the config:
 ```ini
 [output]
-mc_format = cz            ; default; use "both" to also keep allc
+mc_format = both # or cz if you don't want to generate allc format
 reference_cz = ~/Ref/hg38/hg38_ucsc_with_chrL.allc.cz
+extract_mcg = False
 ```
-If `reference_cz` is missing or not set while `mc_format` is `cz`/`both`, the
-pipeline prints a warning with the exact `czip build_ref` command to run.
+Alternatively, add `--mc_format both --reference_cz ~/Ref/hg38/hg38_ucsc_with_chrL.allc.cz` to the config-generation command in step 1. Use `--mc_format allc` for ALLC only. Add `--extract_mcg` to enable CGN extraction; it is not run by default.
 
-### 2. Generate ALLC instead of / in addition to .cz
-```ini
-[output]
-mc_format = allc          ; or "both" to also generate cz
-```
+## Local workflow
+`yap-gcp` support both local and GCP
 
-### 3. Generate the CGN-merged ALLC (allc-CGN)
-`allc-CGN/<cell>.CGN-Merge.allc.tsv.gz` is **no longer produced by default**.
-Enable it explicitly (only meaningful when allc output is generated):
-```ini
-[output]
-mc_format = allc          ; or both
-extract_mcg = True
-```
-
-### Generating the config with these options in one line
-`yap default-mapping-config` forwards any extra `--key value` pairs into the
-config, so you can set the output options directly:
+### 2. Demultiplex
 ```shell
-# cz (default) — remember to build the reference .cz first (see above)
-yap default-mapping-config --mode m3c --barcode_version V2 \
-  --hisat3n_dna_ref "~/Ref/hg38/hg38_ucsc_with_chrL" \
-  --genome "~/Ref/hg38/hg38_ucsc_with_chrL.fa" \
-  --chrom_size_path "~/Ref/hg38/hg38_ucsc.main.chrom.sizes" \
-  --reference_cz "~/Ref/hg38/hg38_ucsc_with_chrL.allc.cz" > m3c_config.ini
-
-# allc + allc-CGN, hisat-3n
-yap default-mapping-config --mode m3c --barcode_version V2 \
-  --hisat3n_dna_ref "~/Ref/hg38/hg38_ucsc_with_chrL" \
-  --genome "~/Ref/hg38/hg38_ucsc_with_chrL.fa" \
-  --chrom_size_path "~/Ref/hg38/hg38_ucsc.main.chrom.sizes" \
-  --mc_format allc --extract_mcg True > m3c_config.ini
+yap-gcp run_demultiplex --fq_dir=/path/to/raw_fastq/Pool1 \
+  --outdir=mapping/Pool1 --n_jobs=16 --print_only=True 
+# --print_only only print the CMD, please run the printed CMD yourself
+# suggestion: 16 CPUs with 120G memory
 ```
 
-## Demultiplex
+### 3. Mapping
+Generate the local Snakemake commands, then run them:
 ```shell
-# m3c
-yap demultiplex --fastq_pattern "Pool_Remind1_m3c/*.fastq.gz" -o mapping/Pool_Remind1_m3c -j 16 --aligner hisat3n --config_path m3c_config.ini
-# or
- yap-gcp run_demultiplex --fq_dir="Pool_Remind1_m3c" --outdir="mapping/Pool_Remind1_m3c" --gcp=False --n_jobs=16 --print_only=True 
- 
-# mc
- yap-gcp run_demultiplex --fq_dir="Pool_Remind1_mC" --outdir="mapping/Pool_Remind1_mC" --gcp=False --n_jobs=16 --print_only=True 
+yap-gcp run_mapping --workd mapping/Pool1 \
+  --config_path=m3c_config.ini --aligner="hisat-3n" \
+  --n_jobs=64 --print_only=True
+sh mapping/Pool1/snakemake/qsub/snakemake_cmd.txt
+```
+For Bismark, use `--aligner=bismark`.
+
+## GCP workflow
+
+Upload raw FASTQ files to a GCS bucket. Configure SkyPilot and GCP credentials first; the reference paths in the config must be accessible to the GCP workers.
+
+### 2. Demultiplex on GCP
+Prepare and launch the demultiplex job. Its output will be `gs://my-bucket/m3c_run`:
+```shell
+yap-gcp prepare_demultiplex --fq_dir=gs://my-bucket/raw_fastq \
+  --remote_prefix=my-bucket --outdir=m3c_run \
+  --fastq_server=gcp --gcp=True --region=us-west1 \
+  --env_name=yap --n_jobs=16
+sky launch -y -n demultiplex run_demultiplex.yaml
 ```
 
-## Run mapping
+### 3. Mapping on GCP
+Prepare the mapping jobs from the demultiplexed GCS data, then launch them:
 ```shell
-sh mapping/snakemake/qsub/snakemake_cmd.txt # old yap pipeline
-# or new yap-gcp pipeline
-yap-gcp run_mapping --workd="mapping/Pool_Remind1_m3c" --gcp=False --config_path="m3c_config.ini" --aligner='hisat-3n' --n_jobs=64 --print_only=True
-# or bismark
-yap-gcp run_mapping --workd="mapping" --gcp=False --config_path="m3c_config.ini" --aligner='bismark' --n_jobs=64 --print_only=True
-sh mapping/snakemake/qsub/snakemake_cmd.txt
+yap-gcp prepare_mapping --workd=gs://my-bucket/m3c_run \
+  --config_path=m3c_config.ini --aligner=hisat-3n \
+  --fastq_server=gcp --gcp=True --region=us-west1 \
+  --env_name=yap --n_node=1 --n_jobs=64
+sh mapping_gcp_tmp/run_mapping.sh
 ```
+For Bismark, use `--aligner=bismark`.
 
-### Start from cell-level BAM files (skip demultiplex and fastq -> bam)
-`yap-gcp start_from_cell_bam` runs the post-BAM part of the pipeline directly on existing cell BAM files, e.g. to
-(re)generate allc / cz / mhap / 3C contacts from the BAMs of a finished mapping run. It symlinks the BAMs matched by
-`--bam_pattern` into `{output_dir}/Group{i}/bam/` (`--n_cells_per_group` cells per group, except the last group may
-be smaller), copies the config to
-`{output_dir}/mapping_config.ini` and writes one Snakefile per group; the cell ids are the part of the file names
-matched by `*`. It always runs the BAM-only template [from_bam.smk](cemba_data/files/smk/hisat3n/from_bam.smk),
-which reuses the post-BAM rules of the hisat-3n pipeline, so the outputs are identical to a full mapping run (only
-`MappingSummary.csv.gz` is not produced; the normal `{mode}.smk` templates need the fastq / mapping stats and can
-not start from BAMs).
+## Start from BAM
 
-Input BAMs: the name-sorted `*.hisat3n_dna.all_reads.name_sort.bam` kept by the m3c pipeline (position-sorted,
-deduplicated and indexed first; required for `hic`) or already deduplicated `*.deduped.bam` (indexed and used as is).
-`reference_fasta`, `chrom_size_path` (and `reference_cz` for cz, `mhap_cache_dir` for mhap) in the config must be
-the genome the BAMs were aligned to.
+Use `start_from_cell_bam` to skip demultiplexing and alignment and run post-BAM outputs on existing cell-level BAMs. The config references must match the genome used to align the BAMs.
 
-**What is generated** is controlled by `--outputs`, or by the mapping config when `--outputs` is omitted
-(`--outputs` overrides the config):
-
-| `--outputs` | mapping config | output |
-|---|---|---|
-| `allc` | `mc_format = allc` | `allc/{cell}.allc.tsv.gz` |
-| `cz` | `mc_format = cz` | `cz/{cell}.cz` (needs `reference_cz`) |
-| `allc,cz` | `mc_format = both` | both |
-| *(neither)* | `mc_format = none` | no methylation output (`none` is only valid for `start_from_cell_bam`) |
-| `mcg` | `extract_mcg = True` | `allc-CGN/{cell}.CGN-Merge.allc.tsv.gz`; implies `allc` |
-| `mhap` | `generate_mhap = True` | `mhap/{cell}.CG.mhap.gz`, `mhap/{cell}.CH.mhap.gz` |
-| `hic` | `generate_hic = True` | `hic/{cell}.hisat3n_dna.all_reads.*` 3C contacts; needs the name-sorted BAM |
-
-e.g. `--outputs mhap` (mhap only), `--outputs allc,mcg,mhap`, `--outputs "[cz,hic]"`. `generate_hic` is not in
-the default config written by `yap default-mapping-config`; add the line to the `.ini` to enable it without
-`--outputs`. Internally the switches are written at the top of each Snakefile
-(`config.update({'input_bam': ..., 'mc_format': ..., ...})`), so they apply to local and GCP runs alike.
+Local example:
 ```shell
-# mapping config: reference_fasta and chrom_size_path must be the genome the BAMs were aligned to
-yap default-mapping-config --mode m3c --barcode_version V2 \
-  --hisat3n_dna_ref "~/Ref/hg38/hg38_ucsc_with_chrL" \
-  --genome "~/Ref/hg38/hg38_ucsc_with_chrL.fa" \
-  --chrom_size_path "~/Ref/hg38/hg38_ucsc.main.chrom.sizes" > m3c_config.ini
-
-# local / HPC: write mhap_run/snakemake/qsub/snakemake_cmd.txt (one snakemake command per group), then run it
-# --indir: the directory containing the BAMs (e.g. one {workd}/{uid}/bam of a yap-gcp run, or a folder of symlinks)
-yap-gcp start_from_cell_bam --indir="/path/to/bams" \
+yap-gcp start_from_cell_bam --indir=/path/to/bams \
   --bam_pattern="*.hisat3n_dna.all_reads.name_sort.bam" \
-  --output_dir="mhap_run" --gcp=False --config_path="m3c_config.ini" \
-  --outputs="mhap" --n_jobs=16 --n_cells_per_group=64 --print_only=True
-sh mhap_run/snakemake/qsub/snakemake_cmd.txt # or submit each line as a job
-ls mhap_run/Group*/mhap/*.CG.mhap.gz
-
-# allc + allc-CGN + mhap from already deduplicated BAMs
-yap-gcp start_from_cell_bam --indir="/path/to/bams" \
-  --bam_pattern="*.hisat3n_dna.all_reads.deduped.bam" \
-  --output_dir="allc_run" --gcp=False --config_path="m3c_config.ini" \
-  --outputs="allc,mcg,mhap" --n_jobs=16 --print_only=True
-
-# GCP: output_dir is the GCS folder that already contains bam/{bam_pattern}; outputs are written there
-yap-gcp start_from_cell_bam --output_dir="gs://bucket/mapping/uid" \
-  --bam_pattern="*.hisat3n_dna.all_reads.name_sort.bam" --gcp=True --region='us-west1' \
-  --config_path="m3c_config.ini" --outputs="allc,mhap" --n_jobs=64
-
-# a single directory with bam/*.bam can also be run without start_from_cell_bam
-SMK=$(python -c "import cemba_data,os; print(os.path.join(cemba_data.__path__[0],'files/smk/hisat3n/from_bam.smk'))")
-snakemake -d mapping/Pool_Remind1_m3c/<uid> -s ${SMK} -j 16 \
-  --config input_bam="bam/{cell_id}.hisat3n_dna.all_reads.name_sort.bam" mc_format=none generate_mhap=True
-```
-- `--bam_pattern`: BAM file name with one `*` (or `{cell_id}`) for the cell id (default `*.hisat3n_dna.all_reads.name_sort.bam`).
-- `--n_cells_per_group`: cells per local Snakemake group (default `64`; no effect on GCP). Use a new output directory when changing the grouping.
-- `--outputs`: what to generate (`allc`, `cz`, `mcg`, `mhap`, `hic`, see the table); omit to follow the mapping config.
-- `--aligner`: `hisat-3n` (default); the BAM-only template is not implemented for `bismark` yet.
-- `--print_only=True` (local): only write the commands; with `--print_only=False` nothing is run locally.
-- `--total_memory_gb`: memory per snakemake command (default `2 * n_jobs` GB).
-
-## Workflow
-<img src="doc/files/snm3c_dag.svg" title="DAG for snm3c" width="800px">
-
-### (5) yap vs yap-gcp: example on m3c
-```shell
-# generate config.ini; bismark
-yap default-mapping-config --mode m3c --barcode_version V2 --bismark_ref "~/Ref/hg38/hg38_ucsc_with_chrL.bismark1" --genome " ~/Ref/hg38/hg38_ucsc_with_chrL.fa" --chrom_size_path " ~/Ref/hg38/hg38_ucsc.nochrM.sizes" > m3c_config.ini
-# hisat3n
-yap default-mapping-config --mode m3c --barcode_version V2 --hisat3n_dna_ref  "~/Ref/hg38/hg38_ucsc_with_chrL" --genome " ~/Ref/hg38/hg38_ucsc_with_chrL.fa" --chrom_size_path " ~/Ref/hg38/hg38_ucsc.nochrM.sizes" > m3c_hisat3n_config.ini
-
-# (1). old yap pipeline
-## demultiplex
-yap demultiplex --fastq_pattern "/gale/raidix/rdx-2/illumina_runs/240322_M00412_0796_000000000-GK7K5_240325081847048305907-1/SALK054/*.fastq.gz" -o mapping -j 16 --aligner bismark --config_path m3c_config.ini #/usr/bin/time -f "%e\t%M\t%P" ;  2125.33 500364  195%
-# elapsed real time (wall clock) in seconds; maximum resident set size in KB;  percent of CPU this job got
-## mapping
-sh mapping/snakemake/qsub/snakemake_cmd.txt
-# /usr/bin/time -f "%e\t%M\t%P" UWA7648_CX2324_THM1_3_P12-2-N8 ; run one uid, 16 cpus; 4514.82 3393988 367%
-
-# (2). new yap-gcp pipeline, run on local HPC (faster)
-yap-gcp run_demultiplex --fq_dir=" /gale/raidix/rdx-2/illumina_runs/240322_M00412_0796_000000000-GK7K5_240325081847048305907-1/SALK054/" --outdir="mapping" --gcp=False --n_jobs=16
-# time and memory usage: 69.52   282008  754%; 30X faster
-yap-gcp run_mapping --workd="mapping" --gcp=False --config_path="m3c_config.ini" --aligner='bismark' --n_jobs=64 --print_only=True
+  --output_dir mapping --config_path=m3c_config.ini \
+  --n_jobs=16 --print_only=True
+# --outputs will overwrite some config in .ini
 sh mapping/snakemake/qsub/snakemake_cmd.txt
 ```
+
+`--outputs` accepts `allc`, `cz`, `mcg`, and `hic`; for example, `allc,cz` produces both methylation formats. `mcg` enables CGN extraction and implies `allc`; `hic` requires the name-sorted BAM. Omit `--outputs` to follow the output settings in the config. For GCP, set `--gcp=True` and use an `--output_dir` GCS path that already contains `bam/<bam_pattern>`.
