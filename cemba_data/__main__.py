@@ -467,8 +467,9 @@ def print_default_config_register_subparser(subparser):
 		type=str,
 		default=None,
 		help="[with --generate_mhap] Directory to cache the mhap site flags of --genome "
-			 "(1 byte / bp, ~3 GB for hg38). Without it, every cell recomputes them (~20-30 s). "
-			 "Shared by all cells of the same genome."
+			 "(1 byte / bp, ~3 GB for hg38). If omitted, a temporary cache is created alongside "
+			 "mapping_config.ini and removed after jobs finish when using a generated queue launcher. "
+			 "Without caching, every cell recomputes the flags (~20-30 s)."
 	)
 
 	parser.set_defaults(nome=False, extract_mcg=False, generate_mhap=False)

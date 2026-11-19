@@ -1,12 +1,12 @@
 | `generate_mhap` | `False` (**default**) / `True` | also generate `mhap/<cell>.CG.mhap.gz` and `mhap/<cell>.CH.mhap.gz` |
-| `mhap_cache_dir` | `None` (**default**) / a directory | cache the per-chromosome site flags of `reference_fasta` (1 byte / bp, ~3 GB for hg38). Without it every cell recomputes them (~20-30 s for hg38); the cache is shared by all cells of the same genome |
+| `mhap_cache_dir` | `None` (**default**) / a directory | cache the per-chromosome site flags of `reference_fasta` (1 byte / bp, ~3 GB for hg38). `None` uses a temporary cache beside `mapping_config.ini`, removed after jobs finish when using a generated queue launcher. An explicit directory is retained for reuse. |
 ### 4. Also generate mhap files
 Set `generate_mhap = True`; CpG / CH sites are taken from the genome fasta (`reference_fasta`)
 and the chromosomes from `chrom_size_path`:
 ```ini
 [output]
 generate_mhap = True
-; optional, recommended for many cells: cache the genome site flags once (~3 GB for hg38)
+; optional: set a persistent cache to reuse site flags across mapping runs (~3 GB for hg38)
 mhap_cache_dir = ~/Ref/hg38/mhap_cache
 ```
 

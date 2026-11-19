@@ -1,7 +1,9 @@
 import glob
 import pathlib
+import shlex
 import subprocess
 import os
+import tempfile
 import pandas as pd
 import cemba_data
 from .m3c import m3c_config_str
@@ -13,6 +15,61 @@ from .mhap import bam2mhap
 # from cemba_data.utilities import get_configuration
 # Load defaults
 PACKAGE_DIR = pathlib.Path(cemba_data.__path__[0])
+MHAP_CACHE_TEMP_MARKER = '.mhap_cache_temp'
+
+
+def _read_temporary_mhap_cache(output_dir):
+	output_dir = pathlib.Path(output_dir).absolute()
+	marker_path = output_dir / MHAP_CACHE_TEMP_MARKER
+	if not marker_path.exists():
+		return None
+
+	cache_name = marker_path.read_text().strip()
+	if pathlib.Path(cache_name).name != cache_name or not cache_name.startswith('.mhap_cache_'):
+		raise ValueError(f'Invalid temporary mhap cache marker: {marker_path}')
+	return output_dir / cache_name
+
+
+def _configure_mhap_cache(output_dir, config):
+	"""Use a shared, run-scoped cache when mhap generation has no explicit cache.
+
+	Sets config['mhap_cache_dir'] and returns the cache path, or returns None when
+	mhap is off, the mode has no mhap rule, or the user set an explicit cache dir.
+	"""
+	generate_mhap = str(config.get('generate_mhap', False)).strip().lower() in (
+		'true', '1', 'yes', 'y', 't', 'on')
+	mode = str(config.get('mode', '')).lower().split('-')[0]
+	cache_dir = config.get('mhap_cache_dir')
+	has_explicit_cache = cache_dir is not None and str(cache_dir).strip().lower() not in ('', 'none')
+	if not generate_mhap or mode not in ('mc', 'm3c') or has_explicit_cache:
+		return None
+
+	output_dir = pathlib.Path(output_dir).absolute()
+	cache_dir = _read_temporary_mhap_cache(output_dir)
+	if cache_dir is None or not cache_dir.is_dir():
+		marker_path = output_dir / MHAP_CACHE_TEMP_MARKER
+		if marker_path.exists():
+			marker_path.unlink()
+		cache_dir = pathlib.Path(tempfile.mkdtemp(prefix='.mhap_cache_', dir=output_dir))
+		try:
+			marker_path.write_text(f'{cache_dir.name}\n')
+		except OSError:
+			cache_dir.rmdir()
+			raise
+
+	config['mhap_cache_dir'] = str(cache_dir)
+	return cache_dir
+
+
+def _mhap_cache_cleanup_command(output_dir):
+	cache_dir = _read_temporary_mhap_cache(output_dir)
+	if cache_dir is None:
+		return ''
+	marker_path = pathlib.Path(output_dir).absolute() / MHAP_CACHE_TEMP_MARKER
+	return (f' && rm -rf -- {shlex.quote(str(cache_dir))}'
+			f' && rm -f -- {shlex.quote(str(marker_path))}')
+
+
 def prepare_uid_snakefile(uid_dir, config_str, snake_template):
 	cell_ids = [path.name.split('.')[0][:-3] for path in (uid_dir / 'fastq').glob('*R1.fq.gz')]
 	cell_id_str = f'CELL_IDS = {cell_ids}\n'
@@ -59,6 +116,8 @@ def make_snakefile(output_dir,aligner="bismark"):
 		mode = config['mode']
 	except KeyError:
 		raise KeyError('mode not found in the config file.')
+	# must run before *_config_str so the cache path is embedded in the Snakefile header
+	_configure_mhap_cache(output_dir, config)
 
 	if mode.split('-')[0] == 'mc':
 		config_str = mc_config_str(config)
@@ -84,7 +143,8 @@ def make_snakefile(output_dir,aligner="bismark"):
 
 	for sub_dir in output_dir.iterdir():
 		if sub_dir.is_dir():
-			if sub_dir.name not in ['stats', 'snakemake']:
+			# skip hidden dirs such as the temporary .mhap_cache_* dir
+			if sub_dir.name not in ['stats', 'snakemake'] and not sub_dir.name.startswith('.'):
 				prepare_uid_snakefile(uid_dir=sub_dir,
 									  config_str=config_str,
 									  snake_template=snake_template)
@@ -207,7 +267,7 @@ def make_snakefile_hisat3n(output_dir,aligner='hisat-3n'):
 
 	skip_dirs = ['stats', 'snakemake', 'scool']
 	mapping_job_dirs = [p for p in output_dir.glob('*')
-						if p.is_dir() and (p.name not in skip_dirs)]
+						if p.is_dir() and (p.name not in skip_dirs) and not p.name.startswith('.')]
 
 	snakemake_dir = output_dir / 'snakemake'
 	snakemake_dir.mkdir(exist_ok=True)
@@ -228,10 +288,22 @@ def make_snakefile_hisat3n(output_dir,aligner='hisat-3n'):
 		raise ValueError(f'Mode {mode} not supported, '
 						 f'because Snakefile {snakefile_path} not found.')
 
+	temporary_mhap_cache = _configure_mhap_cache(output_dir, config)
+	snakefile_header = ''
+	if temporary_mhap_cache is not None:
+		# hisat3n_base.smk lets keys already in `config` win over mapping_config.ini,
+		# and read_mapping_config() prefers ../mapping_config.ini, so pass it via config
+		snakefile_header = f"config.update({{'mhap_cache_dir': {str(temporary_mhap_cache)!r}}})\n"
+		with open(snakefile_path) as f:
+			snake_template = f.read()
 	for p in mapping_job_dirs:
 		subprocess.run(['cp', f'{output_dir}/{mapping_config_name}',
 						f'{p}/{mapping_config_name}'], check=True)
-		subprocess.run(['cp', snakefile_path, f'{p}/Snakefile'], check=True)
+		if snakefile_header:
+			with open(p / 'Snakefile', 'w') as f:
+				f.write(snakefile_header + snake_template)
+		else:
+			subprocess.run(['cp', snakefile_path, f'{p}/Snakefile'], check=True)
 
 	# leave a flag to indicate using hisat-3n pipeline
 	subprocess.run(['touch', f'{output_dir}/snakemake/hisat3n'], check=True)
@@ -365,7 +437,7 @@ yap qsub \
 --project_name y{name} \
 --total_cpu {int(cores_per_job * total_jobs)} \
 --qsub_global_parms "-pe smp={cores_per_job};-l h_vmem={memory_gb_per_core}G"
-"""
+""".rstrip() + _mhap_cache_cleanup_command(output_dir) + '\n'
 	qsub_total_path = qsub_dir / 'qsub.sh'
 	with open(qsub_total_path, 'w') as f:
 		f.write(qsub_str)
@@ -457,7 +529,7 @@ def prepare_sbatch(name, snakemake_dir, queue,total_memory_gb=None):
 				 f'--queue {queue}'
 	sbatch_total_path = sbatch_dir / f'sbatch-{queue}-queue.sh'
 	with open(sbatch_total_path, 'w') as f:
-		f.write(sbatch_cmd)
+		f.write(sbatch_cmd + _mhap_cache_cleanup_command(output_dir) + '\n')
 
 	print('#' * 40)
 	print(f'For running jobs on the STAMPEDE2 {queue} queue:')
