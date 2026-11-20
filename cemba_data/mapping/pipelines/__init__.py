@@ -239,8 +239,15 @@ def make_all_snakefile(output_dir, subdir=None, aligner="hisat-3n", gcp=True,
 	if len(cell_ids) == 0: # length should be 64
 		raise ValueError(f"No cell were identified with {os.path.join(sub_folder, pattern)}")
 	cell_id_str = f'CELL_IDS = {cell_ids}\n'
+	config_overrides = dict(config_overrides or {})
+	if not gcp:
+		# same run-scoped mhap cache as make_snakefile_hisat3n, shared by all groups of
+		# this output_dir; --outputs / config_overrides may switch generate_mhap on
+		cache_dir = _configure_mhap_cache(output_dir, {**config, **config_overrides})
+		if cache_dir is not None:
+			config_overrides['mhap_cache_dir'] = str(cache_dir)
 	if config_overrides:
-		cell_id_str += f'config.update({dict(config_overrides)!r})\n'
+		cell_id_str += f'config.update({config_overrides!r})\n'
 
 	if aligner=="bismark":
 		total_snakefile = config_str + cell_id_str + snake_template
